@@ -77,9 +77,9 @@ const App = () => (
           <div className="rounded-base border border-[color:var(--color-gray-100)] bg-white p-6 shadow-card">
             <h2 className="text-xl font-semibold">Key outcomes</h2>
             <ul className="mt-4 space-y-3 text-sm text-[color:var(--color-gray-500)]">
-              <li>• Intake to carrier recommendations in under 60 seconds.</li>
-              <li>• 1-click access to source underwriting guidelines.</li>
-              <li>• Track approval and placement analytics across teams.</li>
+              <li>âœ“ Intake to carrier recommendations in under 60 seconds.</li>
+              <li>âœ“ 1-click access to source underwriting guidelines.</li>
+              <li>âœ“ Track approval and placement analytics across teams.</li>
             </ul>
           </div>
         </div>
@@ -111,7 +111,7 @@ const App = () => (
               >
                 <ul className="mt-2 space-y-2 text-sm text-[color:var(--color-gray-500)]">
                   {tier.bullets.map((bullet) => (
-                    <li key={bullet}>• {bullet}</li>
+                    <li key={bullet}>â€¢ {bullet}</li>
                   ))}
                 </ul>
               </Card>
@@ -162,7 +162,7 @@ const App = () => (
 
     <footer className="border-t border-[color:var(--color-gray-100)] bg-white">
       <div className="mx-auto flex max-w-6xl flex-col gap-4 px-6 py-10 text-sm text-[color:var(--color-gray-500)] md:flex-row md:items-center md:justify-between">
-        <span>© {new Date().getFullYear()} CarrierLLM. All rights reserved.</span>
+        <span>&copy; {new Date().getFullYear()} CarrierLLM. All rights reserved.</span>
         <div className="flex gap-4">
           <a href="#">Privacy</a>
           <a href="#">Terms</a>

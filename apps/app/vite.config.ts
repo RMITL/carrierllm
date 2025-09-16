@@ -8,6 +8,11 @@ export default defineConfig({
       '@': '/src'
     }
   },
+  server: {
+    host: true,
+    port: process.env.PORT ? parseInt(process.env.PORT) : 5174,
+    allowedHosts: ['carrierllm.com', 'www.carrierllm.com', 'app.carrierllm.com', 'localhost', '127.0.0.1']
+  },
   test: {
     environment: 'jsdom'
   }

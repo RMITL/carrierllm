@@ -1,0 +1,26 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(pnpm:*)",
+      "Bash(npm install:*)",
+      "Bash(npx vite:*)",
+      "Bash(pm2 list:*)",
+      "Bash(netstat:*)",
+      "Bash(findstr:*)",
+      "Bash(taskkill:*)",
+      "Bash(pm2 start:*)",
+      "Bash(pm2 update:*)",
+      "Bash(pm2 show:*)",
+      "Bash(where pnpm)",
+      "Bash(pm2 logs:*)",
+      "Bash(pm2 delete:*)",
+      "Bash(pm2 status:*)",
+      "Bash(npm:*)",
+      "Bash(where npm)",
+      "Bash(pm2 stop:*)",
+      "Bash(pm2 resurrect:*)"
+    ],
+    "deny": [],
+    "ask": []
+  }
+}

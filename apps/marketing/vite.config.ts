@@ -7,5 +7,10 @@ export default defineConfig({
     alias: {
       '@': '/src'
     }
+  },
+  server: {
+    host: true,
+    port: process.env.PORT ? parseInt(process.env.PORT) : 5175,
+    allowedHosts: ['carrierllm.com', 'www.carrierllm.com', 'app.carrierllm.com', 'localhost', '127.0.0.1']
   }
 });
