@@ -1,0 +1,19 @@
+name = "carrierllm-worker"
+main = "src/index.ts"
+compatibility_date = "2024-09-16"
+
+[vars]
+STRIPE_WEBHOOK_SECRET = "${STRIPE_WEBHOOK_SECRET}"
+
+[[d1_databases]]
+binding = "DB"
+database_name = "carrierllm"
+database_id = "00000000-0000-0000-0000-000000000000"
+
+[[r2_buckets]]
+binding = "DOCS_BUCKET"
+bucket_name = "carrierllm-docs"
+
+[[vectorize]]
+binding = "CARRIER_INDEX"
+index_name = "carrierllm-index"

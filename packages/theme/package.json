@@ -1,0 +1,15 @@
+{
+  "name": "@carrierllm/theme",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "main": "src/index.ts",
+  "exports": {
+    ".": "./src/index.ts",
+    "./tokens": "./src/tokens.ts",
+    "./css": "./src/theme.css"
+  },
+  "scripts": {
+    "build": "tsc --project tsconfig.json"
+  }
+}

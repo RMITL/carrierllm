@@ -1,0 +1,23 @@
+:root {
+  --color-primary: #1E6BF1;
+  --color-primary-700: #134BB0;
+  --color-gray-900: #2E2E2E;
+  --color-gray-500: #6E6E6E;
+  --color-gray-100: #F5F7FA;
+  --color-green: #0EAD69;
+  --color-amber: #F9A620;
+  --color-red: #D7263D;
+  --font-family-base: 'Inter', sans-serif;
+  --font-size-h1: 32px;
+  --font-size-h2: 24px;
+  --font-size-body: 16px;
+  --spacing-unit: 8px;
+  --border-radius-base: 8px;
+  --shadow-card: 0 8px 16px rgba(30, 107, 241, 0.08);
+}
+
+body {
+  font-family: var(--font-family-base);
+  color: var(--color-gray-900);
+  background-color: #ffffff;
+}
