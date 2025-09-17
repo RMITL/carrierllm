@@ -10,7 +10,10 @@
     "deploy": "wrangler deploy"
   },
   "dependencies": {
+    "@clerk/backend": "^2.14.0",
     "itty-router": "^5.0.18",
+    "resend": "^6.1.0",
+    "stripe": "^18.5.0",
     "zod": "^3.23.8"
   },
   "devDependencies": {

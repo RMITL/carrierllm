@@ -1,38 +1,39 @@
-import { NavLink, Route, Routes } from 'react-router-dom';
+import { SignedIn, SignedOut, useUser } from '@clerk/clerk-react';
+import { Route, Routes } from 'react-router-dom';
+import { Suspense } from 'react';
+import { DashboardLayout } from './components/layout/DashboardLayout';
+import { AuthLayout } from './components/layout/AuthLayout';
+import { LoadingSpinner } from './components/ui/LoadingSpinner';
+import { DashboardPage } from './routes/DashboardPage';
 import { IntakePage } from './routes/IntakePage';
+import { ChatPage } from './routes/ChatPage';
 import { ResultsPage } from './routes/ResultsPage';
+import { ProfilePage } from './routes/ProfilePage';
+import { BillingPage } from './routes/BillingPage';
 import { AnalyticsPage } from './routes/AnalyticsPage';
-
-const navLinkClass = ({ isActive }: { isActive: boolean }) =>
-  `rounded-base px-3 py-2 text-sm font-semibold ${
-    isActive
-      ? 'bg-[color:var(--color-primary)] text-white'
-      : 'text-[color:var(--color-gray-500)] hover:text-[color:var(--color-gray-900)]'
-  }`;
 
 const App = () => {
   return (
-    <div className="min-h-screen bg-[color:var(--color-gray-100)]">
-      <header className="border-b border-[color:var(--color-gray-100)] bg-white">
-        <div className="mx-auto flex max-w-5xl items-center justify-between px-5 py-4">
-          <span className="text-lg font-semibold text-[color:var(--color-primary)]">CarrierLLM</span>
-          <nav className="flex gap-2">
-            <NavLink to="/" className={navLinkClass} end>
-              Intake
-            </NavLink>
-            <NavLink to="/analytics" className={navLinkClass}>
-              Analytics
-            </NavLink>
-          </nav>
-        </div>
-      </header>
-      <main className="mx-auto max-w-5xl px-5 py-8">
-        <Routes>
-          <Route path="/" element={<IntakePage />} />
-          <Route path="/results/:id" element={<ResultsPage />} />
-          <Route path="/analytics" element={<AnalyticsPage />} />
-        </Routes>
-      </main>
+    <div className="min-h-screen bg-[color:var(--color-gray-50)]">
+      <SignedOut>
+        <AuthLayout />
+      </SignedOut>
+
+      <SignedIn>
+        <DashboardLayout>
+          <Suspense fallback={<LoadingSpinner />}>
+            <Routes>
+              <Route path="/" element={<DashboardPage />} />
+              <Route path="/intake" element={<IntakePage />} />
+              <Route path="/chat" element={<ChatPage />} />
+              <Route path="/results/:id" element={<ResultsPage />} />
+              <Route path="/profile" element={<ProfilePage />} />
+              <Route path="/billing" element={<BillingPage />} />
+              <Route path="/analytics" element={<AnalyticsPage />} />
+            </Routes>
+          </Suspense>
+        </DashboardLayout>
+      </SignedIn>
     </div>
   );
 };

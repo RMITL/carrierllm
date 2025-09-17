@@ -1,26 +1,21 @@
 import { useMutation } from '@tanstack/react-query';
 import { useNavigate } from 'react-router-dom';
 import { Banner } from '@carrierllm/ui';
-import { IntakeForm } from '../features/intake/IntakeForm';
-import { submitIntake } from '../lib/api';
-import { buildMockRecommendation } from '../lib/mock';
-import type { IntakeAnswers } from '../types';
+import { OrionIntakeForm } from '../features/intake/OrionIntakeForm';
+import { submitOrionIntake } from '../lib/api';
+import type { OrionIntake } from '../types';
 
 export const IntakePage = () => {
   const navigate = useNavigate();
-  const { mutateAsync, isPending, isError } = useMutation({
-    mutationFn: submitIntake,
+  const { mutateAsync, isPending, isError, error } = useMutation({
+    mutationFn: submitOrionIntake,
     onSuccess: (data) => {
-      navigate(`/results/${data.submissionId}`, { state: data });
-    },
-    onError: () => {
-      const fallback = buildMockRecommendation();
-      navigate(`/results/${fallback.submissionId}`, { state: fallback });
+      navigate(`/results/${data.recommendationId}`, { state: data });
     }
   });
 
-  const handleSubmit = async (answers: IntakeAnswers) => {
-    await mutateAsync(answers);
+  const handleSubmit = async (intake: OrionIntake) => {
+    await mutateAsync(intake);
   };
 
   return (
@@ -35,12 +30,12 @@ export const IntakePage = () => {
       </header>
       {isError ? (
         <Banner
-          variant="warning"
-          title="Live recommendation service unavailable"
-          description="We generated mock carrier recommendations so you can keep testing the workflow."
+          variant="error"
+          title="Recommendation service error"
+          description={`Failed to process intake: ${error?.message || 'Unknown error'}. Please try again.`}
         />
       ) : null}
-      <IntakeForm onSubmit={handleSubmit} isSubmitting={isPending} />
+      <OrionIntakeForm onSubmit={handleSubmit} isSubmitting={isPending} />
     </div>
   );
 };

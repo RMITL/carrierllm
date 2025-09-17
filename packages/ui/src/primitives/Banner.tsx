@@ -10,7 +10,7 @@ const variantStyles: Record<BannerVariant, string> = {
   error: 'bg-[color:var(--color-red)] text-white'
 };
 
-export interface BannerProps extends HTMLAttributes<HTMLDivElement> {
+export interface BannerProps extends Omit<HTMLAttributes<HTMLDivElement>, 'title'> {
   variant?: BannerVariant;
   title?: ReactNode;
   description?: ReactNode;

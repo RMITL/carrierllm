@@ -1,19 +1,26 @@
 name = "carrierllm-worker"
-main = "src/index.ts"
+main = "src/simple-index.ts"
 compatibility_date = "2024-09-16"
 
 [vars]
-STRIPE_WEBHOOK_SECRET = "${STRIPE_WEBHOOK_SECRET}"
+FROM_EMAIL = "noreply@mail.carrierllm.com"
+REPLY_TO_EMAIL = "info@carrierllm.com"
+NOTIFICATION_EMAIL = "info@carrierllm.com"
 
 [[d1_databases]]
 binding = "DB"
 database_name = "carrierllm"
-database_id = "00000000-0000-0000-0000-000000000000"
+database_id = "e6cd2b8b-db9b-4969-968c-6c4e8aec838c"
 
 [[r2_buckets]]
 binding = "DOCS_BUCKET"
-bucket_name = "carrierllm-docs"
+bucket_name = "carrier-docs"
+remote = true
 
 [[vectorize]]
 binding = "CARRIER_INDEX"
 index_name = "carrierllm-index"
+remote = true
+
+[ai]
+binding = "AI"

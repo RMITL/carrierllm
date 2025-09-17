@@ -40,7 +40,16 @@ export const IntakeForm = ({ onSubmit, isSubmitting }: IntakeFormProps) => {
     const parsed = intakeSchema.safeParse(values);
 
     if (!parsed.success) {
-      const formErrors: Errors = parsed.error.flatten().fieldErrors;
+      const flattenedErrors = parsed.error.flatten().fieldErrors;
+      const formErrors: Errors = {};
+
+      // Convert Zod error format to our error format
+      Object.entries(flattenedErrors).forEach(([key, value]) => {
+        if (value && value.length > 0) {
+          formErrors[key as keyof IntakeFormValues] = value[0];
+        }
+      });
+
       setErrors(formErrors);
       return;
     }

@@ -4,3 +4,4 @@ export * from './primitives/Banner';
 export * from './primitives/Card';
 export * from './blocks/UsageMeter';
 export * from './blocks/CarrierCard';
+export * from './blocks/EvidencePopover';

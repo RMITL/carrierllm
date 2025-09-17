@@ -2,24 +2,33 @@ import { useQuery } from '@tanstack/react-query';
 import { useLocation, useParams } from 'react-router-dom';
 import { Banner, Button } from '@carrierllm/ui';
 import { RecommendationList } from '../features/recommendations/RecommendationList';
-import { fetchRecommendations } from '../lib/api';
-import type { RecommendationResponse } from '../types';
+import { fetchRecommendations, fetchOrionRecommendation } from '../lib/api';
+import type { RecommendationResponse, OrionRecommendationResponse } from '../types';
 
 export const ResultsPage = () => {
   const params = useParams();
   const location = useLocation();
-  const seeded = location.state as RecommendationResponse | undefined;
-  const submissionId = params.id ?? seeded?.submissionId;
+  const seeded = location.state as (RecommendationResponse | OrionRecommendationResponse) | undefined;
+  const resultId = params.id ?? (seeded as any)?.submissionId ?? (seeded as any)?.recommendationId;
+
+  // Determine if this is an Orion recommendation based on the seeded data structure
+  const isOrionRecommendation = seeded && 'recommendationId' in seeded;
 
   const { data, isLoading, isError, refetch } = useQuery({
-    queryKey: ['recommendations', submissionId],
-    queryFn: () => fetchRecommendations(submissionId!),
-    enabled: Boolean(submissionId && !seeded)
+    queryKey: ['recommendations', resultId, isOrionRecommendation],
+    queryFn: async () => {
+      if (isOrionRecommendation) {
+        return await fetchOrionRecommendation(resultId!);
+      } else {
+        return await fetchRecommendations(resultId!);
+      }
+    },
+    enabled: Boolean(resultId && !seeded)
   });
 
   const recommendationData = seeded ?? data;
 
-  if (!submissionId) {
+  if (!resultId) {
     return (
       <Banner
         variant="error"
@@ -50,15 +59,18 @@ export const ResultsPage = () => {
     <div className="flex flex-col gap-6">
       <header className="flex flex-col gap-2">
         <h1 className="text-2xl font-semibold text-[color:var(--color-gray-900)]">
-          Carrier recommendations
+          Carrier Recommendations
         </h1>
         <p className="text-sm text-[color:var(--color-gray-500)]">
-          Submission #{recommendationData.submissionId}
+          {(isOrionRecommendation || (recommendationData && 'recommendationId' in recommendationData))
+            ? `Recommendation #${(recommendationData as OrionRecommendationResponse)?.recommendationId}`
+            : `Submission #${(recommendationData as RecommendationResponse)?.submissionId}`
+          }
         </p>
       </header>
       <RecommendationList
-        recommendations={recommendationData.recommendations}
-        summary={recommendationData.summary}
+        data={recommendationData!}
+        isOrionFormat={isOrionRecommendation || (recommendationData && 'recommendationId' in recommendationData) || false}
       />
     </div>
   );
