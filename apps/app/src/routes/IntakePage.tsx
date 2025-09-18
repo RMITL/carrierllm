@@ -1,9 +1,9 @@
-import { useMutation } from '@tanstack/react-query';
+import { useMutation, useQuery } from '@tanstack/react-query';
 import { useNavigate } from 'react-router-dom';
 import { useAuth, useUser } from '@clerk/clerk-react';
 import { Banner, Card, Button } from '@carrierllm/ui';
 import { OrionIntakeForm } from '../features/intake/OrionIntakeForm';
-import { submitOrionIntake } from '../lib/api';
+import { submitOrionIntake, getUserUsage } from '../lib/api';
 import { useFeatureAccess } from '../components/auth/FeatureGates';
 import type { OrionIntake } from '../types';
 import { useEffect, useState, useMemo } from 'react';
@@ -13,19 +13,33 @@ export const IntakePage = () => {
   const { user } = useUser();
   const { has } = useAuth();
   const { getPlanLimits } = useFeatureAccess();
-  const [usage, setUsage] = useState({ used: 0, limit: 5 });
+
+  // Fetch real usage data from API
+  const { data: usageData, isLoading: usageLoading, refetch: refetchUsage } = useQuery({
+    queryKey: ['user-usage', user?.id],
+    queryFn: getUserUsage,
+    enabled: !!user?.id,
+    staleTime: 30000,
+    refetchOnWindowFocus: false
+  });
 
   // Memoize plan limits to prevent infinite re-renders
   const limits = useMemo(() => getPlanLimits(), [has]);
 
-  useEffect(() => {
-    // Fetch current usage from user metadata
-    const currentUsage = user?.publicMetadata?.monthlyUsage as number || 0;
-    setUsage({
-      used: currentUsage,
+  // Use API data if available, fallback to feature gates
+  const usage = useMemo(() => {
+    if (usageData) {
+      return {
+        used: usageData.recommendationsUsed,
+        limit: usageData.recommendationsLimit === -1 ? 999 : usageData.recommendationsLimit
+      };
+    }
+    // Fallback to feature gates if API data not available
+    return {
+      used: user?.publicMetadata?.monthlyUsage as number || 0,
       limit: limits.recommendations === -1 ? 999 : limits.recommendations
-    });
-  }, [user, limits.recommendations]);
+    };
+  }, [usageData, user, limits.recommendations]);
 
   const { mutateAsync, isPending, isError, error } = useMutation({
     mutationFn: submitOrionIntake,
@@ -33,20 +47,8 @@ export const IntakePage = () => {
       console.log('Intake submission successful, data:', data);
       console.log('Recommendation ID:', data.recommendationId);
       
-      // Update usage count in user metadata
-      if (user) {
-        try {
-          await user.update({
-            publicMetadata: {
-              ...user.publicMetadata,
-              monthlyUsage: (usage.used || 0) + 1
-            }
-          });
-        } catch (metadataError) {
-          console.warn('Failed to update user metadata:', metadataError);
-          // Continue with navigation even if metadata update fails
-        }
-      }
+      // Refetch usage data to get updated count from API
+      await refetchUsage();
       
       if (data.recommendationId) {
         navigate(`/results/${data.recommendationId}`, { state: data });
@@ -104,8 +106,13 @@ export const IntakePage = () => {
                 Monthly Recommendations
               </p>
               <p className="text-xs text-blue-700 mt-1">
-                {usage.used} of {usage.limit} used
+                {usageLoading ? 'Loading...' : `${usage.used} of ${usage.limit === 999 ? '∞' : usage.limit} used`}
               </p>
+              {usageData && (
+                <p className="text-xs text-blue-600 mt-1">
+                  Plan: {usageData.plan} • Status: {usageData.status}
+                </p>
+              )}
             </div>
             {isApproachingLimit && !hasReachedLimit && (
               <Button

@@ -297,9 +297,9 @@ export default {
 
               const used = (userUsage?.used as number) || 0;
               stats.remainingRecommendations = Math.max(0, 100 - used);
-            } catch (e) {
-              console.log('Could not get user usage:', e);
-            }
+        } catch (e: any) {
+          console.log('Could not get user usage:', e);
+        }
 
             // Get user's average fit score
             try {
@@ -422,17 +422,54 @@ export default {
     if (path.startsWith('/api/subscriptions/') && request.method === 'GET') {
       const userId = path.split('/')[3];
       try {
-        // Return real data structure with zeros - no mock data
-        // In production, this would query Clerk's API or your database
+        console.log('Fetching subscription data for user:', userId);
+        
+        // Get current month for usage calculation
+        const now = new Date();
+        const monthStart = new Date(now.getFullYear(), now.getMonth(), 1).toISOString();
+        
+        // Get user's current usage from recommendations table
+        let currentUsage = 0;
+        try {
+          const usageResult = await env.DB.prepare(`
+            SELECT COUNT(*) as count
+            FROM recommendations
+            WHERE user_id = ?
+              AND created_at >= ?
+          `).bind(userId, monthStart).first();
+          
+          currentUsage = (usageResult?.count as number) || 0;
+          console.log('User current usage:', currentUsage);
+        } catch (e: any) {
+          console.log('Could not get user usage:', e);
+        }
+        
+        // Determine plan limits based on user metadata or default to free
+        let planLimit = 5; // Default free tier
+        let planName = 'Free';
+        
+        // In a real implementation, you'd check Clerk's subscription data
+        // For now, we'll use a simple logic based on usage patterns
+        if (currentUsage > 100) {
+          planLimit = -1; // Unlimited
+          planName = 'Enterprise';
+        } else if (currentUsage > 10) {
+          planLimit = 100;
+          planName = 'Individual';
+        }
+        
         return Response.json({
           userId,
-          subscription: null, // No subscription until user actually subscribes
+          subscription: null, // No subscription until user actually subscribes via Clerk
           usage: {
-            current: 0,
-            limit: 5, // Free tier limit
-            resetDate: new Date(Date.now() + 30 * 24 * 60 * 60 * 1000).toISOString() // 30 days from now
+            current: currentUsage,
+            limit: planLimit,
+            resetDate: new Date(now.getFullYear(), now.getMonth() + 1, 1).toISOString() // Next month
           },
-          plan: null // No plan until user subscribes
+          plan: {
+            name: planName,
+            slug: planName.toLowerCase().replace(' ', '_')
+          }
         }, { headers: corsHeaders });
       } catch (error) {
         console.error('Subscription endpoint error:', error);
@@ -440,7 +477,7 @@ export default {
           userId,
           subscription: null,
           usage: { current: 0, limit: 5, resetDate: new Date().toISOString() },
-          plan: null,
+          plan: { name: 'Free', slug: 'free' },
           error: 'Subscription data temporarily unavailable'
         }, { status: 200, headers: corsHeaders });
       }
@@ -529,33 +566,33 @@ export default {
         // Combine and format history
         const history = [];
         
-        // Add recommendations
-        if (recommendations.results) {
-          for (const rec of recommendations.results) {
-            history.push({
-              id: rec.id,
-              timestamp: rec.timestamp,
-              type: rec.type,
-              title: `${rec.title} - ${Math.round(rec.avg_fit)}% fit (${rec.carrier_count} carriers)`,
-              score: Math.round(rec.avg_fit),
-              intakeData: null
-            });
-          }
-        }
+            // Add recommendations
+            if (recommendations.results) {
+              for (const rec of recommendations.results) {
+                history.push({
+                  id: rec.id as string,
+                  timestamp: rec.timestamp as string,
+                  type: rec.type as string,
+                  title: `${rec.title as string} - ${Math.round(rec.avg_fit as number)}% fit (${rec.carrier_count as number} carriers)`,
+                  score: Math.round(rec.avg_fit as number),
+                  intakeData: null
+                });
+              }
+            }
 
-        // Add intakes
-        if (intakes.results) {
-          for (const intake of intakes.results) {
-            history.push({
-              id: intake.id,
-              timestamp: intake.timestamp,
-              type: intake.type,
-              title: intake.title,
-              score: null,
-              intakeData: intake.intake_data ? JSON.parse(intake.intake_data) : null
-            });
-          }
-        }
+            // Add intakes
+            if (intakes.results) {
+              for (const intake of intakes.results) {
+                history.push({
+                  id: intake.id as string,
+                  timestamp: intake.timestamp as string,
+                  type: intake.type as string,
+                  title: intake.title as string,
+                  score: null,
+                  intakeData: intake.intake_data ? JSON.parse(intake.intake_data as string) : null
+                });
+              }
+            }
 
         // Add intake_submissions as fallback
         if (intakeSubmissions.results && history.length === 0) {
@@ -571,8 +608,8 @@ export default {
           }
         }
 
-        // Sort by timestamp (newest first)
-        history.sort((a, b) => new Date(b.timestamp).getTime() - new Date(a.timestamp).getTime());
+            // Sort by timestamp (newest first)
+            history.sort((a: any, b: any) => new Date(b.timestamp as string).getTime() - new Date(a.timestamp as string).getTime());
 
         console.log('Returning history with', history.length, 'items');
         console.log('History items:', JSON.stringify(history, null, 2));
@@ -654,7 +691,7 @@ export default {
             'llama-3.1-8b-instruct', // model_snapshot
             JSON.stringify(recommendations), // fit_json (required)
             JSON.stringify(recommendations.flatMap(r => r.citations || [])), // citations (required)
-            Date.now() - parseInt(recommendationId.split('-')[1]), // latency_ms
+            Date.now() - parseInt(recommendationId.split('-')[1] as string), // latency_ms
             new Date().toISOString(), // created_at
             recommendationId, // recommendation_id
             userId, // user_id
@@ -663,7 +700,7 @@ export default {
             Math.round(recommendations.reduce((sum, r) => sum + r.fitPct, 0) / recommendations.length) // fit_score (average)
           ).run();
           console.log('Recommendations stored successfully:', result);
-        } catch (e) {
+        } catch (e: any) {
           console.log('Could not store recommendations:', e);
         }
 
@@ -752,7 +789,7 @@ export default {
         // Outcomes endpoint for logging application outcomes
         if (path === '/api/outcomes' && request.method === 'POST') {
           try {
-            const outcome = await request.json();
+            const outcome = await request.json() as any;
             const userId = request.headers.get('X-User-Id') || 'anonymous';
             
             console.log('Logging outcome:', { userId, outcome });
@@ -770,7 +807,7 @@ export default {
                 outcome.status || 'applied',
                 new Date().toISOString()
               ).run();
-            } catch (e) {
+            } catch (e: any) {
               console.log('Could not log outcome to database:', e);
             }
             

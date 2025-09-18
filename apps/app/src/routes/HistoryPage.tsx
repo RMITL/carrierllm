@@ -7,16 +7,11 @@ import { getUserHistory } from '../lib/api';
 
 interface HistoryItem {
   id: string;
-  recommendationId?: string;
+  timestamp: string;
   type: 'intake' | 'recommendation';
-  data: any;
-  createdAt: string;
-  status?: string;
-  summary?: {
-    averageFit?: number;
-    eligibleCarriers?: number;
-    topCarrierId?: string;
-  };
+  title: string;
+  score?: number;
+  intakeData?: any;
 }
 
 export const HistoryPage = () => {
@@ -41,16 +36,16 @@ export const HistoryPage = () => {
 
       switch (sortBy) {
         case 'date':
-          aValue = new Date(a.createdAt);
-          bValue = new Date(b.createdAt);
+          aValue = new Date(a.timestamp);
+          bValue = new Date(b.timestamp);
           break;
         case 'type':
           aValue = a.type;
           bValue = b.type;
           break;
         case 'status':
-          aValue = a.status || 'unknown';
-          bValue = b.status || 'unknown';
+          aValue = a.type === 'recommendation' ? 'completed' : 'completed';
+          bValue = b.type === 'recommendation' ? 'completed' : 'completed';
           break;
         default:
           return 0;
@@ -62,13 +57,21 @@ export const HistoryPage = () => {
     });
 
   const formatDate = (dateString: string) => {
-    return new Date(dateString).toLocaleDateString('en-US', {
-      month: 'short',
-      day: 'numeric',
-      year: 'numeric',
-      hour: '2-digit',
-      minute: '2-digit'
-    });
+    try {
+      const date = new Date(dateString);
+      if (isNaN(date.getTime())) {
+        return 'Invalid Date';
+      }
+      return date.toLocaleDateString('en-US', {
+        month: 'short',
+        day: 'numeric',
+        year: 'numeric',
+        hour: '2-digit',
+        minute: '2-digit'
+      });
+    } catch (error) {
+      return 'Invalid Date';
+    }
   };
 
   const getStatusBadge = (status?: string) => {
@@ -113,9 +116,42 @@ export const HistoryPage = () => {
   };
 
   const handleViewDetails = (item: HistoryItem) => {
-    if (item.type === 'recommendation' && item.recommendationId) {
-      navigate(`/results/${item.recommendationId}`);
+    if (item.type === 'recommendation') {
+      // For recommendations, the id is the recommendation_id
+      navigate(`/results/${item.id}`);
     }
+  };
+
+  const handleExportItem = (item: HistoryItem) => {
+    const exportData = {
+      id: item.id,
+      type: item.type,
+      timestamp: item.timestamp,
+      title: item.title,
+      score: item.score,
+      intakeData: item.intakeData
+    };
+
+    const dataStr = JSON.stringify(exportData, null, 2);
+    const dataBlob = new Blob([dataStr], { type: 'application/json' });
+    const url = URL.createObjectURL(dataBlob);
+    const link = document.createElement('a');
+    link.href = url;
+    link.download = `${item.type}-${item.id}.json`;
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+    URL.revokeObjectURL(url);
+  };
+
+  const handlePrintHistory = () => {
+    window.print();
+  };
+
+  const handleShareHistory = () => {
+    const url = window.location.href;
+    navigator.clipboard.writeText(url);
+    alert('History link copied to clipboard!');
   };
 
   if (isLoading) {
@@ -162,47 +198,67 @@ export const HistoryPage = () => {
       {/* Filters and Controls */}
       <Card className="mb-6">
         <div className="p-4 border-b border-gray-200">
-          <div className="flex flex-wrap items-center gap-4">
-            {/* Type Filter */}
-            <div className="flex items-center space-x-2">
-              <label className="text-sm font-medium text-gray-700">Type:</label>
-              <select
-                value={filterType}
-                onChange={(e) => setFilterType(e.target.value as any)}
-                className="border border-gray-300 rounded-md px-3 py-1 text-sm focus:outline-none focus:ring-2 focus:ring-[color:var(--color-primary)] focus:border-transparent"
-              >
-                <option value="all">All</option>
-                <option value="intake">Intakes</option>
-                <option value="recommendation">Recommendations</option>
-              </select>
+          <div className="flex flex-wrap items-center justify-between gap-4">
+            <div className="flex flex-wrap items-center gap-4">
+              {/* Type Filter */}
+              <div className="flex items-center space-x-2">
+                <label className="text-sm font-medium text-gray-700">Type:</label>
+                <select
+                  value={filterType}
+                  onChange={(e) => setFilterType(e.target.value as any)}
+                  className="border border-gray-300 rounded-md px-3 py-1 text-sm focus:outline-none focus:ring-2 focus:ring-[color:var(--color-primary)] focus:border-transparent"
+                >
+                  <option value="all">All</option>
+                  <option value="intake">Intakes</option>
+                  <option value="recommendation">Recommendations</option>
+                </select>
+              </div>
+
+              {/* Sort Controls */}
+              <div className="flex items-center space-x-2">
+                <label className="text-sm font-medium text-gray-700">Sort:</label>
+                <Button
+                  variant="secondary"
+                  size="sm"
+                  onClick={() => handleSort('date')}
+                  className={sortBy === 'date' ? 'bg-[color:var(--color-primary)] text-white' : ''}
+                >
+                  Date {sortBy === 'date' && (sortOrder === 'asc' ? '↑' : '↓')}
+                </Button>
+                <Button
+                  variant="secondary"
+                  size="sm"
+                  onClick={() => handleSort('type')}
+                  className={sortBy === 'type' ? 'bg-[color:var(--color-primary)] text-white' : ''}
+                >
+                  Type {sortBy === 'type' && (sortOrder === 'asc' ? '↑' : '↓')}
+                </Button>
+                <Button
+                  variant="secondary"
+                  size="sm"
+                  onClick={() => handleSort('status')}
+                  className={sortBy === 'status' ? 'bg-[color:var(--color-primary)] text-white' : ''}
+                >
+                  Status {sortBy === 'status' && (sortOrder === 'asc' ? '↑' : '↓')}
+                </Button>
+              </div>
             </div>
 
-            {/* Sort Controls */}
+            {/* Export Controls */}
             <div className="flex items-center space-x-2">
-              <label className="text-sm font-medium text-gray-700">Sort:</label>
               <Button
                 variant="secondary"
                 size="sm"
-                onClick={() => handleSort('date')}
-                className={sortBy === 'date' ? 'bg-[color:var(--color-primary)] text-white' : ''}
+                onClick={handlePrintHistory}
               >
-                Date {sortBy === 'date' && (sortOrder === 'asc' ? '↑' : '↓')}
+                Print
               </Button>
               <Button
                 variant="secondary"
                 size="sm"
-                onClick={() => handleSort('type')}
-                className={sortBy === 'type' ? 'bg-[color:var(--color-primary)] text-white' : ''}
+                onClick={handleShareHistory}
               >
-                Type {sortBy === 'type' && (sortOrder === 'asc' ? '↑' : '↓')}
-              </Button>
-              <Button
-                variant="secondary"
-                size="sm"
-                onClick={() => handleSort('status')}
-                className={sortBy === 'status' ? 'bg-[color:var(--color-primary)] text-white' : ''}
-              >
-                Status {sortBy === 'status' && (sortOrder === 'asc' ? '↑' : '↓')}
+                Share
               </Button>
             </div>
           </div>
@@ -269,27 +325,18 @@ export const HistoryPage = () => {
                       </div>
                     </td>
                     <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
-                      {formatDate(item.createdAt)}
+                      {formatDate(item.timestamp)}
                     </td>
                     <td className="px-6 py-4 whitespace-nowrap">
-                      {getStatusBadge(item.status)}
+                      {getStatusBadge('completed')}
                     </td>
                     <td className="px-6 py-4 text-sm text-gray-900">
-                      {item.type === 'recommendation' && item.summary && (
-                        <div>
-                          <div className="text-sm font-medium">
-                            {item.summary.eligibleCarriers} carriers evaluated
-                          </div>
-                          {item.summary.averageFit && (
-                            <div className="text-xs text-gray-500">
-                              Avg fit: {item.summary.averageFit}%
-                            </div>
-                          )}
-                        </div>
-                      )}
-                      {item.type === 'intake' && (
-                        <div className="text-sm text-gray-600">
-                          Client intake form
+                      <div className="text-sm font-medium">
+                        {item.title}
+                      </div>
+                      {item.type === 'recommendation' && item.score && (
+                        <div className="text-xs text-gray-500">
+                          Fit Score: {item.score}%
                         </div>
                       )}
                     </td>
@@ -306,10 +353,7 @@ export const HistoryPage = () => {
                       <Button
                         variant="secondary"
                         size="sm"
-                        onClick={() => {
-                          // Optional: Add export/download functionality
-                          console.log('Export item:', item);
-                        }}
+                        onClick={() => handleExportItem(item)}
                       >
                         Export
                       </Button>

@@ -2,8 +2,17 @@ import { Link } from 'react-router-dom';
 import { useUser } from '@clerk/clerk-react';
 import { Card, Button, Badge } from '@carrierllm/ui';
 import { useQuery } from '@tanstack/react-query';
-import { fetchAnalytics } from '../lib/api';
+import { fetchAnalytics, getUserHistory, getUserUsage } from '../lib/api';
 import type { AnalyticsSummary } from '../types';
+
+interface HistoryItem {
+  id: string;
+  timestamp: string;
+  type: 'intake' | 'recommendation';
+  title: string;
+  score?: number;
+  intakeData?: any;
+}
 
 
 const quickActions = [
@@ -15,10 +24,10 @@ const quickActions = [
     variant: 'primary' as const,
   },
   {
-    title: 'Chat Intake',
-    description: 'Have a conversation to gather client information',
-    href: '/chat',
-    icon: 'chat',
+    title: 'View History',
+    description: 'Review your previous intakes and recommendations',
+    href: '/history',
+    icon: 'history',
     variant: 'secondary' as const,
   },
   {
@@ -36,9 +45,9 @@ const iconMap = {
       <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
     </svg>
   ),
-  chat: (
+  history: (                                           
     <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 12h.01M12 12h.01M16 12h.01M21 12c0 4.418-4.03 8-9 8a9.863 9.863 0 01-4.255-.949L3 20l1.395-3.72C3.512 15.042 3 13.574 3 12c0-4.418 4.03-8 9-8s9 3.582 9 8z" />
+      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
     </svg>
   ),
   chart: (
@@ -68,6 +77,22 @@ export const DashboardPage = () => {
         remainingRecommendations: 5
       }
     } as AnalyticsSummary
+  });
+
+  // Fetch user usage data
+  const { data: usageData } = useQuery({
+    queryKey: ['user-usage', user?.id],
+    queryFn: getUserUsage,
+    enabled: userLoaded && !!user,
+    staleTime: 30000
+  });
+
+  // Fetch recent history for recommendations
+  const { data: recentHistory } = useQuery({
+    queryKey: ['user-history', user?.id],
+    queryFn: getUserHistory,
+    enabled: userLoaded && !!user,
+    staleTime: 30000
   });
 
   // Add debugging logs
@@ -182,6 +207,46 @@ export const DashboardPage = () => {
         </div>
       </div>
 
+      {/* Usage Summary */}
+      {usageData && (
+        <div>
+          <h2 className="text-lg font-medium text-gray-900 mb-4">Current Usage</h2>
+          <Card className="p-6 bg-gradient-to-r from-blue-50 to-indigo-50 border-blue-200">
+            <div className="flex items-center justify-between">
+              <div>
+                <h3 className="text-lg font-semibold text-gray-900">
+                  {usageData.plan} Plan
+                </h3>
+                <p className="text-sm text-gray-600 mt-1">
+                  {usageData.recommendationsUsed} of {usageData.recommendationsLimit === -1 ? '∞' : usageData.recommendationsLimit} recommendations used this month
+                </p>
+                <p className="text-xs text-gray-500 mt-1">
+                  Status: {usageData.status}
+                </p>
+              </div>
+              <div className="text-right">
+                <div className="text-2xl font-bold text-blue-600">
+                  {usageData.recommendationsLimit === -1 ? '∞' : usageData.recommendationsLimit - usageData.recommendationsUsed}
+                </div>
+                <p className="text-xs text-gray-500">remaining</p>
+              </div>
+            </div>
+            {usageData.recommendationsLimit > 0 && (
+              <div className="mt-4">
+                <div className="w-full bg-blue-200 rounded-full h-2">
+                  <div
+                    className="bg-blue-600 h-2 rounded-full transition-all"
+                    style={{
+                      width: `${Math.min(100, (usageData.recommendationsUsed / usageData.recommendationsLimit) * 100)}%`
+                    }}
+                  />
+                </div>
+              </div>
+            )}
+          </Card>
+        </div>
+      )}
+
       {/* Statistics Dashboard */}
       <div>
         <h2 className="text-lg font-medium text-gray-900 mb-4">Your Performance</h2>
@@ -260,27 +325,90 @@ export const DashboardPage = () => {
         </div>
       </div>
 
-      {/* Recent Activity Placeholder */}
+      {/* Recent Activity */}
       <div>
         <h2 className="text-lg font-medium text-gray-900 mb-4">Recent Activity</h2>
-        <Card>
-          <div className="text-center py-8">
-            <svg className="mx-auto h-12 w-12 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
-            </svg>
-            <h3 className="mt-2 text-sm font-medium text-gray-900">No recent activity</h3>
-            <p className="mt-1 text-sm text-gray-500">
-              Start by creating your first intake submission.
-            </p>
-            <div className="mt-6">
-              <Link to="/intake">
-                <Button>
-                  Start New Intake
-                </Button>
-              </Link>
+        {recentHistory && recentHistory.length > 0 ? (
+          <Card>
+            <div className="p-6">
+              <div className="space-y-4">
+                {recentHistory.slice(0, 3).map((item) => (
+                  <div key={item.id} className="flex items-center justify-between py-3 border-b border-gray-100 last:border-0">
+                    <div className="flex items-center space-x-3">
+                      <div className="flex-shrink-0">
+                        {item.type === 'recommendation' ? (
+                          <div className="w-8 h-8 bg-green-100 rounded-full flex items-center justify-center">
+                            <svg className="w-4 h-4 text-green-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
+                            </svg>
+                          </div>
+                        ) : (
+                          <div className="w-8 h-8 bg-blue-100 rounded-full flex items-center justify-center">
+                            <svg className="w-4 h-4 text-blue-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
+                            </svg>
+                          </div>
+                        )}
+                      </div>
+                      <div>
+                        <p className="text-sm font-medium text-gray-900">
+                          {item.title}
+                        </p>
+                        <p className="text-xs text-gray-500">
+                          {new Date(item.timestamp).toLocaleDateString()} at {new Date(item.timestamp).toLocaleTimeString()}
+                        </p>
+                      </div>
+                    </div>
+                    <div className="flex items-center space-x-2">
+                      {item.type === 'recommendation' && item.score && (
+                        <Badge variant={item.score >= 80 ? 'success' : item.score >= 60 ? 'warning' : 'secondary'}>
+                          {item.score}% fit
+                        </Badge>
+                      )}
+                      {item.type === 'recommendation' ? (
+                        <Link to={`/results/${item.id}`}>
+                          <Button size="sm" variant="secondary">
+                            View Results
+                          </Button>
+                        </Link>
+                      ) : (
+                        <Badge variant="secondary">Intake</Badge>
+                      )}
+                    </div>
+                  </div>
+                ))}
+              </div>
+              {recentHistory.length > 3 && (
+                <div className="mt-4 text-center">
+                  <Link to="/history">
+                    <Button variant="secondary" size="sm">
+                      View All Activity
+                    </Button>
+                  </Link>
+                </div>
+              )}
             </div>
-          </div>
-        </Card>
+          </Card>
+        ) : (
+          <Card>
+            <div className="text-center py-8">
+              <svg className="mx-auto h-12 w-12 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
+              </svg>
+              <h3 className="mt-2 text-sm font-medium text-gray-900">No recent activity</h3>
+              <p className="mt-1 text-sm text-gray-500">
+                Start by creating your first intake submission.
+              </p>
+              <div className="mt-6">
+                <Link to="/intake">
+                  <Button>
+                    Start New Intake
+                  </Button>
+                </Link>
+              </div>
+            </div>
+          </Card>
+        )}
       </div>
     </div>
   );
