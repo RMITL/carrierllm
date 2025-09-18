@@ -4,6 +4,7 @@ import { Suspense } from 'react';
 import { DashboardLayout } from './components/layout/DashboardLayout';
 import { AuthLayout } from './components/layout/AuthLayout';
 import { LoadingSpinner } from './components/ui/LoadingSpinner';
+import { ErrorBoundary } from './components/ErrorBoundary';
 import { DashboardPage } from './routes/DashboardPage';
 import { IntakePage } from './routes/IntakePage';
 import { ChatPage } from './routes/ChatPage';
@@ -43,21 +44,23 @@ const App = () => {
 
       <SignedIn>
         <DashboardLayout>
-          <Suspense fallback={<LoadingSpinner />}>
-            <Routes>
-              <Route path="/" element={<DashboardPage />} />
-              <Route path="/intake" element={<IntakePage />} />
-              <Route path="/chat" element={<ChatPage />} />
-              <Route path="/results/:id" element={<ResultsPage />} />
-              <Route path="/history" element={<HistoryPage />} />
-              <Route path="/profile" element={<ProfilePage />} />
-              <Route path="/billing" element={<BillingPage />} />
-              <Route path="/analytics" element={<AnalyticsPage />} />
-              <Route path="/pricing" element={<PricingPage />} />
-              <Route path="/terms" element={<TermsPage />} />
-              <Route path="/privacy" element={<PrivacyPage />} />
-            </Routes>
-          </Suspense>
+          <ErrorBoundary>
+            <Suspense fallback={<LoadingSpinner />}>
+              <Routes>
+                <Route path="/" element={<DashboardPage />} />
+                <Route path="/intake" element={<IntakePage />} />
+                <Route path="/chat" element={<ChatPage />} />
+                <Route path="/results/:id" element={<ResultsPage />} />
+                <Route path="/history" element={<HistoryPage />} />
+                <Route path="/profile" element={<ProfilePage />} />
+                <Route path="/billing" element={<BillingPage />} />
+                <Route path="/analytics" element={<AnalyticsPage />} />
+                <Route path="/pricing" element={<PricingPage />} />
+                <Route path="/terms" element={<TermsPage />} />
+                <Route path="/privacy" element={<PrivacyPage />} />
+              </Routes>
+            </Suspense>
+          </ErrorBoundary>
         </DashboardLayout>
       </SignedIn>
     </div>

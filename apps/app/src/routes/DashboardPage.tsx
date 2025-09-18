@@ -198,7 +198,7 @@ export const DashboardPage = () => {
               <div className="ml-4">
                 <p className="text-sm font-medium text-gray-600">Total Submissions</p>
                 <p className="text-2xl font-semibold text-gray-900">
-                  {statsLoading ? '...' : error ? '0' : analytics?.stats.totalIntakes || '0'}
+                  {statsLoading ? '...' : error ? '0' : analytics?.stats?.totalIntakes || '0'}
                 </p>
               </div>
             </div>
@@ -216,7 +216,7 @@ export const DashboardPage = () => {
               <div className="ml-4">
                 <p className="text-sm font-medium text-gray-600">Average Fit</p>
                 <p className="text-2xl font-semibold text-gray-900">
-                  {statsLoading ? '...' : error ? '0%' : `${Math.round(analytics?.stats.averageFitScore || 0)}%`}
+                  {statsLoading ? '...' : error ? '0%' : `${Math.round(analytics?.stats?.averageFitScore || 0)}%`}
                 </p>
               </div>
             </div>
@@ -234,7 +234,7 @@ export const DashboardPage = () => {
               <div className="ml-4">
                 <p className="text-sm font-medium text-gray-600">Placement Rate</p>
                 <p className="text-2xl font-semibold text-gray-900">
-                  {statsLoading ? '...' : error ? '0%' : `${Math.round(analytics?.stats.placementRate || 0)}%`}
+                  {statsLoading ? '...' : error ? '0%' : `${Math.round(analytics?.stats?.placementRate || 0)}%`}
                 </p>
               </div>
             </div>
@@ -252,7 +252,7 @@ export const DashboardPage = () => {
               <div className="ml-4">
                 <p className="text-sm font-medium text-gray-600">Remaining</p>
                 <p className="text-2xl font-semibold text-gray-900">
-                  {statsLoading ? '...' : error ? '∞' : analytics?.stats.remainingRecommendations || '∞'}
+                  {statsLoading ? '...' : error ? '∞' : analytics?.stats?.remainingRecommendations || '∞'}
                 </p>
               </div>
             </div>

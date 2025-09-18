@@ -142,19 +142,26 @@ export const fetchAnalytics = async (): Promise<AnalyticsSummary> => {
     const response = await client.get<AnalyticsSummary>('/analytics/summary', {
       timeout: TIMEOUTS.analytics
     });
+    
+    // Check if response is HTML (indicates wrong endpoint)
+    if (typeof response.data === 'string' && (response.data as string).includes('<!DOCTYPE html>')) {
+      console.warn('API returned HTML instead of JSON - endpoint may not exist');
+      throw new Error('API endpoint not found');
+    }
+    
     console.log('Analytics API response:', response.data);
     return response.data;
   } catch (error) {
     // If API is not available, return default analytics data
     console.warn('Analytics API not available, returning default data:', error);
-      return {
-        stats: {
-          totalIntakes: 0,
-          averageFitScore: 0,
-          placementRate: 0,
-          remainingRecommendations: 5
-        }
-      } as AnalyticsSummary;
+    return {
+      stats: {
+        totalIntakes: 0,
+        averageFitScore: 0,
+        placementRate: 0,
+        remainingRecommendations: 5
+      }
+    } as AnalyticsSummary;
   }
 };
 
