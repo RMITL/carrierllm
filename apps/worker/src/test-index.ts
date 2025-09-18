@@ -208,9 +208,48 @@ export default {
       return new Response(null, { status: 204, headers: corsHeaders });
     }
     
-    if (path === '/api/health') {
-      return Response.json({ status: 'healthy', timestamp: new Date().toISOString() }, { headers: corsHeaders });
-    }
+        if (path === '/api/health') {
+          return Response.json({ status: 'healthy', timestamp: new Date().toISOString() }, { headers: corsHeaders });
+        }
+
+        // Test endpoint to check database insert
+        if (path === '/api/test-db' && request.method === 'POST') {
+          try {
+            const userId = request.headers.get('X-User-Id') || 'test-user';
+            const testId = 'test-' + Date.now();
+            
+            console.log('Testing database insert with userId:', userId);
+            
+            const result = await env.DB.prepare(`
+              INSERT INTO intakes (id, tenant_id, payload_json, validated, tier2_triggered, created_at, user_id)
+              VALUES (?, ?, ?, ?, ?, ?, ?)
+            `).bind(
+              testId,
+              'default-tenant',
+              '{"test": true}',
+              true,
+              false,
+              new Date().toISOString(),
+              userId
+            ).run();
+            
+            console.log('Test insert result:', result);
+            
+            return Response.json({ 
+              success: true, 
+              result: result,
+              userId: userId,
+              testId: testId
+            }, { headers: corsHeaders });
+          } catch (e) {
+            console.log('Test insert failed:', e);
+            return Response.json({ 
+              success: false, 
+              error: e.message,
+              userId: request.headers.get('X-User-Id') || 'test-user'
+            }, { headers: corsHeaders });
+          }
+        }
 
     // Analytics endpoint
     if (path === '/api/analytics/summary') {
@@ -568,7 +607,7 @@ export default {
             VALUES (?, ?, ?, ?, ?, ?, ?)
           `).bind(
             intakeId, 
-            userId, // tenant_id (required field)
+            'default-tenant', // tenant_id (required field) - use same as existing records
             JSON.stringify(intakeData), // payload_json
             true, // validated
             intakeData.tier2Triggered || false, // tier2_triggered
@@ -578,6 +617,7 @@ export default {
           console.log('Intake stored successfully:', result);
         } catch (e) {
           console.log('Could not log intake to database:', e);
+          console.log('Error details:', e);
         }
 
         // Generate search query from intake data
