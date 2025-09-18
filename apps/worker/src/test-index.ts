@@ -261,25 +261,21 @@ export default {
         const currentMonth = now.toISOString().slice(0, 7); // YYYY-MM format
         const monthStart = new Date(now.getFullYear(), now.getMonth(), 1).toISOString();
 
-        // Initialize response data
+        // Initialize response data with real zeros
         let stats = {
           totalIntakes: 0,
-          averageFitScore: 75,
-          placementRate: 65,
-          remainingRecommendations: 100
+          averageFitScore: 0,
+          placementRate: 0,
+          remainingRecommendations: 5 // Default free tier limit
         };
 
         let topCarriers: any[] = [];
         let trends: any[] = [];
 
         try {
-          // Get total intakes - check multiple tables for compatibility
+          // Get total intakes - use the main intakes table only
           const intakesResult = await env.DB.prepare(`
-            SELECT COUNT(*) as count FROM (
-              SELECT id FROM intakes
-              UNION ALL
-              SELECT id FROM intake_submissions
-            )
+            SELECT COUNT(*) as count FROM intakes
           `).first();
 
           stats.totalIntakes = (intakesResult?.count as number) || 0;
@@ -296,7 +292,9 @@ export default {
               `).bind(userId, monthStart).first();
 
               const used = (userUsage?.used as number) || 0;
-              stats.remainingRecommendations = Math.max(0, 100 - used);
+              // Use actual plan limits instead of hardcoded 100
+              const planLimit = 5; // Default free tier - in production this would come from user's plan
+              stats.remainingRecommendations = Math.max(0, planLimit - used);
         } catch (e: any) {
           console.log('Could not get user usage:', e);
         }
@@ -309,9 +307,10 @@ export default {
                 WHERE user_id = ?
               `).bind(userId).first();
 
-              if (avgScore?.avg) {
+              if (avgScore?.avg && avgScore.avg > 0) {
                 stats.averageFitScore = Math.round(avgScore.avg as number);
               }
+              // If no real data, keep it at 0
             } catch (e) {
               console.log('Could not get average score:', e);
             }
@@ -336,7 +335,7 @@ export default {
                   id: c.carrier_id || String(idx + 1),
                   name: c.carrier_name || `Carrier ${idx + 1}`,
                   count: c.count || 0,
-                  successRate: Math.round(c.avg_score || 75)
+                  successRate: Math.round(c.avg_score || 0) // Use 0 instead of 75
                 }));
               }
             } catch (e) {
@@ -364,8 +363,8 @@ export default {
                 trends = monthlyData.results.map((m: any) => ({
                   month: m.month,
                   intakes: m.count || 0,
-                  conversions: Math.round((m.count || 0) * 0.72), // Estimated conversion
-                  conversionRate: 72
+                  conversions: 0, // No real conversion data yet
+                  conversionRate: 0 // No real conversion rate yet
                 }));
               }
             } catch (e) {
@@ -373,7 +372,7 @@ export default {
             }
           }
 
-          // Calculate placement rate
+          // Calculate placement rate - only if we have real outcomes data
           try {
             const placements = await env.DB.prepare(`
               SELECT
@@ -385,8 +384,10 @@ export default {
             if (placements && (placements.total as number) > 0) {
               stats.placementRate = Math.round(((placements.placed as number) / (placements.total as number)) * 100);
             }
+            // If no outcomes data, keep placement rate at 0
           } catch (e) {
             console.log('Could not get placement rate:', e);
+            // Keep placement rate at 0 if no data
           }
 
         } catch (dbError) {
@@ -394,6 +395,7 @@ export default {
           // Continue with default values if DB queries fail
         }
 
+        // Return real data only - no mock data
         return Response.json({
           stats,
           topCarriers,
@@ -408,7 +410,7 @@ export default {
             totalIntakes: 0,
             averageFitScore: 0,
             placementRate: 0,
-            remainingRecommendations: 100
+            remainingRecommendations: 5 // Default free tier limit
           },
           topCarriers: [],
           trends: [],
