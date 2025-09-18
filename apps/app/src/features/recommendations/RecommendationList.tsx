@@ -31,7 +31,7 @@ export const RecommendationList = memo(({ data, isOrionFormat }: RecommendationL
     const legacyData = data as RecommendationResponse;
 
     return {
-      recommendations: isOrionFormat ? (orionData.top || []) : (legacyData.recommendations || []),
+      recommendations: isOrionFormat ? (orionData.recommendations || []) : (legacyData.recommendations || []),
       summary: isOrionFormat ? (orionData.summary || { averageFit: 0, totalCarriersEvaluated: 0, notes: '' }) : (legacyData.summary || { averageFit: 0, totalCarriersEvaluated: 0, notes: '' }),
       stretch: isOrionFormat ? orionData.stretch : undefined,
       premiumSuggestion: isOrionFormat ? orionData.premiumSuggestion : undefined,

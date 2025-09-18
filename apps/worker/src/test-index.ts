@@ -594,6 +594,38 @@ export default {
       }
     }
     
-    return Response.json({ error: 'Not found' }, { status: 404, headers: corsHeaders });
-  }
-};
+        // Outcomes endpoint for logging application outcomes
+        if (path === '/api/outcomes' && request.method === 'POST') {
+          try {
+            const outcome = await request.json();
+            const userId = request.headers.get('X-User-Id') || 'anonymous';
+            
+            console.log('Logging outcome:', { userId, outcome });
+            
+            // Store outcome in database
+            try {
+              await env.DB.prepare(`
+                INSERT INTO outcomes (id, user_id, recommendation_id, carrier_id, status, created_at)
+                VALUES (?, ?, ?, ?, ?, ?)
+              `).bind(
+                crypto.randomUUID(),
+                userId,
+                outcome.recommendationId || null,
+                outcome.carrierId || null,
+                outcome.status || 'applied',
+                new Date().toISOString()
+              ).run();
+            } catch (e) {
+              console.log('Could not log outcome to database:', e);
+            }
+            
+            return Response.json({ success: true, message: 'Outcome logged successfully' }, { headers: corsHeaders });
+          } catch (error) {
+            console.error('Outcomes endpoint error:', error);
+            return Response.json({ error: 'Failed to log outcome' }, { status: 500, headers: corsHeaders });
+          }
+        }
+        
+        return Response.json({ error: 'Not found' }, { status: 404, headers: corsHeaders });
+      }
+    };
