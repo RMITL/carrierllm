@@ -1,4 +1,4 @@
-import { SignedIn, SignedOut, useUser } from '@clerk/clerk-react';
+import { SignedIn, SignedOut, useUser, useAuth } from '@clerk/clerk-react';
 import { Route, Routes } from 'react-router-dom';
 import { Suspense } from 'react';
 import { DashboardLayout } from './components/layout/DashboardLayout';
@@ -18,6 +18,17 @@ import { TermsPage } from './routes/TermsPage';
 import { PrivacyPage } from './routes/PrivacyPage';
 
 const App = () => {
+  const { isLoaded } = useAuth();
+
+  // Show loading spinner while Clerk is initializing
+  if (!isLoaded) {
+    return (
+      <div className="min-h-screen bg-[color:var(--color-gray-50)] flex items-center justify-center">
+        <LoadingSpinner />
+      </div>
+    );
+  }
+
   return (
     <div className="min-h-screen bg-[color:var(--color-gray-50)]">
       <SignedOut>

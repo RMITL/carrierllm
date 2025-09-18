@@ -1,14 +1,31 @@
-import React from 'react';
-import { PricingTable, useUser, useOrganization, SignedIn, SignedOut, SignInButton } from '@clerk/clerk-react';
+import React, { useState } from 'react';
+import { PricingTable, useUser, useOrganization, SignedIn, SignedOut, SignInButton, useClerk } from '@clerk/clerk-react';
 import { Button } from '@carrierllm/ui';
 
 export const ClerkPricingSection = () => {
   const { user } = useUser();
   const { organization } = useOrganization();
+  const { openSignUp } = useClerk();
+  const [selectedPlanType, setSelectedPlanType] = useState<'individual' | 'organization'>('individual');
   const appUrl = import.meta.env.VITE_APP_URL || 'https://app.carrierllm.com';
 
-  // Determine if we should show organization pricing or individual pricing
+  // Determine if we should show organization pricing or individual pricing for signed-in users
   const isOrganizationContext = !!organization;
+
+  const handleSignUp = (planType: 'individual' | 'organization') => {
+    // Store the selected plan type for after sign-up
+    localStorage.setItem('selectedPlanType', planType);
+    
+    openSignUp({
+      afterSignUpUrl: planType === 'organization' ? '/create-organization' : appUrl,
+      appearance: {
+        elements: {
+          rootBox: 'mx-auto',
+          card: 'shadow-lg'
+        }
+      }
+    });
+  };
 
   return (
     <section id="pricing" className="py-20 bg-gray-50">
@@ -18,19 +35,64 @@ export const ClerkPricingSection = () => {
             Simple, Transparent Pricing
           </h2>
           <p className="text-xl text-gray-600">
-            {isOrganizationContext 
-              ? 'Choose the plan that works best for your organization'
-              : 'Choose the plan that works best for your insurance agency'
-            }
+            Choose the plan that works best for your insurance agency
           </p>
         </div>
 
         <SignedOut>
-          <div className="text-center mb-8">
-            <p className="text-gray-600 mb-4">Sign in to view pricing and subscribe</p>
-            <SignInButton mode="modal" afterSignInUrl={appUrl}>
-              <Button variant="primary">Sign In to View Plans</Button>
-            </SignInButton>
+          {/* Show both individual and organization pricing to unauthenticated users */}
+          <div className="mb-8">
+            <div className="flex justify-center mb-8">
+              <div className="bg-white rounded-lg p-1 shadow-sm border">
+                <button
+                  onClick={() => setSelectedPlanType('individual')}
+                  className={`px-6 py-2 rounded-md text-sm font-medium transition-colors ${
+                    selectedPlanType === 'individual'
+                      ? 'bg-blue-600 text-white shadow-sm'
+                      : 'text-gray-600 hover:text-gray-900'
+                  }`}
+                >
+                  Individual Plans
+                </button>
+                <button
+                  onClick={() => setSelectedPlanType('organization')}
+                  className={`px-6 py-2 rounded-md text-sm font-medium transition-colors ${
+                    selectedPlanType === 'organization'
+                      ? 'bg-blue-600 text-white shadow-sm'
+                      : 'text-gray-600 hover:text-gray-900'
+                  }`}
+                >
+                  Organization Plans
+                </button>
+              </div>
+            </div>
+
+            <div className="mb-8">
+              <PricingTable forOrganizations={selectedPlanType === 'organization'} />
+            </div>
+
+            <div className="text-center">
+              <p className="text-gray-600 mb-4">
+                {selectedPlanType === 'individual' 
+                  ? 'Ready to get started with an individual plan?'
+                  : 'Ready to set up your organization?'
+                }
+              </p>
+              <div className="flex flex-col sm:flex-row gap-4 justify-center">
+                <Button 
+                  variant="primary" 
+                  onClick={() => handleSignUp(selectedPlanType)}
+                >
+                  {selectedPlanType === 'individual' ? 'Start Individual Plan' : 'Start Organization Plan'}
+                </Button>
+                <Button 
+                  variant="secondary" 
+                  onClick={() => setSelectedPlanType(selectedPlanType === 'individual' ? 'organization' : 'individual')}
+                >
+                  View {selectedPlanType === 'individual' ? 'Organization' : 'Individual'} Plans
+                </Button>
+              </div>
+            </div>
           </div>
         </SignedOut>
 

@@ -1,11 +1,27 @@
 import React from 'react';
-import { PricingTable, useUser, useOrganization, SignedIn, SignedOut, SignInButton } from '@clerk/clerk-react';
+import { PricingTable, useUser, useOrganization, SignedIn, SignedOut, useClerk } from '@clerk/clerk-react';
 import { Button } from '@carrierllm/ui';
 
 export const OrganizationPricingSection = () => {
   const { user } = useUser();
   const { organization } = useOrganization();
+  const { openSignUp } = useClerk();
   const appUrl = import.meta.env.VITE_APP_URL || 'https://app.carrierllm.com';
+
+  const handleSignUp = () => {
+    // Store the selected plan type for after sign-up
+    localStorage.setItem('selectedPlanType', 'organization');
+    
+    openSignUp({
+      afterSignUpUrl: '/create-organization',
+      appearance: {
+        elements: {
+          rootBox: 'mx-auto',
+          card: 'shadow-lg'
+        }
+      }
+    });
+  };
 
   return (
     <section id="organization-pricing" className="py-20 bg-gray-50">
@@ -20,11 +36,25 @@ export const OrganizationPricingSection = () => {
         </div>
 
         <SignedOut>
-          <div className="text-center mb-8">
-            <p className="text-gray-600 mb-4">Sign in to view organization pricing and subscribe</p>
-            <SignInButton mode="modal" afterSignInUrl={appUrl}>
-              <Button variant="primary">Sign In to View Plans</Button>
-            </SignInButton>
+          <div className="mb-8">
+            <div className="mb-8">
+              <PricingTable forOrganizations={true} />
+            </div>
+            
+            <div className="text-center">
+              <p className="text-gray-600 mb-4">Ready to set up your organization?</p>
+              <div className="flex flex-col sm:flex-row gap-4 justify-center">
+                <Button variant="primary" onClick={handleSignUp}>
+                  Start Organization Plan
+                </Button>
+                <Button 
+                  variant="secondary" 
+                  onClick={() => window.location.href = '/#pricing'}
+                >
+                  View Individual Plans
+                </Button>
+              </div>
+            </div>
           </div>
         </SignedOut>
 

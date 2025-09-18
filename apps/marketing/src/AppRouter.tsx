@@ -6,6 +6,7 @@ import Success from './pages/Success';
 import { TermsPage } from './pages/TermsPage';
 import { PrivacyPage } from './pages/PrivacyPage';
 import OrganizationPricingPage from './pages/OrganizationPricingPage';
+import CreateOrganizationPage from './pages/CreateOrganizationPage';
 
 const AppRouter: React.FC = () => {
   return (
@@ -14,6 +15,7 @@ const AppRouter: React.FC = () => {
         <Route path="/" element={<HomePage />} />
         <Route path="/pricing" element={<HomePage scrollTo="pricing" />} />
         <Route path="/organization-pricing" element={<OrganizationPricingPage />} />
+        <Route path="/create-organization" element={<CreateOrganizationPage />} />
         <Route path="/terms" element={<TermsPage />} />
         <Route path="/privacy" element={<PrivacyPage />} />
         <Route

@@ -15,7 +15,7 @@ const TIMEOUTS = {
 };
 
 const client = axios.create({
-  baseURL: import.meta.env.VITE_API_BASE_URL ?? 'http://127.0.0.1:8787/api',
+  baseURL: import.meta.env.VITE_API_BASE_URL ?? 'https://app.carrierllm.com/api',
   timeout: TIMEOUTS.default,
   headers: {
     'Content-Type': 'application/json',
@@ -132,10 +132,24 @@ export const fetchOrionRecommendation = async (recommendationId: string): Promis
  */
 export const fetchAnalytics = async (): Promise<AnalyticsSummary> => {
   return withRetry(async () => {
-    const response = await client.get<AnalyticsSummary>('/analytics/summary', {
-      timeout: TIMEOUTS.analytics
-    });
-    return response.data;
+    try {
+      const response = await client.get<AnalyticsSummary>('/analytics/summary', {
+        timeout: TIMEOUTS.analytics
+      });
+      return response.data;
+    } catch (error) {
+      // If API is not available, return default analytics data
+      console.warn('Analytics API not available, returning default data:', error);
+      return {
+        stats: {
+          totalIntakes: 0,
+          averageFitScore: 0,
+          placementRate: 0,
+          remainingRecommendations: 5
+        },
+        recentActivity: []
+      };
+    }
   });
 };
 
