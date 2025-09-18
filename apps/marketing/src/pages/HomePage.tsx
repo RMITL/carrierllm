@@ -1,6 +1,6 @@
 import React, { useEffect, useState } from 'react';
 import { Button, Card } from '@carrierllm/ui';
-import { PricingCard } from '../components/PricingCard';
+import { ClerkPricingSection } from '../components/ClerkPricingSection';
 import { SignIn, SignUp, useClerk, useUser } from '@clerk/clerk-react';
 import ContactModal from '../components/ContactModal';
 
@@ -252,34 +252,7 @@ const HomePage: React.FC<HomePageProps> = ({ scrollTo }) => {
         </section>
 
         {/* Pricing Section */}
-        <section id="pricing" className="mx-auto max-w-7xl px-6 py-20">
-          <div className="text-center mb-12">
-            <h2 className="text-4xl font-bold mb-4">Simple, transparent pricing</h2>
-            <p className="text-xl text-gray-600">Choose the plan that fits your agency</p>
-          </div>
-          <div className="grid gap-8 md:grid-cols-3 max-w-5xl mx-auto">
-            <PricingCard planKey="individual" />
-            <PricingCard planKey="team" isPopular={true} />
-            <PricingCard planKey="enterprise" />
-          </div>
-          <div className="mt-12 text-center">
-            <p className="text-gray-600 mb-4">All plans include:</p>
-            <div className="flex flex-wrap justify-center gap-4 text-sm">
-              <span className="flex items-center gap-2">
-                <span className="text-green-500">✓</span> 14-day free trial
-              </span>
-              <span className="flex items-center gap-2">
-                <span className="text-green-500">✓</span> No credit card required
-              </span>
-              <span className="flex items-center gap-2">
-                <span className="text-green-500">✓</span> Cancel anytime
-              </span>
-              <span className="flex items-center gap-2">
-                <span className="text-green-500">✓</span> SSL encryption
-              </span>
-            </div>
-          </div>
-        </section>
+        <ClerkPricingSection />
 
         {/* Compliance Section */}
         <section id="compliance" className="bg-gray-50">
