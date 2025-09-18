@@ -11,6 +11,11 @@ export const ResultsPage = () => {
   const seeded = location.state as (RecommendationResponse | OrionRecommendationResponse) | undefined;
   const resultId = params.id ?? (seeded as any)?.submissionId ?? (seeded as any)?.recommendationId;
 
+  console.log('ResultsPage - params:', params);
+  console.log('ResultsPage - location.state:', location.state);
+  console.log('ResultsPage - seeded:', seeded);
+  console.log('ResultsPage - resultId:', resultId);
+
   // Determine if this is an Orion recommendation based on the seeded data structure
   const isOrionRecommendation = seeded && 'recommendationId' in seeded;
 

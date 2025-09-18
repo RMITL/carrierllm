@@ -95,10 +95,105 @@ const withRetry = async <T>(
  */
 export const submitOrionIntake = async (intake: OrionIntake): Promise<OrionRecommendationResponse> => {
   return withRetry(async () => {
+    console.log('Submitting Orion intake:', intake);
+    
+    // Temporary mock response for testing navigation
+    const mockResponse: OrionRecommendationResponse = {
+      recommendationId: `mock-${Date.now()}`,
+      status: 'completed',
+      intake: intake,
+      recommendations: [
+        {
+          carrierId: 'progressive',
+          carrierName: 'Progressive',
+          fitScore: 92,
+          tier: 'preferred',
+          reasoning: {
+            pros: ['Competitive rates', 'Strong financial stability', 'Good customer service'],
+            cons: [],
+            summary: 'Excellent fit for your profile with competitive pricing and strong financial stability.'
+          },
+          estimatedPremium: {
+            monthly: 1200,
+            annual: 14400,
+            confidence: 'high'
+          },
+          underwritingPath: 'simplified',
+          requiresExam: false,
+          processingTime: '2-3 weeks',
+          citations: []
+        },
+        {
+          carrierId: 'statefarm',
+          carrierName: 'State Farm',
+          fitScore: 88,
+          tier: 'preferred',
+          reasoning: {
+            pros: ['Local agent support', 'Multi-policy discounts'],
+            cons: ['Premium may be higher'],
+            summary: 'Good option with local agent support and potential discounts.'
+          },
+          estimatedPremium: {
+            monthly: 1400,
+            annual: 16800,
+            confidence: 'high'
+          },
+          underwritingPath: 'simplified',
+          requiresExam: false,
+          processingTime: '2-4 weeks',
+          citations: []
+        }
+      ],
+      top: [
+        {
+          carrierId: 'progressive',
+          carrierName: 'Progressive',
+          fitScore: 92,
+          tier: 'preferred',
+          reasoning: {
+            pros: ['Competitive rates', 'Strong financial stability', 'Good customer service'],
+            cons: [],
+            summary: 'Excellent fit for your profile with competitive pricing and strong financial stability.'
+          },
+          estimatedPremium: {
+            monthly: 1200,
+            annual: 14400,
+            confidence: 'high'
+          },
+          underwritingPath: 'simplified',
+          requiresExam: false,
+          processingTime: '2-3 weeks',
+          citations: []
+        }
+      ],
+      premiumSuggestion: 'Based on your profile, we recommend starting with a monthly premium of $1,200 for optimal coverage.',
+      summary: {
+        averageFit: 88,
+        totalCarriersEvaluated: 3,
+        tier2Recommended: false,
+        topCarrierId: 'progressive',
+        notes: 'Strong match with multiple competitive options available.'
+      },
+      metadata: {
+        processingTime: 1250,
+        ragQueriesCount: 5,
+        citationsFound: 12,
+        modelUsed: 'gpt-4'
+      },
+      timestamp: new Date().toISOString()
+    };
+    
+    console.log('Using mock response for testing:', mockResponse);
+    return mockResponse;
+    
+    // Original API call (commented out for testing)
+    /*
     const response = await client.post<OrionRecommendationResponse>('/intake/submit', intake, {
       timeout: TIMEOUTS.intake
     });
+    console.log('Orion intake API response:', response.data);
     return response.data;
+    */
   });
 };
 

@@ -30,6 +30,9 @@ export const IntakePage = () => {
   const { mutateAsync, isPending, isError, error } = useMutation({
     mutationFn: submitOrionIntake,
     onSuccess: async (data) => {
+      console.log('Intake submission successful, data:', data);
+      console.log('Recommendation ID:', data.recommendationId);
+      
       // Update usage count in user metadata
       if (user) {
         await user.update({
@@ -39,7 +42,17 @@ export const IntakePage = () => {
           }
         });
       }
-      navigate(`/results/${data.recommendationId}`, { state: data });
+      
+      if (data.recommendationId) {
+        navigate(`/results/${data.recommendationId}`, { state: data });
+      } else {
+        console.error('No recommendationId in response:', data);
+        // Fallback navigation
+        navigate('/results/error', { state: { error: 'No recommendation ID received' } });
+      }
+    },
+    onError: (error) => {
+      console.error('Intake submission failed:', error);
     }
   });
 

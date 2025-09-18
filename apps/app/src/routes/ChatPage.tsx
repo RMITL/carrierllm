@@ -161,7 +161,19 @@ export const ChatPage = () => {
   const { mutateAsync, isPending } = useMutation({
     mutationFn: submitOrionIntake,
     onSuccess: (data) => {
-      navigate(`/results/${data.recommendationId}`, { state: data });
+      console.log('Chat intake submission successful, data:', data);
+      console.log('Recommendation ID:', data.recommendationId);
+      
+      if (data.recommendationId) {
+        navigate(`/results/${data.recommendationId}`, { state: data });
+      } else {
+        console.error('No recommendationId in chat response:', data);
+        // Fallback navigation
+        navigate('/results/error', { state: { error: 'No recommendation ID received' } });
+      }
+    },
+    onError: (error) => {
+      console.error('Chat intake submission failed:', error);
     }
   });
 
