@@ -38,5 +38,17 @@ Every recommendation has >=1 citation
 
 Stripe provisioning within 30s
 
+## Data Policy
+
+**NO MOCK DATA**: The application must never use mock, demo, or fake data for display purposes. All data should start with real zeros and populate through actual API usage.
+
+- Analytics endpoints return empty arrays and zero values until real data is available
+- History endpoints return empty arrays until users have actual activity
+- Subscription endpoints return null/empty values until users have real subscriptions
+- All UI components handle empty states gracefully
+- Recommendation generation is the only exception (core business logic)
+
+This ensures users see accurate, real data and prevents confusion from fake information.
+
 [See Developer Guide section for DB schema, Stripe provisioning commands, webhook code, etc.]
 

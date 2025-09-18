@@ -131,7 +131,17 @@ export const BillingPage = () => {
   };
 
   const currentPlan = getCurrentPlan();
-  const usagePercentage = usage ? (usage.recommendationsUsed / currentPlan.limit) * 100 : 0;
+  
+  // Calculate usage percentage safely
+  const getUsagePercentage = () => {
+    if (!usage || typeof usage.recommendationsUsed !== 'number' || currentPlan.limit <= 0) {
+      return 0;
+    }
+    const percentage = (usage.recommendationsUsed / currentPlan.limit) * 100;
+    return Math.min(percentage, 100); // Cap at 100%
+  };
+  
+  const usagePercentage = getUsagePercentage();
 
   return (
     <div className="max-w-6xl mx-auto space-y-6">
@@ -181,6 +191,12 @@ export const BillingPage = () => {
                   {usage?.recommendationsUsed || 0} / {currentPlan.limit}
                 </span>
               </div>
+              <div className="flex justify-between items-center mb-2">
+                <span className="text-sm font-medium text-gray-700">Remaining</span>
+                <span className="text-sm text-gray-500">
+                  {Math.max(0, currentPlan.limit - (usage?.recommendationsUsed || 0))} recommendations
+                </span>
+              </div>
               <UsageMeter
                 value={usagePercentage}
                 label="Monthly usage"
@@ -217,41 +233,6 @@ export const BillingPage = () => {
           </div>
         )}
 
-        {/* Debug info for subscription detection */}
-        {import.meta.env.DEV && (
-          <div className="mb-4 p-4 bg-blue-50 border border-blue-200 rounded-lg">
-            <div className="text-blue-800 font-medium">Debug: Subscription Detection</div>
-            <div className="text-blue-600 text-sm mt-1">
-              <p>User ID: {user?.id}</p>
-              <p>User Created: {user?.createdAt ? new Date(user.createdAt).toISOString() : 'Unknown'}</p>
-              <p>Public Metadata: {JSON.stringify(user?.publicMetadata, null, 2)}</p>
-              <p>Subscription Info: {JSON.stringify(subscriptionInfo, null, 2)}</p>
-              <p>Current Plan: {JSON.stringify(currentPlan, null, 2)}</p>
-              <p>Has Any Plan: {hasAnyPlan ? 'Yes' : 'No'}</p>
-              <div className="mt-2 space-x-2">
-                <button
-                  onClick={() => {
-                    logger.billingInfo('Manual refresh requested');
-                    window.location.reload();
-                  }}
-                  className="px-3 py-1 bg-blue-600 text-white text-xs rounded hover:bg-blue-700"
-                >
-                  Refresh Page
-                </button>
-                <button
-                  onClick={() => {
-                    localStorage.setItem('carrierllm_trial_started', Date.now().toString());
-                    logger.billingInfo('Manual trial started');
-                    window.location.reload();
-                  }}
-                  className="px-3 py-1 bg-green-600 text-white text-xs rounded hover:bg-green-700"
-                >
-                  Start Trial (Test)
-                </button>
-              </div>
-            </div>
-          </div>
-        )}
 
         <div className="bg-gray-50 rounded-lg p-6">
           <BillingErrorBoundary>

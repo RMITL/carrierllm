@@ -211,13 +211,10 @@ export const getUserUsage = async (): Promise<{
 
     // Map subscription data to expected format
     return {
-      plan: subscription.planKey === 'free_user' ? 'Free' :
-            subscription.planKey === 'individual' ? 'Individual' :
-            subscription.planKey === 'free_org' ? 'Team Free' :
-            subscription.planKey === 'enterprise' ? 'Enterprise' : 'Free',
-      status: subscription.status,
-      recommendationsUsed: subscription.usage.recommendationsUsed,
-      recommendationsLimit: subscription.usage.recommendationsLimit
+      plan: subscription.plan?.name || 'Free',
+      status: subscription.subscription?.status || 'active',
+      recommendationsUsed: subscription.usage?.current || 0,
+      recommendationsLimit: subscription.usage?.limit || 5
     };
   });
 };

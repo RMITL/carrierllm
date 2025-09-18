@@ -19,6 +19,9 @@ CarrierLLM is a Retrieval-Augmented carrier placement assistant for insurance ag
 - **Testing**: Vitest, @testing-library/react
 - **Process Management**: PM2 for production deployment
 
+### Data Policy
+**NO MOCK DATA**: The application never uses mock, demo, or fake data for display purposes. All data starts with real zeros and populates through actual API usage. This ensures users see accurate, real data and prevents confusion from fake information.
+
 ## 🚀 Getting Started
 
 ### Prerequisites

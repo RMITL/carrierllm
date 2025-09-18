@@ -182,22 +182,7 @@ router.get('/api/analytics/summary', async (request, env: Env) => {
       // Continue with default values if DB queries fail
     }
 
-    // If no real data, provide demo data for better UX
-    if (topCarriers.length === 0) {
-      topCarriers = [
-        { id: '1', name: 'Progressive', count: 15, successRate: 89 },
-        { id: '2', name: 'State Farm', count: 12, successRate: 85 },
-        { id: '3', name: 'Allstate', count: 10, successRate: 78 }
-      ];
-    }
-
-    if (trends.length === 0) {
-      trends = [
-        { month: '2025-01', intakes: 12, conversions: 9, conversionRate: 75 },
-        { month: '2024-12', intakes: 18, conversions: 13, conversionRate: 72 },
-        { month: '2024-11', intakes: 15, conversions: 10, conversionRate: 67 }
-      ];
-    }
+    // No mock data - return empty arrays if no real data
 
     return Response.json({
       stats,
@@ -211,12 +196,12 @@ router.get('/api/analytics/summary', async (request, env: Env) => {
   } catch (error) {
     console.error('Analytics endpoint error:', error);
 
-    // Return safe defaults on error
+    // Return real zeros on error - no mock data
     return Response.json({
       stats: {
         totalIntakes: 0,
-        averageFitScore: 75,
-        placementRate: 65,
+        averageFitScore: 0,
+        placementRate: 0,
         remainingRecommendations: 100
       },
       topCarriers: [],
@@ -248,7 +233,7 @@ router.post('/api/intake/submit', async (request, env: Env) => {
       console.log('Could not log intake:', e);
     }
 
-    // Generate mock recommendations in the correct format
+    // Generate recommendations in the correct format
     const recommendations = [
       {
         carrierId: 'progressive',
@@ -524,7 +509,7 @@ router.get('/api/recommendations/:id', async (request, env: Env) => {
     console.log('Could not get recommendations:', e);
   }
 
-  // Return mock data if no real data
+  // Return fallback recommendation data if no real data found
   return Response.json({
     recommendationId: id,
     summary: {

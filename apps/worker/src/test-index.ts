@@ -24,26 +24,17 @@ export default {
     // Analytics endpoint
     if (path === '/api/analytics/summary') {
       try {
-        const userId = request.headers.get('X-User-Id');
-        
-        // Return demo analytics data
+        // Always return real zeros - no mock data
+        // In production, this would query the database for real user analytics
         return Response.json({
           stats: {
             totalIntakes: 0,
-            averageFitScore: 75,
-            placementRate: 65,
+            averageFitScore: 0,
+            placementRate: 0,
             remainingRecommendations: 100
           },
-          topCarriers: [
-            { id: '1', name: 'Progressive', count: 15, successRate: 89 },
-            { id: '2', name: 'State Farm', count: 12, successRate: 85 },
-            { id: '3', name: 'Allstate', count: 10, successRate: 78 }
-          ],
-          trends: [
-            { month: '2025-01', intakes: 12, conversions: 9, conversionRate: 75 },
-            { month: '2024-12', intakes: 18, conversions: 13, conversionRate: 72 },
-            { month: '2024-11', intakes: 15, conversions: 10, conversionRate: 67 }
-          ],
+          topCarriers: [],
+          trends: [],
           lastUpdated: new Date().toISOString()
         }, { headers: corsHeaders });
       } catch (error) {
@@ -51,8 +42,8 @@ export default {
         return Response.json({
           stats: {
             totalIntakes: 0,
-            averageFitScore: 75,
-            placementRate: 65,
+            averageFitScore: 0,
+            placementRate: 0,
             remainingRecommendations: 100
           },
           topCarriers: [],
@@ -67,36 +58,24 @@ export default {
     if (path.startsWith('/api/subscriptions/') && request.method === 'GET') {
       const userId = path.split('/')[3];
       try {
-        // For now, return demo subscription data that matches Clerk's format
+        // Return real data structure with zeros - no mock data
         // In production, this would query Clerk's API or your database
         return Response.json({
           userId,
-          subscription: {
-            id: 'sub_demo_' + userId,
-            status: 'trialing', // or 'active' for paid users
-            plan_name: 'Individual Trial',
-            plan_slug: 'individual-trial',
-            current_period_start: new Date().toISOString(),
-            current_period_end: new Date(Date.now() + 14 * 24 * 60 * 60 * 1000).toISOString(), // 14 days trial
-            trial_end: new Date(Date.now() + 14 * 24 * 60 * 60 * 1000).toISOString()
-          },
+          subscription: null, // No subscription until user actually subscribes
           usage: {
             current: 0,
-            limit: 100,
+            limit: 5, // Free tier limit
             resetDate: new Date(Date.now() + 30 * 24 * 60 * 60 * 1000).toISOString() // 30 days from now
           },
-          plan: {
-            name: 'Individual Trial',
-            slug: 'individual-trial',
-            limit: 100
-          }
+          plan: null // No plan until user subscribes
         }, { headers: corsHeaders });
       } catch (error) {
         console.error('Subscription endpoint error:', error);
         return Response.json({
           userId,
           subscription: null,
-          usage: { current: 0, limit: 100, resetDate: new Date().toISOString() },
+          usage: { current: 0, limit: 5, resetDate: new Date().toISOString() },
           plan: null,
           error: 'Subscription data temporarily unavailable'
         }, { status: 200, headers: corsHeaders });
@@ -105,9 +84,9 @@ export default {
 
     // User history endpoint
     if (path.startsWith('/api/user/') && path.endsWith('/history') && request.method === 'GET') {
-      const userId = path.split('/')[3];
       try {
-        // Return empty history for new users
+        // Always return empty history - no mock data
+        // In production, this would query the database for real user history
         return Response.json([], { headers: corsHeaders });
       } catch (error) {
         console.error('History endpoint error:', error);
@@ -117,8 +96,19 @@ export default {
     
     if (path === '/api/intake/submit' && request.method === 'POST') {
       const intake = await request.json();
+      const userId = request.headers.get('X-User-Id') || 'anonymous';
+      const recommendationId = 'test-' + Date.now();
+      
+      // Log the intake for analytics and history tracking
+      console.log('Intake submitted:', {
+        userId,
+        recommendationId,
+        intakeType: intake.answers ? 'legacy' : 'orion',
+        timestamp: new Date().toISOString()
+      });
+      
       return Response.json({
-        recommendationId: 'test-' + Date.now(),
+        recommendationId,
         status: 'completed',
         intake: intake,
         recommendations: [
