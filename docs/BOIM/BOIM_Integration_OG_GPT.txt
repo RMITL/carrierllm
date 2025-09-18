@@ -1,0 +1,259 @@
+###BOIM_Integration_OG_GPT
+Below is a **single master PRD** that consolidates your existing BOIM documents and the current CarrierLLM/Orion system into one buildable plan. It is written to maximize agent ROI and to make benefits programs “net‑zero or better” for employers/employees with immediate, measurable value.
+
+---
+
+# CarrierLLM × BOIM — Master PRD
+
+**Product:** Benefits Optimization Intelligence Module (BOIM) integrated into CarrierLLM/Orion
+**Audience:** Product, Engineering, Data, Design, GTM
+**Status:** Draft for build (consolidated)
+**Owner(s):** Product + Eng leads (TBD)
+
+---
+
+## 1) Executive summary & product vision
+
+**Vision.** Extend CarrierLLM from “underwriting intake + carrier placement” to “full-spectrum benefits optimization,” auto‑identifying and qualifying **500+ federal, state, local and carrier programs** and packaging the highest‑ROI stack into an action plan with application automation. This bi‑directional intelligence uses the same intake you already run for underwriting to also unlock benefits savings, credits, grants and carrier value‑adds—so agents win more, faster, while clients get **net‑zero** or even **net‑positive** benefits.
+
+**Objectives (year 1).**
+
+* Identify >= **\$50k** average annual savings/opportunities per org; **85%+** qualification accuracy; **<30 min** to first assessment; drive CarrierLLM retention + differentiation.
+* Phase roadmap to **automation & intelligence** (MVP→state programs→submission automation→custom LLM).
+
+**Why now (Orion fit).** Orion’s intake, RAG placement and outcome logging are already in place; BOIM adds a parallel “optimization lane” that reuses the data, improves immediate value, and expands revenue via success‑based fees.
+
+---
+
+## 2) Success metrics & guardrails
+
+* **Business:** MRR from BOIM, NRR, CLV, success‑fee collection rate.
+* **Product:** activation (profile completion), **time to first value**, MAU, application success rate.
+* **Operational:** program coverage, data accuracy, uptime 99.9%, API p95.
+* **Targeted outcomes:** 20–40% employer cost reduction potential (varies by stack & size), \$50k+ average identified savings per org.
+
+**Non‑goals (v1):** Carrier filings/plan document drafting; custom PBM contracting; complex third‑party finance.
+
+---
+
+## 3) Personas & jobs‑to‑be‑done
+
+* **Agent/Consultant (primary user in Orion):** Differentiate, quantify savings quickly, deliver an actionable plan and CTAs; reuse underwriting intake; one client conversation → two wins (coverage + savings).
+* **HR/Benefits Admin (client):** Reduce spend, improve coverage, stay compliant, avoid hunting programs.
+* **CFO (client sponsor):** See net cash impact, timelines, confidence bands.
+
+---
+
+## 4) End‑to‑end experience
+
+### 4.1 Key flows (embedded in Orion)
+
+1. **Handshake & import**
+   Connect CarrierLLM org; auto‑prefill org profile from underwriting data; surface **initial matches in minutes**. 
+
+2. **Opportunity Explorer**
+   Qualified / Potential / Not Qualified lanes; each tile shows: estimated savings, deadline, effort, **success probability**, and **net‑zero impact** if applied.
+
+3. **Stack Optimizer**
+   Build the best “stack” across programs while respecting exclusivity/prereqs; show conflicts, order of operations, and ROI curve.
+
+4. **Action plan & submission**
+   Requirements checklist, evidence builder, document generation, and **application automation** for selected programs; track status to realized savings.
+
+5. **Reporting & renewals**
+   Executive dashboard with **identified vs. realized** savings, deadline alerts, peer benchmarks, and audit trail.
+
+**Screens & components** align to the app’s existing IA (Intake → Results → Applications → Reports), with **CarrierCard**, **EvidencePopover**, and **Analytics** blocks; tone is transparent with citations. 
+
+---
+
+## 5) Functional scope
+
+### 5.1 Profile Builder (P0)
+
+* **Adaptive forms** with **progressive disclosure**; never ask for data Orion/CarrierLLM already has; context rules by employee count, industry, and state. 
+* **Data sources:**
+
+  * **CarrierLLM mapping** (industry, census, revenue, location, etc.).
+  * **HRIS connectors** (Workday, ADP, BambooHR, Gusto); **Accounting** (QuickBooks, NetSuite, Xero, Sage, D365). 
+  * **External enrichment** (census/tracts, OZ status, BLS, public records).
+* **Privacy & security:** field‑level encryption, access controls, **full audit trail**. 
+* **Performance:** 10k concurrent edits; 1M employee import/hour.
+
+### 5.2 RAG Matching Engine (P0)
+
+* **Multi‑modal ingestion** (PDF/HTML/API) from **IRS, DOL, SBA, Grants.gov, state/municipal sites**, and **carrier databases** (wellness, premium discounts, value‑adds). 
+* **Hybrid search** (vector + filters + **knowledge graph** for stack/exclusivity).
+* **Real‑time eligibility & explanations;** continuous learning from outcomes.
+* **Scalability targets:** sub‑500ms p95 search; 1M eligibility checks/hr.
+
+### 5.3 Optimization & Net‑Zero Engine (P0 → P1)
+
+* **ROI calculator** with **success probability**; shows 30/60/90‑day projection and **net‑zero threshold** (employer and employee view). 
+* **Stack optimizer** uses graph relations (*stackable, mutually exclusive, prerequisite*) to maximize total value.
+* **Confidence bands** derived from eligibility signal strength + historical win rates (learned from feedback loop).
+
+### 5.4 Application Automation (P1)
+
+* **Requirements checklist**, document generation, pre‑filled forms, e‑signature, submission status, deadline clock.
+* **Event streaming** back to CarrierLLM: opportunity identified → submitted → realized benefit.
+
+### 5.5 Reporting & Exec Dashboard (P0)
+
+* **Top‑line tile pack:** total opportunity value, **realized savings**, in‑flight apps, upcoming deadlines, ROI trend.
+* **Drill‑down:** eligibility rationale, requirements, comparable successes.
+
+---
+
+## 6) Agent experience (Orion)
+
+**Where it lives.** Under the results pane, Orion adds a **“Benefits Optimization”** tab with:
+
+* **Savings Meter / Optimization Score** (percent fit; confidence badge). (Use accessible contrast styles per Tailwind tokens; avoid low‑contrast greens.)
+* **OpportunityCards** (title, agency, est. value, effort, deadline, fit/confidence); **View Evidence** opens an **EvidencePopover** that cites specific lines/sections from program docs. 
+* **One‑click CTAs:** “Add to Stack,” “Generate Checklist,” “Start Application.”
+
+**Design notes.** Use existing **CarrierCard**, **Badge**, **Banner**, **Card** primitives; forwardRef for focus; aria‑live for async updates; contrast‑safe text (black on green/amber). 
+
+---
+
+## 7) Integration with CarrierLLM stack
+
+**Cloudflare‑first blueprint** (aligns with current PRD):
+
+* **Storage:** Carrier & program docs in **R2**; metadata in **D1**; embeddings in **Vectorize**.
+* **Compute:** Workers (TypeScript) for APIs; Workers AI for embeddings/LLM orchestration (or proxy to managed embedding if needed); scheduled crawlers.
+* **AutoRAG/Retrieval:** Vectorize collections per domain (federal/state/carrier) with hybrid keyword filters.
+* **Events:** Queues/streams for *organization.created/updated, quote.generated → trigger search;* emit *opportunity.identified, application.submitted, benefit.realized* back to CarrierLLM.
+
+**Data exchange.** BOIM reads org profile from CarrierLLM (industry, employees, revenue, claims/usage summary where available) and writes back **optimization score**, **identified savings**, **recommended programs**.
+
+---
+
+## 8) APIs & data model (external and internal)
+
+**Core endpoints (GraphQL/REST):** organizations, employees (bulk), programs/search, programs/qualify, insights/roi, insights/recommendations, applications.
+
+**Program metadata** (eligibility\_requirements, benefit\_amount, deadlines, geo scope, industry codes, employee thresholds, financial tests, compliance prereqs; relationships for **stackable**, **mutually\_exclusive**, **prerequisite\_for**).
+
+---
+
+## 9) Non‑functional requirements
+
+* **Performance:** Profile inputs <200–500ms per event; RAG search **<500ms p95**; qual of 100 programs **<5s**; dashboard **<3s**. 
+* **Scalability:** 10k orgs; 5k+ programs; **1M+ checks/day**.
+* **Security/Compliance:** SOC2 II, E2E encryption, RBAC, PII handling (CCPA/GDPR), **full audit logging**. 
+* **Observability & SLOs:** latency, match accuracy, data staleness alerts; **auto‑scale** search nodes when p95>1s.
+
+---
+
+## 10) Content, ingestion & RAG specifics
+
+* **Sources:** IRS, DOL, SBA, Grants.gov, 50‑state portals + select municipalities; internal **carrier value‑adds** (wellness, discounts). 
+* **Chunking & metadata:** eligibility sections chunked together; deadlines & amounts captured as structured metadata; ANN indexes (HNSW/IVF) with metadata filters. 
+* **Hybrid search + graph:** Vector search + filters + graph traversal for *stack/exclusivity/alternatives*; reciprocal rank fusion.
+* **Learning loop:** adjust embeddings/rules from outcome feedback; cache invalidation by program.
+
+---
+
+## 11) “Net‑zero” modeling & tactics library
+
+**Net‑zero calculator.** Built on ROI engine: shows **gross benefit value**, **employer/employee cost**, **timing**, **probability**, then highlights the **crossing point** where combined stack offsets premium increases or enhances take‑home value (employee) or cash savings (employer).
+
+**Tactics library (grouped):**
+
+* **Tax & incentive‑based** (federal/state credits, grants, workforce funding).
+* **Carrier/plan value‑adds** (wellness incentives, premium discounts, supplemental perks).
+* **Workforce/eligibility mix** (role/department targeting using org charts to map who qualifies for what).
+
+Stack rules leverage the **knowledge graph** to avoid mutual‑exclusion collisions and to order prerequisites.
+
+---
+
+## 12) Roadmap & phasing (12 months)
+
+* **Phase 1 (0–3 mo):** Profile Builder, RAG DB with \~100 federal programs; basic ROI; MVP dashboard; 10 beta clients; \~50% accuracy; \~**\$10k** avg identification.
+* **Phase 2 (4–6 mo):** 50 state programs; ML matching; **stack optimizer**; doc generation; advanced analytics; 100 clients; 75% accuracy; **\$30k** avg.
+* **Phase 3 (7–9 mo):** App submission automation; monitoring; predictive alerts; white‑label; API marketplace; 500 clients; 85% accuracy; **\$50k** avg.
+* **Phase 4 (10–12 mo):** Custom LLM; auto success stories; peer benchmarking; predictive ROI; automated compliance; 1,000 clients; **\$75k** avg.
+
+---
+
+## 13) Risks & mitigations
+
+* **RAG accuracy drift:** multi‑model embeddings + human validation path; alert on low match rate. 
+* **Program churn:** automated monitoring, deadline alerts; dedicated content team.
+* **Rate limits/data staleness:** caching, batch jobs, staleness alarms. 
+
+---
+
+## 14) Acceptance criteria (MVP → GA)
+
+**MVP (Phase 1):**
+
+* Import from CarrierLLM + HRIS; show at least 10 qualified opportunities or “0 with explanation” within **<30 min**; ROI tab with net‑zero indicator; dashboard tiles; audit logs; p95 search<500ms. 
+
+**GA (by Phase 3):**
+
+* State programs + stack optimizer + submission automation; exec dashboard; event streams to CarrierLLM; realized savings capture; **85%+** accuracy on audited samples; 1M+ eligibility checks/day capacity. 
+
+---
+
+## 15) Compliance, security & audit
+
+* **SOC2 II**, encryption in transit/at rest, field‑level controls, privacy by design; comprehensive audit trail with anomaly alerts. 
+* **PII controls** for employee‑level data; org‑level exposure in dashboards; role‑based access in Orion.
+
+---
+
+## 16) Design system & accessibility
+
+* Use the established **UI primitives** (`CarrierCard`, `Badge`, `Banner`, `Card`) and **UsageMeter** to visualize optimization fit/savings; forwardRef for focus; `aria-live` for updates.
+* Respect **WCAG 2.2 AA** contrast (e.g., black text on green/amber badges; primary on white >=4.5:1).
+* Preserve the app IA: Intake (8 questions) → Results (% fit with **citations**) → Applications → Reports. 
+
+---
+
+## 17) Engineering notes & options
+
+* **Vector search & filters.** Keep **Vectorize** as primary embedding store; add a secondary keyword index for regulatory fields; use RRF for hybrid ranking. 
+* **Graph relations.** Model *stackable*, *exclusive*, *prereq* relations to drive the optimizer and UI warnings.
+* **Eligibility explainability.** Persist “why/why not” rationales for each recommendation (agent and client‑safe).
+
+---
+
+## 18) Open questions
+
+1. **Carrier program coverage**: prioritize which carriers’ wellness/discount catalogs to ingest first? (We have ingestion hooks for internal carrier DB tables.)
+2. **Pricing model:** monthly SaaS + success fee % of realized savings? (Targets exist in BOIM master docs.)
+3. **Which HRIS/accounting connectors** are “phase‑1 must‑have” vs. stubs? 
+
+---
+
+### Appendix A — Reference architecture (from BOIM docs, tailored)
+
+* BOIM module with **Profile Builder**, **RAG**, **Opportunity DB**, **ROI Calculator**, **Application Automation**; shared auth/storage/API.
+* Cloudflare map: **R2 (docs)** / **D1 (metadata)** / **Vectorize (embeddings)** / **Workers** / **Workers AI**; event streams to/from CarrierLLM. 
+
+---
+
+### Appendix B — Program ingestion sources (starter)
+
+* **Federal:** IRS (credits/deductions), DOL (workforce), SBA (funding), Grants.gov (opportunities).
+* **State/local:** 50 states + selected city/county portals (EDGE/DCEO example pattern).
+* **Carrier:** wellness/discount/value‑adds (internal DB). 
+
+---
+
+## What’s included from your prior docs (mapping)
+
+* Vision, objectives, success metrics, personas, progressive disclosure, data model & security, RAG ingestion/graph/hybrid search, performance targets, dashboards, phase plan, risks, budget—**all consolidated here** from **BOIM Master PRD**, **Profile Builder PRD**, **RAG Subsystem PRD**, and CarrierLLM PRD/UI guides.    
+
+---
+
+### Build‑ready next steps
+
+1. **Stand up schema & collections** in R2/D1/Vectorize and wire the ingestion pipeline for four federal sources + one state template + carrier table import.
+2. **Embed Profile Builder** in Orion UI; map CarrierLLM → BOIM fields; ship MVP ruleset for progressive disclosure.
+3. **Implement hybrid retrieval + KG** (stack/exclusivity) with explanations; ship Opportunity Explorer and ROI/Net‑Zero panel. 
+4. **Event hooks** to log identified → submitted → realized; add dashboard tiles. 

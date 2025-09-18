@@ -1,0 +1,451 @@
+Grant/Program Ingestion Engine (GPIE) Specifications
+Below is a single, master “Inner‑Workings” document for **CarrierLLM** that specifies a production‑grade **Grant/Program Ingestion Engine (GPIE)** tightly integrated with Orion (underwriting intake) and the Benefits Optimization Intelligence Module (BOIM). It is tailored to your stack and documents, with explicit schemas, APIs, workflows, SLAs, QA, and ops details. Citations inline point to the relevant pages in your BOIM PRDs and CarrierLLM master plan.
+
+---
+
+# CarrierLLM – Grant/Program Ingestion Engine (GPIE)
+
+**Owner:** Platform/Knowledge Graph Team
+**Consumers:** BOIM (RAG Matching & ROI), Orion (Underwriting Intake), Agent App
+**Goal:** Continuously ingest, normalize, enrich, version, and serve **federal, state, local, utility, and carrier** savings programs, grants, and tax incentives so agents can unlock net‑zero / profitable benefits for employers and employees. (Scope and motivation defined in BOIM Master PRD and RAG subsystem PRD.) 
+
+---
+
+## 1) Executive Summary
+
+* **What it does:**
+
+  1. **Discovers** program sources (Grants.gov, IRS tax credits, DOL, SBA, state portals, utilities, carrier programs).
+  2. **Fetches & parses** PDFs/HTML/APIs, extracting eligibility, amounts, deadlines, and application steps.
+  3. **Normalizes** content into a **Program DSL** (eligibility rules, geo scope, NAICS, thresholds, stacking rules).
+  4. **Enriches** with geo (FIPS/MSA), industry (NAICS), and financial policy signals.
+  5. **Versions & validates** (QA), stores raw + normalized payloads, **embeds** to vector store, **links** in knowledge graph.
+  6. **Serves** BOIM search/matching and explanations, with ROI‑ready metadata (benefit ranges, deadlines).
+     This aligns directly with BOIM’s RAG ingestion & hybrid search plans and knowledge graph model. 
+
+* **Why now:** BOIM Phase 1 requires a foundation of 100+ federal programs and recurring refresh; Phases 2–4 scale to all 50 state catalogs and automation.
+
+* **Where it lives in the platform:** Phase 1 of CarrierLLM **Knowledge Base & Data Ops** (R2 raw docs + D1 metadata + Vectorize index + governance).
+
+---
+
+## 2) Success Criteria & SLAs
+
+* **Coverage:**
+
+  * ≥100 federal programs live by end of Phase 1; 50‑state coverage by Phase 2.
+* **Freshness:**
+
+  * **Federal** sources checked hourly/daily per source limits; **state** sources weekly; **deadlines** polled hourly near due dates. (Freshness monitor defined in RAG PRD.)
+* **Quality:**
+
+  * ≥95% parse success on structured fields; ≥90% accurate eligibility extraction (measured via QA sampling).
+  * Constraint validations: deadlines are future/recurring; employee\_min ≤ employee\_max; amounts non‑negative.
+* **Performance:**
+
+  * P95 search < 500 ms for program queries (served from Vectorize + metadata cache).
+* **Explainability:**
+
+  * 100% of recommendations include eligibility rationale and citation to source chunk id. (RAG flow.)
+
+---
+
+## 3) System Architecture
+
+### 3.1 Cloud & Platform Primitives
+
+* **Raw storage:** Cloudflare **R2** (immutable, versioned raw documents).
+* **Metadata/graph tables:** Cloudflare **D1** (SQLite on edge) for program records, relationships, and crawl ledger.
+* **Vector embeddings:** Cloudflare **Vectorize** (HNSW index).
+* **Workers:** Cloudflare Workers for fetch, parse, normalize, embed, and APIs; **Cron Triggers** for schedules.
+* **Observability:** Workers Logs + Alerts; Slack/Email webhooks.
+
+> CarrierLLM master plan Phase 1 prescribes R2, D1, Vectorize, refresh schedules, and provenance guardrails.
+
+### 3.2 High‑Level Dataflow
+
+```
+[Source Registry] → [Discovery] → [Fetch] → [Extract] → [Normalize to DSL]
+              → [Enrich] → [Validate] → [Version & Store]
+              → [Embed + Index] → [Graph Link] → [Serve APIs to BOIM/Orion]
+```
+
+* **Discovery:** Seeds per source; diff/ETag/Last‑Modified; sitemaps, RSS, APIs.
+* **Extract:** PDF/HTML parsers; structured JSON APIs.
+* **Normalize:** Program DSL (schema below); chunking rules for eligibility and application sections.
+* **Embed:** Multi‑model strategy (general + domain‑specific) with weighted fusion per context.
+* **Graph Link:** Program↔Requirement↔Industry↔Location edges (stackable/mutual‑exclusion/prereqs).
+
+---
+
+## 4) Source Coverage & Connectors
+
+### 4.1 Federal (initial)
+
+* **Grants.gov API** – opportunities, deadlines, categories.
+* **IRS** – tax credits/deductions pages & forms (credit rules, amounts).
+* **DOL** – workforce, apprenticeship, WOTC references.
+* **SBA** – funding, disaster relief, loan subsidies.
+
+> BOIM RAG PRD lists connectors & frequencies (API, RSS, web scraper).
+
+### 4.2 State/Local & Utilities (Phase 2+)
+
+* 50‑state economic development, workforce, health (e.g., IL DCEO incentives), city/county portals, utility rebates. (IL PDF monitor example in PRD.)
+
+### 4.3 Carrier Value‑Adds
+
+* Internal table for wellness incentives, premium discounts, value‑added services. (Feeds CarrierProgramParser.)
+
+---
+
+## 5) Document Processing & Chunking
+
+### 5.1 PDF/HTML/JSON Processing
+
+* **Format detect → extract → metadata → intelligent chunking**.
+* **Chunking policies:** keep **eligibility**, **benefit calc**, **application process**, **deadlines** as cohesive units; overlap 50 tokens for continuity.
+
+### 5.2 Entity Extraction (NER + Rules)
+
+* **Entities:** agency, benefit type, amounts/ranges, deadlines (date/rolling), location scope (state/county/city), industry tags (NAICS), employer type (for‑profit, nonprofit, gov), min/max employees, revenue caps, certifications (MBE/WBE/VET), prerequisites, stacking rules. (Matches BOIM extraction needs.)
+
+---
+
+## 6) Normalization – Program DSL (authoritative schema)
+
+Authoritative normalized schema stored in **D1** (`programs`, `requirements`, `relationships`) and emitted as JSON to R2 alongside raw.
+
+```json
+{
+  "program_id": "uuid-v7",
+  "slug": "irs-erc-2025",
+  "name": "Employee Retention Credit",
+  "agency": "IRS",
+  "benefit_type": ["tax_credit"],
+  "benefit_amount": { "type": "formula", "expression": "min(26000, wages*0.7)" },
+  "geographic_scope": ["federal"],
+  "industries": ["31-33", "54"],          // NAICS
+  "employer_types": ["for_profit","nonprofit"],
+  "employee_thresholds": { "min": 1, "max": null },
+  "financial_requirements": { "revenue_decline_pct": ">=20%" },
+  "certifications": ["MBE?", "VBE?"],
+  "eligibility_rules": [
+    { "all": [
+      { "field": "employees.total", "op": ">=", "value": 1 },
+      { "field": "location.country", "op": "=", "value": "US" }
+    ]}
+  ],
+  "application": {
+    "deadline": { "type": "rolling", "note": "Amended filings allowed" },
+    "steps": ["File Form X", "Attach payroll docs"],
+    "materials": ["Form X", "941s"]
+  },
+  "stacking": {
+    "stackable_with": ["state-training-grant-IL-2025"],
+    "mutually_exclusive": ["program-abc-2025"],
+    "prerequisites": []
+  },
+  "provenance": {
+    "source_url": "https://irs.gov/...",
+    "retrieved_at": "2025-09-15T10:21:00Z",
+    "checksum": "sha256:...",
+    "raw_object_key": "r2://gpie/raw/irs/erc-2025-v3.pdf"
+  },
+  "version": 3,
+  "effective_date": "2025-01-01",
+  "expires_date": null
+}
+```
+
+* Validation rules mirror BOIM RAG validation spec (range checks, temporal constraints, completeness).
+
+---
+
+## 7) Embeddings & Indexing
+
+* **Embedding strategy:** Multi‑model fusion (general + financial + legal + geo), weighted by context; Vectorize HNSW (1536 dims for primary). 
+* **Indexed objects:**
+
+  * `programs` (full text/eligibility focus; HNSW)
+  * `eligibility_rules` (768‑dim rules index for targeted matching)
+  * `success_stories` (flat index – Phase 3).
+* **Metadata filters:** state, industry\_codes\[], employee\_range, deadline, benefit\_type for hybrid vector + filter search.
+* **Reranking:** business‑rule overlay & graph traversal (stack/prereq/alternatives) using reciprocal rank fusion.
+
+---
+
+## 8) Knowledge Graph
+
+Represented in D1 relational tables (for portability on edge) with light graph semantics:
+
+* **Nodes:** Program, Requirement, Industry (NAICS), Location (city/county/state/federal).
+* **Edges:** `STACKABLE_WITH`, `MUTUALLY_EXCLUSIVE`, `PREREQUISITE_FOR`, `REQUIRES`, `AVAILABLE_IN`, `APPLIES_TO`.
+* **Traversal use‑cases:** build **optimal stacks**; enforce mutual exclusions; calculate compatibility & net benefit. (Schema/queries per BOIM RAG PRD.) 
+
+---
+
+## 9) APIs (Edge Workers)
+
+### 9.1 Public (App/BOIM/Orion)
+
+* `GET /api/v1/programs/search?q&state&naics&employees&deadline_before` → hybrid search; returns ranked programs with match explanation & citations.
+* `GET /api/v1/programs/{id}` → full normalized DSL + provenance + version history.
+* `POST /api/v1/programs/qualify` → `{ org_profile }` returns eligible/near‑eligible with rule breakdown & confidence. (Leverages org profile embedding).
+* `POST /api/v1/programs/stack` → build optimal stack under constraints (mutual‑exclusion, deadlines).
+
+### 9.2 Admin/Ops
+
+* `POST /admin/ingest/run` (source\_id | ad‑hoc URL)
+* `GET /admin/ingest/runs?status` (ledger, errors)
+* `GET /admin/sources` (health/freshness)
+* `POST /admin/programs/{id}/approve` (editorial sign‑off)
+
+---
+
+## 10) Data Stores
+
+### 10.1 D1 (SQLite) – tables (simplified)
+
+```sql
+CREATE TABLE sources (
+  id TEXT PRIMARY KEY,
+  name TEXT, type TEXT, base_url TEXT,
+  method TEXT, frequency TEXT, enabled INTEGER,
+  auth JSON, last_ok TIMESTAMP
+);
+
+CREATE TABLE raw_documents (
+  id TEXT PRIMARY KEY, source_id TEXT, url TEXT,
+  fetched_at TIMESTAMP, checksum TEXT,
+  r2_key TEXT, status TEXT, meta JSON
+);
+
+CREATE TABLE programs (
+  id TEXT PRIMARY KEY, slug TEXT UNIQUE,
+  name TEXT, agency TEXT, benefit_type TEXT,
+  geo JSON, industries JSON, employer_types JSON,
+  employee_min INT, employee_max INT,
+  financial_req JSON,
+  eligibility JSON, application JSON, stacking JSON,
+  provenance JSON, version INT, effective_date TEXT, expires_date TEXT
+);
+
+CREATE TABLE program_edges (
+  src_id TEXT, dst_id TEXT, rel TEXT,
+  PRIMARY KEY (src_id, dst_id, rel)
+);
+
+CREATE TABLE crawl_ledger (
+  id TEXT PRIMARY KEY, source_id TEXT, run_at TIMESTAMP,
+  discovered INT, fetched INT, parsed INT, normalized INT,
+  errors JSON
+);
+```
+
+---
+
+## 11) Schedules, Freshness & Governance
+
+* **Schedules:**
+
+  * Grants.gov: hourly API poll. IRS: daily. SBA RSS: realtime. State PDFs: weekly monitors.
+* **Freshness monitor:** per‑source expected frequency vs last update; severity scoring; alerting (Slack/Email).
+* **Versioning:** every normalized change increments `version`; raw in R2 immutable by checksum; diff retained.
+* **Provenance:** chain of custody fields + source URL + timestamps; used for citation rendering in BOIM results.
+* **Compliance:** obey robots.txt, TOS; respect API rate limits; record license terms in `provenance.license`.
+* **Editorial QA:** human review queues for **uncertain** or high‑value matches (active learning pipeline).
+
+---
+
+## 12) Security & Privacy
+
+* GPIE ingests **public program** data; no employee PII.
+* API auth via JWT (tenant scoped).
+* Encrypt in transit; no secrets in code; Wrangler secrets for tokens.
+* Differential privacy only applies to employee aggregates in Profile Builder (upstream of BOIM), not GPIE.
+
+---
+
+## 13) Integration with BOIM & Orion
+
+* **BOIM Matching:** Hybrid vector + rule + graph; ROI ranker uses `benefit_amount`, success priors, and application friction.
+* **Org Profile Embedding:** Combine narrative + structured features (employees, revenue bracket, NAICS, region).
+* **Eventing:**
+
+  * from CarrierLLM: `organization.updated` → trigger re‑match;
+  * to CarrierLLM: `opportunity.identified`, `application.submitted`, `benefit.realized`.
+* **Zero‑Redundancy:** reuse underwriting intake & HRIS data; prompt only for deltas via Profile Builder.
+
+---
+
+## 14) Program Discovery & Parser Spec (Examples)
+
+### 14.1 Grants.gov (API)
+
+* **Auth:** API key via Wrangler secret.
+* **Poll:** hourly; store `opportunityNumber`, `title`, `cfdaList`, `fundingCategories`, `openDate`, `closeDate`.
+* **Parser:** map keywords→benefit\_type; extract eligibility from `eligibilityCategory`/synopsis.
+
+### 14.2 IRS (Web)
+
+* **Fetch:** daily sitemap; monitor forms & FAQ updates.
+* **Parser:** specialized rules for credit formulas, lookback periods, amended filings.
+
+### 14.3 IL DCEO (PDF monitor)
+
+* **Fetch:** weekly directories; diff by filename + content checksum.
+* **Parser:** anchored headings to detect Eligibility/Application/Deadlines; compute token‑overlapped chunks.
+
+### 14.4 Carrier Programs (DB feed)
+
+* **Source:** `carrier_llm_db` tables: `wellness_programs`, `premium_discounts`, `value_added_services`.
+* **Parser:** simple mapping to DSL with `benefit_type` = `premium_discount`/`wellness_stipend`.
+
+---
+
+## 15) Matching, Stacking & Explanations
+
+* **Search flow:** vector retrieve (top‑k) → filter (state/size/NAICS) → graph expand (stack/prereq/alternatives) → reciprocal rank fusion → business rules → **eligibility validator** → explanation generator. 
+* **Stack builder:** maximize net benefit subject to mutual exclusion, deadlines, and org constraints (see traversal query pattern).
+* **Explanations:** cite chunk ids (source\_url + chunk offset) and list which **rule(s)** matched or failed.
+
+---
+
+## 16) Monitoring, QA, and Learning
+
+* **Dashboards:** per‑source success/error rates; parse coverage; freshness; index size; top queries.
+* **QA Workbench:** sampling, diff viewer (v2 vs v3), redline rules; approve/publish.
+* **Active Learning:** route uncertain matches (low confidence / conflicting scores / new programs) to experts; feedback updates reranker/weights.
+* **Outcome Learning:** ingest application outcomes to adjust embeddings/weights (success priors).
+
+---
+
+## 17) Performance & Caching
+
+* **Edge cache:** eligibility lookups & search results (in‑memory + Redis‑compatible cache if used); smart invalidation by program id.
+* **Query optimization:** “speed vs accuracy” knobs (ef\_search, top\_k, rerank) per context (time‑sensitive vs high‑value).
+
+---
+
+## 18) DevOps – Projects, Config, & Runbooks
+
+### 18.1 Repos & Packages
+
+* `apps/ingestion-worker` (Workers fetch/parse/normalize)
+* `apps/programs-api` (public/admin APIs)
+* `packages/schemas` (DSL & validators), `packages/parsers/*`, `packages/embeddings`
+
+### 18.2 Wrangler config (excerpt)
+
+```toml
+# wrangler.toml
+name = "gpie"
+main = "src/index.ts"
+compatibility_date = "2025-09-01"
+
+[vars]
+ENV = "staging"
+
+[r2_buckets]
+bindings = [
+  { binding = "RAW_BUCKET", bucket_name = "gpie-raw" },
+  { binding = "NORM_BUCKET", bucket_name = "gpie-norm" }
+]
+
+[d1_databases]
+bindings = [
+  { binding = "DB", database_name = "gpie-meta", database_id = "..." }
+]
+
+[vectorize]
+binding = "PROGRAMS_INDEX"
+index_name = "gpie-programs"
+```
+
+### 18.3 Secrets
+
+* `GRANTS_GOV_API_KEY`, `IRS_HTTP_AUTH` (if needed), `SLACK_WEBHOOK_URL`.
+
+### 18.4 Runbooks
+
+* **Parser breakage:** roll back parser version; re‑run last successful normalized batch.
+* **Freshness alert:** inspect `crawl_ledger` for source; check robots/API limit; backoff and notify.
+* **Bad data:** quarantine program version; promote prior version; open ticket to fix rules.
+
+---
+
+## 19) Acceptance Tests (ATs)
+
+1. **Ingest/Parse:** Given a new Grants.gov opportunity, within 1h the program appears with deadline, eligibility, and provenance in `/api/v1/programs/{id}`.
+2. **Rules Validity:** A program with `employee_min=50` and org with 42 employees fails rule with correct explanation.
+3. **Stacking:** Two compatible programs appear in `/stack` with combined net benefit higher than either alone; mutually exclusive pair yields constraint error.
+4. **Freshness:** When IRS page updates, version increments and previous version accessible; change log shows diff.
+5. **Search Latency:** P95 < 500ms for `search` on warm cache with filters.
+
+---
+
+## 20) Roadmap Alignment
+
+* **Phase 1:** MVP ingestion (100 federal), BOIM RAG wired, baseline ROI calculator, MVP dashboard.
+* **Phase 2:** 50‑state programs, ML reranker, stack optimization, document generation for applications.
+* **Phase 3–4:** Automated submission, predictive alerts, success‑story mining, custom LLM.
+
+---
+
+## 21) Appendix
+
+### 21.1 Hybrid Search Pseudocode
+
+```ts
+const results = fuse([
+  vectorSearch(queryEmbedding, { topK: 100 }),        // Vectorize
+  filterSearch({ state, employeeRange, naics }),      // D1/SQL filters
+  graphExpand(topVectorHits, { depth: 2 })            // edges: stack/prereq/alternatives
+]).rerank(businessRules, orgProfile)
+ .validate(eligibilityRules, orgProfile)               // DSL validator
+ .explain();                                           // chunk citations + rule outcomes
+```
+
+(Architecture aligns with BOIM RAG hybrid design.)
+
+### 21.2 Organization Profile Embedding (for qualify API)
+
+* Concatenate org narrative + encoded structured features (employees/revenue/NAICS/region), per BOIM spec.
+
+### 21.3 Eligibility Rule Validator – Examples
+
+```json
+{ "any": [
+  { "all": [
+    { "field": "employer.type", "op": "in", "value": ["for_profit","nonprofit"] },
+    { "field": "employees.total", "op": ">=", "value": 50 },
+    { "field": "location.state", "op": "=", "value": "IL" }
+  ]},
+  { "all": [
+    { "field": "certifications", "op": "contains_any", "value": ["MBE","WBE","VBE"] },
+    { "field": "employees.total", "op": ">=", "value": 10 }
+  ]}
+]}
+```
+
+---
+
+### 21.4 Notes on “R1 storage”
+
+If by “R1” you mean Cloudflare’s newer AI terminology, storage of raw/normalized content remains **R2** and vector storage remains **Vectorize** per CarrierLLM foundations; model execution (Workers AI) is orthogonal. (We’ve kept the design aligned to the Cloudflare‑first plan.)
+
+---
+
+## 22) References
+
+* **BOIM Master PRD** – vision, KPIs, stack, APIs, phases.  
+* **RAG Subsystem PRD** – ingestion connectors, hybrid retrieval, graph schema, validation, learning loops.    
+* **Profile Builder PRD** – zero‑redundancy data intake, enrichment, privacy, event sync (for org profiles powering `qualify`).  
+* **CarrierLLM Master Plan** – Cloudflare R2/D1/Vectorize, ingestion & governance in Phase 1.
+
+---
+
+### Final word
+
+This GPIE spec gives engineering everything needed—**connectors, DSL, storage, workflows, validation, indexing, APIs, ops**—to stand up a robust ingestion foundation that BOIM can immediately exploit for **high‑ROI, net‑zero benefits** discovery and stacking.

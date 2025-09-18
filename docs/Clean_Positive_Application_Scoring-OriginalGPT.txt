@@ -1,0 +1,192 @@
+Great question. For a **clean / positive applicant** (i.e., no or minimal impairments), Orion ranks carriers *preferentially* using a transparent, auditable scoring model we call the **Preferential Carrier Grade (PCG)**. PCG converts the things agents care about—**speed, ease, and the likelihood of getting the best class**—into a single 0–100 score per carrier, then displays the top fits with plain‑English reasons and citations.
+
+Below is the framework your team can implement immediately.
+
+---
+
+## 1) What we optimize for (clean-case defaults)
+
+For low‑risk applicants, speed and friction matter more than “can they qualify?” (they will). So, our default PCG weights emphasize **path-to-issue velocity** and **probability of best class** while still accounting for borderline factors (build, occasional cigars, recreational marijuana, driving), older‑age handling, and underwriting credit programs.
+
+**PCG category weights (clean case):**
+
+1. **Path to issue & frictionless underwriting – 30%**
+   Do they offer instant/accelerated/exam‑free paths at the desired face amount/age? Any random holdouts, post‑issue reviews, or APS triggers likely?
+   • Examples we use for scoring:
+   – **Symetra Swift** offers **instant coverage** for eligible applicants (as little as \~18 minutes for SwiftTerm; SwiftProtector \~25 minutes) with defined accelerated and full-UW fallbacks; note limited random holdouts/post‑issue reviews. &#x20;
+   – **F\&G** markets **Exam‑Free Underwriting** (non‑accelerated) for most applicants age 0–60 up to **\$1M**, with **>99% exam‑free** and **\~50% approved in ≤5 days**; phone interview/APS only if needed.&#x20;
+
+2. **Probability of “best” class – 25%**
+   How often a clean applicant actually gets Super Preferred/Preferred Plus. We align applicant vitals (nicotine timeline, BP, chol/HDL, family history, aviation/avocations) to each carrier’s published **top‑class criteria**.
+   • Example criteria references used in our rules:
+   – **Mutual of Omaha (MOO)**: Preferred Plus allows treated BP and cholesterol; cigar up to 24/yr with negative HOS; family history waived ≥60; occasional marijuana can still qualify for certain preferred classes.&#x20;
+   – **Securian**: clear Preferred Select/Preferred/Non‑tobacco+ cutoffs for BP, cholesterol/HDL ratios, tobacco look‑back, and family history.&#x20;
+   – **Symetra Swift**: Super Preferred/Preferred rules; non‑eligibility lists for instant/accelerated that we use to reduce best‑class probability.&#x20;
+
+3. **Borderline leniencies (build/nicotine/marijuana/family history/well‑controlled “common milds”) – 15%**
+   We reward carriers with forgiving build charts, occasional cigar allowances, and pragmatic views on mild anxiety/asthma/sleep apnea—helpful when clients are near the edge of top class.
+   • **Securian** writefit + traditional build charts and mortality credits program (can improve beyond published classes). &#x20;
+   • **MOO** unisex build charts; Fit credits for better labs/family/ECG/BNP can move clients up to two tables—useful when a mild blip appears.&#x20;
+   • **Protective** explicitly lenient on common milds and uses **dual reinsurance manuals** to take **best** rating (often 2–3 tables better on CAD); occasional recreational marijuana may still get select preferred. &#x20;
+
+4. **Avocations, aviation, travel, MVR tolerance – 10%**
+   We map the case (e.g., private pilot hours/ratings; SCUBA; foreign travel up to 12 weeks; clean MVR) to each carrier’s stance.
+   • **Protective**: preferred NT possible for experienced private pilots; flat extras often applied to the preferred class; foreign travel up to \~12 weeks can still be best class.&#x20;
+   • **Securian & MOO** publish clear driving and aviation cutoffs used for scoring. &#x20;
+   • **Symetra Swift** disallows private aviation for instant path; Preferred available with strict pilot criteria.&#x20;
+
+5. **Age/amount flexibility and APS likelihood – 5%**
+   Older ages or larger face amounts frequently trigger APS/inspection; we score down if the case profile likely pivots out of “fast paths.”
+   • **Securian** mature‑age process (age 70+ cognitive/mobility screens; third‑party financials thresholds).&#x20;
+   • **MOO** age/amount requirement grids (BNP/EKG/SA/IR thresholds by face and age).&#x20;
+   • **Corebridge (AIG)**: AU+ vs. full‑UW tables and **Flex Points** credits; 71IR/inspection in defined situations. (We use these patterns to predict friction.)&#x20;
+
+6. **Underwriting credit programs – 7.5%**
+   Presence of automatic “crediting” to salvage borderline cases (e.g., **MOO Fit**, **Corebridge Flex Points**), giving clean cases more headroom. &#x20;
+
+7. **Operational support & transparency – 7.5%**
+   Quick-quote desks, clarity of holdouts/post‑issue review policies, and data sources used (Rx/MIB/credit-based scores) reduce back‑and‑forth.
+   • **Protective** quick quote desk (senior underwriters, 24‑hr goal).&#x20;
+   • **F\&G** discloses data sources (MVR, MIB, RX, credit/public records), positions Exam‑Free as the default path.&#x20;
+   • **Symetra Swift** is explicit about **random holdouts** and the three‑path model.&#x20;
+
+> **Note:** If your agency has a preferred‑tier (e.g., Columbus, Allianz, Americo, F\&G, Mutual of Omaha), Orion can apply a **tie‑breaker weight** (e.g., +3–5 points) *after* the objective PCG score to respect placement strategy—documented in the audit log.
+
+---
+
+## 2) How Orion turns a case into a % score
+
+**Inputs from intake (clean case):** age, state, face amount, nicotine timeline, vitals (BP, build), prescriptions (if any), MVR/DUIs, avocations/aviation, travel, minor histories (asthma/anxiety/sleep apnea), and product intent (IUL/Term).
+
+**Normalization:** Each sub-score is 0–100 per carrier; thresholds come from their guides. We calculate:
+
+* **VelocityScore:** 100 if instant/accelerated/exam‑free path is available at the applicant’s age/amount with no KO factors; −15 to −40 if random holdouts likely; −30 if APS is likely at that amount/age. (Symetra instant path & F\&G exam‑free drive high values for many clean cases.) &#x20;
+
+* **BestClassProbability:** proportion of top‑class gates passed (nicotine look‑back, BP, chol/HDL, family hx, driving, avocations), with soft penalties if treated HTN/CHOL are allowed at top class (MOO allows treatment in Preferred/Preferred Plus, so penalty = 0).  &#x20;
+
+* **BorderlineLeniency:** based on build tables near the applicant’s weight/height; cigar and marijuana allowances (MOO/Protective), and favorable treatment of mild conditions (Protective). &#x20;
+
+* **RiskLifestyleTolerance:** compare applicant’s aviation/SCUBA/travel/MVR against carrier allowances (e.g., Protective private pilot rules; Securian & MOO driving/aviation criteria).  &#x20;
+
+* **AgeAmountFlex & APS:** use carrier age/amount requirement grids to estimate extra friction (BNP/EKG/inspection at higher bands).  &#x20;
+
+* **CreditPrograms:** binary/graded for presence of Fit/Flex Points/WriteFit.  &#x20;
+
+* **OpsSupport:** points for quick‑quote access, explicit data sources, clarity of holdouts.  &#x20;
+
+**Final score (0–100):**
+
+```
+PCG = 0.30*VelocityScore
+    + 0.25*BestClassProbability
+    + 0.15*BorderlineLeniency
+    + 0.10*RiskLifestyleTolerance
+    + 0.05*AgeAmountFlexAPS
+    + 0.075*CreditPrograms
+    + 0.075*OpsSupport
+    (+ Optional Preferred‑Tier tie-breaker)
+```
+
+**Confidence band:**
+We report **Low / Med / High** confidence using variance across carriers + number of hard thresholds met. (E.g., if three carriers all offer instant paths and the applicant clears every top-class gate, confidence = **High**.)
+
+---
+
+## 3) Carrier signal map (clean‑case highlights you can audit)
+
+Below are the specific, auditable signals we parse and score. (This is not a ranking—signals inform the PCG.)
+
+* **F\&G** – *Speed/No‑Exam default*
+  • Exam‑Free underwriting to **\$1M**, **>99%** of eligible apps without exams; **InstApproval®** for faster issue; typical toolset includes MVR, MIB, credit‑based insurance score, Rx, and may request brief phone interview/APS if needed; **\~50%** approved in **≤5 days**. (Strong VelocityScore, clear Ops disclosures.)&#x20;
+
+* **Symetra Swift** – *Clear “Instant → Accelerated → Full”*
+  • **Instant coverage** in minutes for eligible SwiftTerm/SwiftProtector; explicit **random holdouts**/**post‑issue reviews**; instant/accel KO lists (e.g., diabetes, heart dz, RA, etc.); **no private aviation** for instant. (High VelocityScore when eligible; KO lists inform BestClassProbability; holdouts slightly reduce Ops score.)&#x20;
+
+* **Mutual of Omaha** – *Top‑class pragmatism & credits*
+  • Preferred classes allow **treated** BP/CHOL; **occasional cigars** ≤24/yr as NT with negative HOS; some **marijuana** permitted at Preferred/Std+; **Fit Underwriting Credits** (labs/family/BNP/ECG) can improve up to two tables; robust age/amount grids and a **fluidless** program at higher face amounts. (High BestClassProbability and CreditPrograms; grids inform APS likelihood.)&#x20;
+
+* **Securian** – *WriteFit & mortality credits; mature‑age expertise*
+  • Traditional **top‑class criteria**; **WriteFit** underwriting & build charts (+ separate traditional build charts); **mortality credits** can improve outcomes; **age 70+** has cognitive/mobility screens and financial doc thresholds. (Good BorderlineLeniency, clear mature‑age rules; affects AgeAmountFlexAPS.) &#x20;
+
+* **Protective** – *Dual reinsurance manuals & leniency on “common milds”*
+  • Uses **Hannover Re & Swiss Re** manuals and takes the **best** rating; often **2–3 table** improvement on mild/moderate CAD; mild anxiety/asthma/mild‑to‑moderate sleep apnea may still reach **best class**; private pilots considered for preferred NT under specified criteria; **foreign travel** up to \~12 weeks can still be **best class**; **rare recreational marijuana** may reach select preferred; **quick‑quote** desk staffed by senior underwriters. (Strong BorderlineLeniency, RiskLifestyleTolerance, and OpsSupport.) &#x20;
+
+* **Corebridge (AIG)** – *AU+ & Flex Points*
+  • AU+ (streamlined) vs. fully UW rules by age/amount; **Flex Points** can improve a class when specific favorable clinical findings exist (e.g., A1C <5.5, LDL <100, etc.); inspection/cognitive tests at older ages/large face amounts. (CreditPrograms + AgeAmountFlexAPS inputs.)&#x20;
+
+> Orion’s audit log stores which published rule or page drove each point in the score so reviewers can trace every percentage back to a source.
+
+---
+
+## 4) What the agent sees (and what we audit)
+
+For each carrier card, Orion shows:
+
+* **% Fit (PCG)** + **Confidence band**
+* **3–5 reasons** (“Instant path at \$750k given age 42; treated BP ok at Preferred+; occasional cigar allowed as NT with negative HOS”) with **inline citations**
+* **Flags** (e.g., “random holdouts possible” or “APS likely >\$1M at age 61+”) with citations
+* **Next step CTAs**: portal/phone (per your placement workflow)
+* **Citations** link back to the exact line in the guide used to score (the audit trail)
+
+---
+
+## 5) Implementation specs (CarrierLLM)
+
+* **Signals to extract per carrier (schema):**
+  `top_class_criteria`, `build_chart`, `nicotine_policy`, `cigar_policy`, `mj_policy`, `mild_conditions_best_class`, `aviation/avocation_rules`, `travel_rules`, `mvr_rules`, `accelerated/instant_examfree_matrix`, `age_amount_requirements`, `credit_programs`, `ops_support/quick_quote`, `random_holdouts_policy`.
+  (Populate from the cited PDFs; version with effective dates.)
+
+* **Scoring function (TypeScript):**
+
+```ts
+type Subscores = {
+  velocity: number;          // 0-100
+  bestClassProb: number;     // 0-100
+  borderlineLeniency: number;// 0-100
+  lifestyleTolerance: number;// 0-100
+  ageAmtFlexAPS: number;     // 0-100
+  creditPrograms: number;    // 0-100
+  opsSupport: number;        // 0-100
+};
+
+function pcg(s: Subscores, preferredTierBump = 0): number {
+  const base =
+    0.30*s.velocity +
+    0.25*s.bestClassProb +
+    0.15*s.borderlineLeniency +
+    0.10*s.lifestyleTolerance +
+    0.05*s.ageAmtFlexAPS +
+    0.075*s.creditPrograms +
+    0.075*s.opsSupport;
+  return Math.min(100, Math.round(base + preferredTierBump));
+}
+```
+
+* **Confidence:** compute as inverse of (score spread across top 4 + count of unmet hard gates). Bucket: ≤5 → High; 6–12 → Medium; >12 → Low.
+
+* **Data provenance & audits:** store `(carrier_id, doc_id, page_anchor, rule_id, applied_logic, contribution)` for every sub‑score so QA can reproduce the %.
+
+---
+
+## 6) Example (clean, sub‑\$1M IUL)
+
+*Applicant*: Age 42, NT 60+ months, BP 120/78, ratio 4.2, BMI normal, clean MVR, no avocations, face \$750k.
+*Outcome (typical)*:
+
+* **F\&G**: Exam‑free path likely → **velocity high**; best‑class good; ops transparent → **PCG high**.&#x20;
+* **Symetra**: Instant path may apply (if no KO); random holdouts slightly reduce ops score → **PCG high**.&#x20;
+* **MOO**: Best‑class tolerant of treated BP/CHOL, cigars policy generous, Fit credits present → **PCG high**.&#x20;
+* **Securian**: Competitive top‑class/WriteFit/mortality credits → **PCG high**.&#x20;
+* **Protective**: Dual‑manual + leniency on common milds; pilots/travel rules strong → **PCG high**.&#x20;
+
+(Orion would turn those qualitative notes into precise %s with the above formula and show the top 3 + a “stretch” option, each with citations.)
+
+---
+
+## 7) Why this works
+
+* **Transparent**: Every % point is sourced to a published rule (or explicit program).
+* **Auditable**: The log shows *why* Carrier A beat B (e.g., instant path at this amount; cigar policy; Fit credits).
+* **Actionable**: Agents see both the fast path and the conditions that might knock the case out of top class.
+
+If you’d like, I can plug your exact intake defaults into this PCG model and show a live example payload and rendered carrier cards using your preferred tier ordering (Columbus, Allianz, Americo, F\&G, MOO)—the same scoring engine applies; we’ll simply add the **preferred‑tier tie‑breaker** after objective scoring.
