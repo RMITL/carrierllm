@@ -248,34 +248,52 @@ router.post('/api/intake/submit', async (request, env: Env) => {
       console.log('Could not log intake:', e);
     }
 
-    // Generate mock recommendations for now
+    // Generate mock recommendations in the correct format
     const recommendations = [
       {
         carrierId: 'progressive',
         carrierName: 'Progressive',
-        fitScore: 92,
-        highlights: ['Competitive rates', 'Strong financial stability', 'Good customer service'],
-        concerns: [],
-        premiumRange: { min: 1200, max: 1800 },
-        citations: []
+        product: 'Indexed Universal Life',
+        fitPct: 92,
+        confidence: 'high',
+        reasons: ['Competitive rates', 'Strong financial stability', 'Good customer service'],
+        advisories: [],
+        apsLikely: false,
+        citations: [],
+        ctas: {
+          portalUrl: 'https://progressive.com/apply',
+          phoneNumber: '1-800-PROGRESSIVE'
+        }
       },
       {
         carrierId: 'statefarm',
         carrierName: 'State Farm',
-        fitScore: 88,
-        highlights: ['Local agent support', 'Multi-policy discounts'],
-        concerns: ['Premium may be higher'],
-        premiumRange: { min: 1400, max: 2000 },
-        citations: []
+        product: 'Indexed Universal Life',
+        fitPct: 88,
+        confidence: 'high',
+        reasons: ['Local agent support', 'Multi-policy discounts'],
+        advisories: ['Premium may be higher'],
+        apsLikely: false,
+        citations: [],
+        ctas: {
+          portalUrl: 'https://statefarm.com/apply',
+          phoneNumber: '1-800-STATE-FARM'
+        }
       },
       {
         carrierId: 'allstate',
         carrierName: 'Allstate',
-        fitScore: 85,
-        highlights: ['Accident forgiveness', 'Safe driving bonuses'],
-        concerns: [],
-        premiumRange: { min: 1300, max: 1900 },
-        citations: []
+        product: 'Indexed Universal Life',
+        fitPct: 85,
+        confidence: 'medium',
+        reasons: ['Accident forgiveness', 'Safe driving bonuses'],
+        advisories: [],
+        apsLikely: false,
+        citations: [],
+        ctas: {
+          portalUrl: 'https://allstate.com/apply',
+          phoneNumber: '1-800-ALLSTATE'
+        }
       }
     ];
 
@@ -302,14 +320,18 @@ router.post('/api/intake/submit', async (request, env: Env) => {
     }
 
     return Response.json({
-      intakeId,
       recommendationId,
       summary: {
         averageFit: 88,
         eligibleCarriers: recommendations.length,
-        processingTime: 1250
+        processingTime: 1250,
+        topCarrierId: recommendations[0].carrierId
       },
-      recommendations
+      top: recommendations,
+      premiumSuggestion: {
+        monthly: 1500,
+        note: 'Based on your profile, we recommend starting with a monthly premium of $1,500 for optimal coverage.'
+      }
     }, {
       headers: corsHeaders()
     });

@@ -267,10 +267,13 @@ export const getUserHistory = async (): Promise<Array<{
   return withRetry(async () => {
     const userId = (window as any).Clerk?.user?.id;
     if (!userId) {
+      console.log('No user ID available for history request');
       return [];
     }
 
+    console.log('Fetching history for user:', userId);
     const response = await client.get(`/user/${userId}/history`);
+    console.log('History API response:', response.data);
     return response.data;
   });
 };

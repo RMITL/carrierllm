@@ -28,6 +28,8 @@ const defaultCoreIntake = (): OrionCoreIntake => ({
 export const OrionIntakeForm = ({ onSubmit, isSubmitting }: OrionIntakeFormProps) => {
   const [core, setCore] = useState<OrionCoreIntake>(defaultCoreIntake);
   const [errors, setErrors] = useState<Record<string, string>>({});
+  const [showTier2, setShowTier2] = useState(false);
+  const [tier2Data, setTier2Data] = useState<any>({});
 
   const updateCore = (field: keyof OrionCoreIntake, value: any) => {
     setCore(prev => ({ ...prev, [field]: value }));
@@ -88,8 +90,15 @@ export const OrionIntakeForm = ({ onSubmit, isSubmitting }: OrionIntakeFormProps
 
     const tier2Triggered = checkTier2Triggers();
 
+    // If tier 2 is triggered but we haven't shown tier 2 questions yet, show them
+    if (tier2Triggered && !showTier2) {
+      setShowTier2(true);
+      return;
+    }
+
     const intake: OrionIntake = {
       core,
+      tier2: showTier2 ? tier2Data : undefined,
       validated: true,
       tier2Triggered
     };
@@ -340,13 +349,143 @@ export const OrionIntakeForm = ({ onSubmit, isSubmitting }: OrionIntakeFormProps
         </div>
       </div>
 
-      {checkTier2Triggers() && (
+      {checkTier2Triggers() && !showTier2 && (
         <div className="rounded-base border border-amber-200 bg-amber-50 p-4">
           <h3 className="font-medium text-amber-800">Additional questions required</h3>
           <p className="text-sm text-amber-700">
             Based on your answers, we'll need some additional details to provide accurate recommendations.
-            This will be collected in the next step.
+            Click "Get carrier recommendations" to continue with additional questions.
           </p>
+        </div>
+      )}
+
+      {/* Tier 2 Questions */}
+      {showTier2 && (
+        <div className="space-y-6 border-t border-gray-200 pt-6">
+          <h3 className="text-lg font-semibold text-gray-900">Additional Information Required</h3>
+          <p className="text-sm text-gray-600">
+            Based on your initial answers, we need some additional details to provide the most accurate recommendations.
+          </p>
+
+          {/* Cardiac Details */}
+          {core.cardiac?.hasHistory && (
+            <div className="space-y-3">
+              <label className="flex flex-col gap-2 text-sm font-medium">
+                <span>Please describe the cardiac condition(s)</span>
+                <textarea
+                  value={tier2Data.cardiacDetails || ''}
+                  onChange={(e) => setTier2Data(prev => ({ ...prev, cardiacDetails: e.target.value }))}
+                  className="rounded-base border border-gray-300 px-3 py-2 min-h-[80px]"
+                  placeholder="e.g., Heart attack in 2020, stent placement, current medications..."
+                />
+              </label>
+            </div>
+          )}
+
+          {/* Diabetes Details */}
+          {core.diabetes?.hasCondition && (
+            <div className="space-y-3">
+              <label className="flex flex-col gap-2 text-sm font-medium">
+                <span>Diabetes type and management</span>
+                <select
+                  value={tier2Data.diabetesType || ''}
+                  onChange={(e) => setTier2Data(prev => ({ ...prev, diabetesType: e.target.value }))}
+                  className="rounded-base border border-gray-300 px-3 py-2"
+                >
+                  <option value="">Select diabetes type</option>
+                  <option value="type1">Type 1 Diabetes</option>
+                  <option value="type2">Type 2 Diabetes</option>
+                  <option value="gestational">Gestational Diabetes</option>
+                  <option value="prediabetes">Prediabetes</option>
+                </select>
+              </label>
+              <label className="flex flex-col gap-2 text-sm font-medium">
+                <span>Most recent A1C level (if known)</span>
+                <input
+                  type="number"
+                  step="0.1"
+                  min="4"
+                  max="15"
+                  value={tier2Data.a1c || ''}
+                  onChange={(e) => setTier2Data(prev => ({ ...prev, a1c: Number(e.target.value) }))}
+                  className="rounded-base border border-gray-300 px-3 py-2"
+                  placeholder="e.g., 6.5"
+                />
+              </label>
+            </div>
+          )}
+
+          {/* Cancer Details */}
+          {core.cancer?.hasHistory && (
+            <div className="space-y-3">
+              <label className="flex flex-col gap-2 text-sm font-medium">
+                <span>Cancer type and treatment details</span>
+                <textarea
+                  value={tier2Data.cancerDetails || ''}
+                  onChange={(e) => setTier2Data(prev => ({ ...prev, cancerDetails: e.target.value }))}
+                  className="rounded-base border border-gray-300 px-3 py-2 min-h-[80px]"
+                  placeholder="e.g., Breast cancer, diagnosed 2019, completed treatment 2020, currently in remission..."
+                />
+              </label>
+            </div>
+          )}
+
+          {/* DUI Details */}
+          {core.drivingAndRisk.duiHistory && (
+            <div className="space-y-3">
+              <label className="flex flex-col gap-2 text-sm font-medium">
+                <span>Number of DUI convictions</span>
+                <input
+                  type="number"
+                  min="1"
+                  max="5"
+                  value={tier2Data.duiCount || ''}
+                  onChange={(e) => setTier2Data(prev => ({ ...prev, duiCount: Number(e.target.value) }))}
+                  className="rounded-base border border-gray-300 px-3 py-2"
+                />
+              </label>
+              <label className="flex flex-col gap-2 text-sm font-medium">
+                <span>Date of most recent DUI (approximate)</span>
+                <input
+                  type="date"
+                  value={tier2Data.lastDuiDate || ''}
+                  onChange={(e) => setTier2Data(prev => ({ ...prev, lastDuiDate: e.target.value }))}
+                  className="rounded-base border border-gray-300 px-3 py-2"
+                />
+              </label>
+            </div>
+          )}
+
+          {/* High Coverage Amount Details */}
+          {core.coverageTarget.amount > 1000000 && (
+            <div className="space-y-3">
+              <label className="flex flex-col gap-2 text-sm font-medium">
+                <span>Purpose of high coverage amount</span>
+                <select
+                  value={tier2Data.coveragePurpose || ''}
+                  onChange={(e) => setTier2Data(prev => ({ ...prev, coveragePurpose: e.target.value }))}
+                  className="rounded-base border border-gray-300 px-3 py-2"
+                >
+                  <option value="">Select primary purpose</option>
+                  <option value="estate_planning">Estate Planning</option>
+                  <option value="business_protection">Business Protection</option>
+                  <option value="wealth_transfer">Wealth Transfer</option>
+                  <option value="debt_protection">Debt Protection</option>
+                  <option value="income_replacement">Income Replacement</option>
+                </select>
+              </label>
+            </div>
+          )}
+
+          <div className="flex gap-3">
+            <Button
+              type="button"
+              variant="secondary"
+              onClick={() => setShowTier2(false)}
+            >
+              Back to Basic Questions
+            </Button>
+          </div>
         </div>
       )}
 
