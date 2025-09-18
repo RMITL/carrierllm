@@ -502,7 +502,7 @@ export default {
             created_at as timestamp,
             'intake' as type,
             'Intake submitted' as title,
-            data as intake_data
+            payload_json as intake_data
           FROM intakes
           WHERE user_id = ?
           ORDER BY created_at DESC
