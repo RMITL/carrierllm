@@ -1,125 +1,5 @@
-// Orion's 8 Core Questions
-export type OrionCoreIntake = {
-  age: number;
-  state: string;
-  height: number; // inches
-  weight: number; // pounds
-  nicotine: {
-    lastUse: 'never' | 'past24Months' | 'current';
-    type?: 'cigarettes' | 'vape' | 'cigars' | 'chew' | 'nrt'; // nicotine replacement therapy
-    frequency?: string;
-  };
-  marijuana: {
-    lastUse: 'never' | 'past12Months' | 'current';
-    type?: 'smoke' | 'vape' | 'edible';
-    frequency?: string;
-    medical?: boolean;
-  };
-  cardiac?: {
-    hasHistory: boolean;
-    conditions?: Array<'mi' | 'stents' | 'angina' | 'chf'>;
-    details?: string;
-  };
-  diabetes?: {
-    hasCondition: boolean;
-    type?: 'type1' | 'type2';
-    a1c?: number;
-    medications?: string;
-    complications?: Array<'neuropathy' | 'retinopathy'>;
-  };
-  cancer?: {
-    hasHistory: boolean;
-    type?: string;
-    stage?: string;
-    treatmentDate?: string;
-  };
-  drivingAndRisk: {
-    duiHistory?: boolean;
-    duiCount?: number;
-    duiDates?: string[];
-    riskActivities?: Array<'aviation' | 'scuba' | 'racing' | 'climbing'>;
-    details?: string;
-  };
-  coverageTarget: {
-    amount: number;
-    type: 'iul' | 'term' | 'annuity';
-  };
-};
-
-// Tier-2 Expanded Questions (triggered by conditions)
-export type OrionTier2Intake = {
-  diabetesExpanded?: {
-    diagnosisDate: string;
-    latestA1c: number;
-    a1cDate: string;
-    medications: string;
-    compliance: 'excellent' | 'good' | 'fair' | 'poor';
-    complications: string[];
-  };
-  cardiacExpanded?: {
-    eventType: string;
-    eventDate: string;
-    interventions: string[];
-    lastEcho?: string;
-    lastStressTest?: string;
-    ejectionFraction?: number;
-    currentMedications: string;
-    bpControl: boolean;
-    cholesterolControl: boolean;
-  };
-  cancerExpanded?: {
-    site: string;
-    stage: string;
-    grade: string;
-    treatmentTimeline: string;
-    surveillanceStatus: string;
-  };
-  nicotineExpanded?: {
-    product: string;
-    frequency: string;
-    nrtType?: string;
-    nrtDose?: string;
-    nrtFrequency?: string;
-    nrtDuration?: string;
-    lastNrtUse?: string;
-  };
-  marijuanaExpanded?: {
-    form: 'smoke' | 'vape' | 'edible';
-    frequency: string;
-    lastUse: string;
-    medical: boolean;
-    prescription?: string;
-  };
-  duiExpanded?: {
-    dates: string[];
-    count: number;
-    licenseStatus: 'valid' | 'suspended' | 'revoked';
-    circumstances: string;
-  };
-  avocationsExpanded?: {
-    type: string;
-    certificationLevel?: string;
-    frequency: string;
-    details: string; // depth/speeds/heights
-  };
-  financialExpanded?: {
-    income: number;
-    netWorth: number;
-    justification: string;
-    estateNeed: boolean;
-    keyPerson: boolean;
-  };
-};
-
-export type OrionIntake = {
-  core: OrionCoreIntake;
-  tier2?: OrionTier2Intake;
-  validated: boolean;
-  tier2Triggered: boolean;
-};
-
-// Legacy type for backward compatibility
-export type IntakeAnswers = {
+// Core domain types
+export interface IntakeAnswers {
   dob: string;
   state: string;
   coverageStart: string;
@@ -127,103 +7,249 @@ export type IntakeAnswers = {
   nicotineUse: 'never' | 'past24Months' | 'current';
   majorConditions: string;
   prescriptions: string;
-  height: number;
-  weight: number;
+  height: number; // inches
+  weight: number; // lbs
   riskActivities: string;
   householdIncome?: number;
   occupation?: string;
   coverageType: 'health' | 'life';
-};
+}
 
-export type IntakeSubmission = {
-  id: string;
-  createdAt: string;
-  answers: IntakeAnswers;
-};
-
-export type CarrierCitation = {
-  chunkId: string;
-  snippet: string;
-  documentTitle: string;
-  effectiveDate: string;
-  page?: number;
-  section?: string;
-};
-
-export type CarrierRecommendation = {
+export interface CarrierRecommendation {
   carrierId: string;
   carrierName: string;
-  product: string;
-  fitPct: number;
-  confidence?: 'low' | 'medium' | 'high';
-  reasons: string[];
-  declines?: string[];
-  citations: CarrierCitation[];
-  advisories?: string[];
-  apsLikely?: boolean;
-  ctas?: {
-    portalUrl: string;
-    agentPhone: string;
+  carrierLogo?: string;
+  fitScore: number;
+  reasoning: {
+    pros: string[];
+    cons: string[];
+    summary: string;
   };
-  // Legacy fields for backward compatibility
-  program?: string;
-  fitPercent?: number; // Legacy field - same as fitPct
-  underwritingNotes?: string;
-  status?: 'strong' | 'consider' | 'avoid';
-};
+  estimatedPremium?: {
+    monthly: number;
+    annual: number;
+  };
+  confidence: 'high' | 'medium' | 'low';
+  citations: Array<{
+    chunkId: string;
+    snippet: string;
+    documentTitle: string;
+    effectiveDate: string;
+    page?: number;
+    section?: string;
+    score: number;
+  }>;
+}
 
-export type IulGuidance = {
-  type: 'IUL';
-  monthly: number; // age × 10 rule
-  note: string;
-};
+// Additional type exports for backward compatibility
+export type CarrierCitation = CarrierRecommendation['citations'][0];
+export type RecommendationSummary = RecommendationResponse['summary'];
 
-export type RecommendationSummary = {
-  topCarrierId: string;
-  averageFit: number;
-  notes: string;
-};
-
-export type OrionRecommendationResponse = {
-  recommendationId: string;
-  top: CarrierRecommendation[];
-  stretch?: CarrierRecommendation;
-  premiumSuggestion?: IulGuidance;
-  summary: RecommendationSummary;
-};
-
-// Legacy type for backward compatibility
-export type RecommendationResponse = {
+export interface RecommendationResponse {
   submissionId: string;
+  status: 'pending' | 'completed' | 'error';
   recommendations: CarrierRecommendation[];
-  summary: RecommendationSummary;
-};
+  summary: {
+    topPick?: string;
+    topCarrierId?: string; // Add for backward compatibility
+    averageFit: number;
+    totalCarriersEvaluated: number;
+    notes?: string; // Add for backward compatibility
+  };
+  timestamp: string;
+  error?: string;
+}
 
+// Orion Intake types - new schema
+export type NicotineLastUse = 'never' | 'past24Months' | 'current';
+export type NicotineType = 'cigarettes' | 'vape' | 'cigars' | 'chew' | 'nrt';
+export type MarijuanaLastUse = 'never' | 'past12Months' | 'current';
+export type MarijuanaType = 'smoke' | 'vape' | 'edible';
+export type CardiacCondition = 'mi' | 'stents' | 'angina' | 'chf';
+export type DiabetesType = 'type1' | 'type2';
+export type DiabetesComplications = 'neuropathy' | 'retinopathy';
+export type RiskActivity = 'aviation' | 'scuba' | 'racing' | 'climbing';
+export type CoverageType = 'iul' | 'term' | 'annuity';
+
+export interface OrionCore {
+  age: number;
+  state: string;
+  height: number; // inches
+  weight: number; // lbs
+
+  nicotine: {
+    lastUse: NicotineLastUse;
+    type?: NicotineType;
+    frequency?: string;
+  };
+
+  marijuana: {
+    lastUse: MarijuanaLastUse;
+    type?: MarijuanaType;
+    frequency?: string;
+    medical?: boolean;
+  };
+
+  cardiac?: {
+    hasHistory: boolean;
+    conditions?: CardiacCondition[];
+    details?: string;
+  };
+
+  diabetes?: {
+    hasCondition: boolean;
+    type?: DiabetesType;
+    a1c?: number;
+    medications?: string;
+    complications?: DiabetesComplications[];
+  };
+
+  cancer?: {
+    hasHistory: boolean;
+    type?: string;
+    stage?: string;
+    treatmentDate?: string;
+  };
+
+  drivingAndRisk: {
+    duiHistory?: boolean;
+    duiCount?: number;
+    duiDates?: string[];
+    riskActivities?: RiskActivity[];
+    details?: string;
+  };
+
+  coverageTarget: {
+    amount: number;
+    type: CoverageType;
+  };
+}
+
+// Alias for OrionCore for backward compatibility
+export type OrionCoreIntake = OrionCore;
+
+export interface OrionIntake {
+  core: OrionCore;
+  tier2?: any; // Will expand this for tier-2 fields later
+  validated: boolean;
+  tier2Triggered: boolean;
+}
+
+export interface OrionCarrierRecommendation {
+  carrierId: string;
+  carrierName: string;
+  carrierLogo?: string;
+  fitScore: number;
+  tier: 'standard' | 'preferred' | 'preferred_plus' | 'standard_plus' | 'substandard';
+  reasoning: {
+    pros: string[];
+    cons: string[];
+    summary: string;
+    knockoutFactors?: string[];
+  };
+  estimatedPremium?: {
+    monthly: number;
+    annual: number;
+    confidence: 'high' | 'medium' | 'low';
+  };
+  underwritingPath: 'simplified' | 'accelerated' | 'traditional';
+  requiresExam: boolean;
+  processingTime: string; // e.g., "2-4 weeks", "instant"
+  citations: Array<{
+    chunkId: string;
+    snippet: string;
+    documentTitle: string;
+    effectiveDate: string;
+    page?: number;
+    section?: string;
+    score: number;
+  }>;
+  nextSteps?: string[];
+}
+
+// IUL specific guidance type
+export interface IulGuidance {
+  productType: 'iul' | 'term' | 'whole' | 'annuity';
+  recommendation: string;
+  benefits: string[];
+  considerations: string[];
+}
+
+export interface OrionRecommendationResponse {
+  recommendationId: string;
+  status: 'pending' | 'completed' | 'error';
+  intake: OrionIntake;
+  recommendations: OrionCarrierRecommendation[];
+  // Legacy properties for backward compatibility
+  top?: OrionCarrierRecommendation[];
+  stretch?: OrionCarrierRecommendation[];
+  premiumSuggestion?: string;
+  summary: {
+    topPick?: string;
+    topCarrierId?: string; // Add for backward compatibility
+    averageFit: number;
+    totalCarriersEvaluated: number;
+    tier2Recommended: boolean;
+    knockoutsSummary?: string[];
+    notes?: string; // Add for backward compatibility
+  };
+  metadata: {
+    processingTime: number; // ms
+    ragQueriesCount: number;
+    citationsFound: number;
+    modelUsed: string;
+  };
+  timestamp: string;
+  error?: string;
+}
+
+// Analytics types
 export type AnalyticsSummary = {
   stats: {
-    totalRecommendations: number;
     totalIntakes: number;
-    remainingRecommendations: number;
     averageFitScore: number;
     placementRate: number;
-  };
-  user: {
-    subscriptionTier: string;
-    subscriptionStatus: string;
-    recommendationsUsed: number;
-    recommendationsLimit: number;
+    remainingRecommendations: number;
   };
   topCarriers?: Array<{
-    carrierId: string;
-    carrierName: string;
-    recommendations: number;
-    averageFit: number;
-    placements: number;
+    id: string;
+    name: string;
+    count: number;
+    successRate: number;
   }>;
   trends?: Array<{
     month: string;
-    recommendations: number;
-    placements: number;
+    intakes: number;
+    conversions: number;
+    conversionRate: number;
   }>;
   lastUpdated: string;
 };
+
+// User activity types
+export interface RecentActivity {
+  id: string;
+  type: 'intake_submitted' | 'recommendation_viewed' | 'outcome_logged';
+  description: string;
+  timestamp: string;
+  metadata?: {
+    intakeId?: string;
+    recommendationId?: string;
+    carrierId?: string;
+    outcome?: string;
+  };
+}
+
+export interface UserProfile {
+  id: string;
+  email: string;
+  firstName?: string;
+  lastName?: string;
+  companyName?: string;
+  licenseNumber?: string;
+  phone?: string;
+  address?: string;
+  role: 'agent' | 'admin' | 'manager';
+  createdAt: string;
+  lastActive: string;
+}

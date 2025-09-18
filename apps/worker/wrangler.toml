@@ -1,11 +1,16 @@
 name = "carrierllm-worker"
-main = "src/simple-index.ts"
+main = "src/index.ts"
 compatibility_date = "2024-09-16"
+compatibility_flags = ["nodejs_compat"]
 
 [vars]
 FROM_EMAIL = "noreply@mail.carrierllm.com"
 REPLY_TO_EMAIL = "info@carrierllm.com"
 NOTIFICATION_EMAIL = "info@carrierllm.com"
+ADMIN_EMAIL = "admin@carrierllm.com"
+APP_URL = "https://app.carrierllm.com"
+WWW_URL = "https://carrierllm.com"
+CLERK_WEBHOOK_SECRET = "whsec_RtJj+y3v/Fq5b7fGhD/2ywdr+iKaFn8I"
 
 [[d1_databases]]
 binding = "DB"
@@ -15,12 +20,25 @@ database_id = "e6cd2b8b-db9b-4969-968c-6c4e8aec838c"
 [[r2_buckets]]
 binding = "DOCS_BUCKET"
 bucket_name = "carrier-docs"
-remote = true
 
 [[vectorize]]
 binding = "CARRIER_INDEX"
 index_name = "carrierllm-index"
-remote = true
 
 [ai]
 binding = "AI"
+
+# Scheduled workers for cron jobs
+# Routes configuration
+routes = [
+  { pattern = "app.carrierllm.com/api/*", zone_name = "carrierllm.com" },
+  { pattern = "api.carrierllm.com/*", zone_name = "carrierllm.com" }
+]
+
+[triggers]
+crons = [
+  # Reset monthly usage on the 1st of each month at 00:00 UTC
+  "0 0 1 * *",
+  # Daily analytics aggregation at 02:00 UTC
+  "0 2 * * *"
+]

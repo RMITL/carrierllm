@@ -520,3 +520,118 @@
 2025-09-16T12:46:41:   [32m➜[39m  [1mNetwork[22m: [36mhttp://10.10.0.1:[1m5175[22m/[39m
 2025-09-16T12:46:41:   [32m➜[39m  [1mNetwork[22m: [36mhttp://172.24.80.1:[1m5175[22m/[39m
 2025-09-16T12:46:41:   [32m➜[39m  [1mNetwork[22m: [36mhttp://172.22.80.1:[1m5175[22m/[39m
+2025-09-16T14:45:25: [2m2:45:25 PM[22m [36m[1m[vite][22m[39m [32mhmr update [39m[2m/src/App.tsx, /src/styles/tailwind.css?direct, /src/styles/tailwind.css[22m
+2025-09-16T14:45:43: [2m2:45:43 PM[22m [36m[1m[vite][22m[39m [32mhmr update [39m[2m/src/App.tsx, /src/styles/tailwind.css?direct, /src/styles/tailwind.css[22m
+2025-09-16T14:46:00: [2m2:46:00 PM[22m [36m[1m[vite][22m[39m [32mhmr update [39m[2m/src/App.tsx, /src/styles/tailwind.css?direct, /src/styles/tailwind.css[22m
+2025-09-16T14:46:19: [2m2:46:19 PM[22m [36m[1m[vite][22m[39m [32mhmr update [39m[2m/src/App.tsx, /src/styles/tailwind.css?direct, /src/styles/tailwind.css[22m
+2025-09-16T14:46:35: [2m2:46:35 PM[22m [36m[1m[vite][22m[39m [32mhmr update [39m[2m/src/App.tsx, /src/styles/tailwind.css?direct, /src/styles/tailwind.css[22m
+2025-09-16T15:00:34: [2m3:00:34 PM[22m [36m[1m[vite][22m[39m [32mhmr update [39m[2m/@fs/C:/sites/carrierllm/packages/ui/src/blocks/CarrierCard.tsx[22m
+2025-09-16T15:01:01: [2m3:01:01 PM[22m [36m[1m[vite][22m[39m [32mhmr update [39m[2m/@fs/C:/sites/carrierllm/packages/ui/src/blocks/CarrierCard.tsx[22m
+2025-09-16T15:01:43: [2m3:01:43 PM[22m [36m[1m[vite][22m[39m [32mhmr update [39m[2m/src/App.tsx, /src/styles/tailwind.css?direct, /src/styles/tailwind.css[22m
+2025-09-16T18:46:34: [2m6:46:34 PM[22m [36m[1m[vite][22m[39m [32mhmr update [39m[2m/src/App.tsx, /src/styles/tailwind.css?direct, /src/styles/tailwind.css[22m
+2025-09-16T18:46:35: [2m6:46:35 PM[22m [36m[1m[vite][22m[39m [32m✨ new dependencies optimized: [33m@stripe/stripe-js[32m[39m
+2025-09-16T18:46:35: [2m6:46:35 PM[22m [36m[1m[vite][22m[39m [32m✨ optimized dependencies changed. reloading[39m
+2025-09-16T18:48:47: [2m6:48:47 PM[22m [36m[1m[vite][22m[39m [32mhmr update [39m[2m/src/styles/tailwind.css?direct, /src/components/PricingCard.tsx, /src/styles/tailwind.css[22m
+2025-09-16T19:08:16: [2m7:08:16 PM[22m [36m[1m[vite][22m[39m [32mhmr update [39m[2m/@fs/C:/sites/carrierllm/packages/ui/src/blocks/EvidencePopover.tsx[22m
+2025-09-16T19:08:32: [2m7:08:32 PM[22m [36m[1m[vite][22m[39m [32mhmr update [39m[2m/@fs/C:/sites/carrierllm/packages/ui/src/blocks/CarrierCard.tsx[22m
+2025-09-16T19:12:26: [2m7:12:26 PM[22m [36m[1m[vite][22m[39m [32mhmr update [39m[2m/@fs/C:/sites/carrierllm/packages/ui/src/primitives/Banner.tsx[22m
+2025-09-16T19:40:24: 
+2025-09-16T19:40:24:   [32m[1mVITE[22m v5.4.20[39m  [2mready in [0m[1m874[22m[2m[0m ms[22m
+2025-09-16T19:40:24: 
+2025-09-16T19:40:24:   [32m➜[39m  [1mLocal[22m:   [36mhttp://localhost:[1m5175[22m/[39m
+2025-09-16T19:40:24:   [32m➜[39m  [1mNetwork[22m: [36mhttp://192.168.1.18:[1m5175[22m/[39m
+2025-09-16T19:40:24:   [32m➜[39m  [1mNetwork[22m: [36mhttp://10.20.0.1:[1m5175[22m/[39m
+2025-09-16T19:40:24:   [32m➜[39m  [1mNetwork[22m: [36mhttp://10.30.0.1:[1m5175[22m/[39m
+2025-09-16T19:40:24:   [32m➜[39m  [1mNetwork[22m: [36mhttp://10.10.0.1:[1m5175[22m/[39m
+2025-09-16T19:40:24:   [32m➜[39m  [1mNetwork[22m: [36mhttp://172.24.80.1:[1m5175[22m/[39m
+2025-09-16T19:40:24:   [32m➜[39m  [1mNetwork[22m: [36mhttp://172.22.80.1:[1m5175[22m/[39m
+2025-09-16T22:15:29: 
+2025-09-16T22:15:29:   [32m[1mVITE[22m v5.4.20[39m  [2mready in [0m[1m3907[22m[2m[0m ms[22m
+2025-09-16T22:15:29: 
+2025-09-16T22:15:29:   [32m➜[39m  [1mLocal[22m:   [36mhttp://localhost:[1m5175[22m/[39m
+2025-09-16T22:15:29:   [32m➜[39m  [1mNetwork[22m: [36mhttp://172.24.80.1:[1m5175[22m/[39m
+2025-09-16T22:15:29:   [32m➜[39m  [1mNetwork[22m: [36mhttp://172.22.80.1:[1m5175[22m/[39m
+2025-09-16T22:15:29:   [32m➜[39m  [1mNetwork[22m: [36mhttp://192.168.1.18:[1m5175[22m/[39m
+2025-09-16T22:15:29:   [32m➜[39m  [1mNetwork[22m: [36mhttp://10.20.0.1:[1m5175[22m/[39m
+2025-09-16T22:15:29:   [32m➜[39m  [1mNetwork[22m: [36mhttp://10.30.0.1:[1m5175[22m/[39m
+2025-09-16T22:15:29:   [32m➜[39m  [1mNetwork[22m: [36mhttp://10.10.0.1:[1m5175[22m/[39m
+2025-09-17T06:33:11: [2m6:33:11 AM[22m [31m[1m[vite][22m[39m [31mws error:[39m
+2025-09-17T06:33:11: RangeError: Invalid WebSocket frame: RSV1 must be clear
+2025-09-17T06:33:11:     at Receiver.getInfo (file:///C:/sites/carrierllm/node_modules/.pnpm/vite@5.4.20_@types+node@20.19.15/node_modules/vite/dist/node/chunks/dep-D_zLpgQd.js:55648:26)
+2025-09-17T06:33:11:     at Receiver.startLoop (file:///C:/sites/carrierllm/node_modules/.pnpm/vite@5.4.20_@types+node@20.19.15/node_modules/vite/dist/node/chunks/dep-D_zLpgQd.js:55594:16)
+2025-09-17T06:33:11:     at Receiver._write (file:///C:/sites/carrierllm/node_modules/.pnpm/vite@5.4.20_@types+node@20.19.15/node_modules/vite/dist/node/chunks/dep-D_zLpgQd.js:55533:10)
+2025-09-17T06:33:11:     at writeOrBuffer (node:internal/streams/writable:572:12)
+2025-09-17T06:33:11:     at _write (node:internal/streams/writable:501:10)
+2025-09-17T06:33:11:     at Writable.write (node:internal/streams/writable:510:10)
+2025-09-17T06:33:11:     at Socket.socketOnData (file:///C:/sites/carrierllm/node_modules/.pnpm/vite@5.4.20_@types+node@20.19.15/node_modules/vite/dist/node/chunks/dep-D_zLpgQd.js:58590:37)
+2025-09-17T06:33:11:     at Socket.emit (node:events:518:28)
+2025-09-17T06:33:11:     at addChunk (node:internal/streams/readable:561:12)
+2025-09-17T06:33:11:     at readableAddChunkPushByteMode (node:internal/streams/readable:512:3)
+2025-09-17T06:33:11:     at Readable.push (node:internal/streams/readable:392:5)
+2025-09-17T06:33:11:     at TCP.onStreamRead (node:internal/stream_base_commons:189:23)
+2025-09-17T12:14:34: [2m12:14:34 PM[22m [36m[1m[vite][22m[39m [32m.env changed, restarting server...[39m
+2025-09-17T12:14:34: Re-optimizing dependencies because lockfile has changed
+2025-09-17T12:14:34: [2m12:14:34 PM[22m [36m[1m[vite][22m[39m server restarted.
+2025-09-17T12:15:07: [2m12:15:07 PM[22m [36m[1m[vite][22m[39m [32mpage reload [39m[2msrc/main.tsx[22m
+2025-09-17T12:15:08: [2m12:15:08 PM[22m [36m[1m[vite][22m[39m [32m✨ new dependencies optimized: [33m@clerk/clerk-react[32m[39m
+2025-09-17T12:15:08: [2m12:15:08 PM[22m [36m[1m[vite][22m[39m [32m✨ optimized dependencies changed. reloading[39m
+2025-09-17T12:15:34: [2m12:15:34 PM[22m [36m[1m[vite][22m[39m [32mhmr update [39m[2m/src/components/PricingCard.tsx, /src/styles/tailwind.css, /src/styles/tailwind.css?direct[22m
+2025-09-17T12:16:03: [2m12:16:03 PM[22m [36m[1m[vite][22m[39m [32mhmr update [39m[2m/src/styles/tailwind.css, /src/components/PricingCard.tsx, /src/styles/tailwind.css?direct[22m
+2025-09-17T12:17:26: [2m12:17:26 PM[22m [36m[1m[vite][22m[39m [32mpage reload [39m[2msrc/pages/Success.tsx[22m
+2025-09-17T12:20:57: [2m12:20:57 PM[22m [36m[1m[vite][22m[39m [32mhmr update [39m[2m/src/App.tsx, /src/styles/tailwind.css, /src/styles/tailwind.css?direct[22m
+2025-09-17T12:20:57: [2m12:20:57 PM[22m [36m[1m[vite][22m[39m [32m✨ new dependencies optimized: [33mreact-router-dom[32m[39m
+2025-09-17T12:20:57: [2m12:20:57 PM[22m [36m[1m[vite][22m[39m [32m✨ optimized dependencies changed. reloading[39m
+2025-09-17T13:06:34: [2m1:06:34 PM[22m [36m[1m[vite][22m[39m [32mhmr update [39m[2m/src/components/PricingCard.tsx, /src/styles/tailwind.css, /src/styles/tailwind.css?direct[22m
+2025-09-17T13:06:44: [2m1:06:44 PM[22m [36m[1m[vite][22m[39m [32mhmr update [39m[2m/src/pages/Success.tsx, /src/styles/tailwind.css, /src/styles/tailwind.css?direct[22m
+2025-09-17T13:07:05: [2m1:07:05 PM[22m [36m[1m[vite][22m[39m [32mhmr update [39m[2m/src/pages/Success.tsx, /src/styles/tailwind.css, /src/styles/tailwind.css?direct[22m
+2025-09-17T15:34:33: [2m3:34:33 PM[22m [36m[1m[vite][22m[39m [32mhmr update [39m[2m/src/pages/HomePage.tsx, /src/styles/tailwind.css, /src/styles/tailwind.css?direct[22m
+2025-09-17T15:35:06: [2m3:35:06 PM[22m [36m[1m[vite][22m[39m [32mhmr update [39m[2m/src/pages/HomePage.tsx, /src/styles/tailwind.css, /src/styles/tailwind.css?direct[22m
+2025-09-17T15:55:23: [2m3:55:23 PM[22m [36m[1m[vite][22m[39m [32mhmr update [39m[2m/src/components/ContactModal.tsx, /src/styles/tailwind.css[22m
+2025-09-17T15:55:44: [2m3:55:44 PM[22m [36m[1m[vite][22m[39m [32m.env changed, restarting server...[39m
+2025-09-17T15:55:44: Re-optimizing dependencies because lockfile has changed
+2025-09-17T15:55:44: [2m3:55:44 PM[22m [36m[1m[vite][22m[39m server restarted.
+2025-09-17T16:45:11: [2m4:45:11 PM[22m [36m[1m[vite][22m[39m [32mhmr update [39m[2m/src/components/ContactModal.tsx, /src/styles/tailwind.css[22m
+2025-09-17T16:46:56: [2m4:46:56 PM[22m [36m[1m[vite][22m[39m [32mhmr update [39m[2m/src/pages/HomePage.tsx, /src/styles/tailwind.css[22m
+2025-09-17T16:47:14: [2m4:47:14 PM[22m [36m[1m[vite][22m[39m [32mhmr update [39m[2m/src/components/PricingCard.tsx, /src/styles/tailwind.css, /src/styles/tailwind.css?direct[22m
+2025-09-17T17:24:54: [2m5:24:54 PM[22m [36m[1m[vite][22m[39m [32mhmr update [39m[2m/src/components/ContactModal.tsx, /src/styles/tailwind.css, /src/styles/tailwind.css?direct[22m
+2025-09-17T17:25:04: [2m5:25:04 PM[22m [36m[1m[vite][22m[39m [32mhmr update [39m[2m/src/components/ContactModal.tsx, /src/styles/tailwind.css, /src/styles/tailwind.css?direct[22m
+2025-09-17T17:25:14: [2m5:25:14 PM[22m [36m[1m[vite][22m[39m [32mhmr update [39m[2m/src/components/ContactModal.tsx, /src/styles/tailwind.css, /src/styles/tailwind.css?direct[22m
+2025-09-17T17:25:28: [2m5:25:28 PM[22m [36m[1m[vite][22m[39m [32mhmr update [39m[2m/src/components/ContactModal.tsx, /src/styles/tailwind.css, /src/styles/tailwind.css?direct[22m
+2025-09-17T17:29:35: [2m5:29:35 PM[22m [36m[1m[vite][22m[39m [32mhmr update [39m[2m/src/pages/HomePage.tsx, /src/styles/tailwind.css, /src/styles/tailwind.css?direct[22m
+2025-09-17T18:05:48: [2m6:05:48 PM[22m [36m[1m[vite][22m[39m [32mhmr update [39m[2m/@fs/C:/sites/carrierllm/packages/ui/src/blocks/EvidencePopover.tsx[22m
+2025-09-17T18:06:18: [2m6:06:18 PM[22m [36m[1m[vite][22m[39m [32mhmr update [39m[2m/@fs/C:/sites/carrierllm/packages/ui/src/blocks/EvidencePopover.tsx[22m
+2025-09-17T18:06:31: [2m6:06:31 PM[22m [36m[1m[vite][22m[39m [32mhmr update [39m[2m/@fs/C:/sites/carrierllm/packages/ui/src/blocks/EvidencePopover.tsx[22m
+2025-09-17T23:20:07: [2m11:20:07 PM[22m [36m[1m[vite][22m[39m [32mhmr update [39m[2m/src/pages/HomePage.tsx, /src/styles/tailwind.css, /src/styles/tailwind.css?direct[22m
+2025-09-17T23:27:24: [2m11:27:24 PM[22m [36m[1m[vite][22m[39m [32mhmr update [39m[2m/src/AppRouter.tsx, /src/styles/tailwind.css, /src/styles/tailwind.css?direct[22m
+2025-09-17T23:27:56: [2m11:27:56 PM[22m [36m[1m[vite][22m[39m [32mhmr update [39m[2m/src/pages/HomePage.tsx, /src/styles/tailwind.css, /src/styles/tailwind.css?direct[22m
+2025-09-17T23:31:24: The request url "C:\sites\carrierllm\apps\marketing\.env" is outside of Vite serving allow list.
+2025-09-17T23:31:24: 
+2025-09-17T23:31:24: - C:/sites/carrierllm
+2025-09-17T23:31:24: 
+2025-09-17T23:31:24: Refer to docs https://vite.dev/config/server-options.html#server-fs-allow for configurations and more details.
+2025-09-17T23:31:24: 
+2025-09-18T02:18:36: The request url "C:\sites\carrierllm\apps\marketing\.env" is outside of Vite serving allow list.
+2025-09-18T02:18:36: The request url "C:\sites\carrierllm\apps\marketing\.env" is outside of Vite serving allow list.
+2025-09-18T03:12:24: The request url "C:\sites\carrierllm\apps\marketing\.env" is outside of Vite serving allow list.
+2025-09-18T03:20:45: The request url "C:\sites\carrierllm\apps\marketing\.env" is outside of Vite serving allow list.
+2025-09-18T10:11:31: Re-optimizing dependencies because lockfile has changed
+2025-09-18T10:11:31: 
+2025-09-18T10:11:31:   [32m[1mVITE[22m v5.4.20[39m  [2mready in [0m[1m871[22m[2m[0m ms[22m
+2025-09-18T10:11:31: 
+2025-09-18T10:11:31:   [32m➜[39m  [1mLocal[22m:   [36mhttp://localhost:[1m5175[22m/[39m
+2025-09-18T10:11:31:   [32m➜[39m  [1mNetwork[22m: [36mhttp://172.24.80.1:[1m5175[22m/[39m
+2025-09-18T10:11:31:   [32m➜[39m  [1mNetwork[22m: [36mhttp://172.22.80.1:[1m5175[22m/[39m
+2025-09-18T10:11:31:   [32m➜[39m  [1mNetwork[22m: [36mhttp://192.168.1.18:[1m5175[22m/[39m
+2025-09-18T10:11:31:   [32m➜[39m  [1mNetwork[22m: [36mhttp://10.20.0.1:[1m5175[22m/[39m
+2025-09-18T10:11:31:   [32m➜[39m  [1mNetwork[22m: [36mhttp://10.30.0.1:[1m5175[22m/[39m
+2025-09-18T10:11:31:   [32m➜[39m  [1mNetwork[22m: [36mhttp://10.10.0.1:[1m5175[22m/[39m
+2025-09-18T10:12:24: 
+2025-09-18T10:12:24:   [32m[1mVITE[22m v5.4.20[39m  [2mready in [0m[1m737[22m[2m[0m ms[22m
+2025-09-18T10:12:24: 
+2025-09-18T10:12:24:   [32m➜[39m  [1mLocal[22m:   [36mhttp://localhost:[1m5175[22m/[39m
+2025-09-18T10:12:24:   [32m➜[39m  [1mNetwork[22m: [36mhttp://172.24.80.1:[1m5175[22m/[39m
+2025-09-18T10:12:24:   [32m➜[39m  [1mNetwork[22m: [36mhttp://172.22.80.1:[1m5175[22m/[39m
+2025-09-18T10:12:24:   [32m➜[39m  [1mNetwork[22m: [36mhttp://192.168.1.18:[1m5175[22m/[39m
+2025-09-18T10:12:24:   [32m➜[39m  [1mNetwork[22m: [36mhttp://10.20.0.1:[1m5175[22m/[39m
+2025-09-18T10:12:24:   [32m➜[39m  [1mNetwork[22m: [36mhttp://10.30.0.1:[1m5175[22m/[39m
+2025-09-18T10:12:24:   [32m➜[39m  [1mNetwork[22m: [36mhttp://10.10.0.1:[1m5175[22m/[39m

@@ -12,7 +12,12 @@ import { ResultsPage } from './routes/ResultsPage';
 import { ProfilePage } from './routes/ProfilePage';
 import { BillingPage } from './routes/BillingPage';
 import { AnalyticsPage } from './routes/AnalyticsPage';
+// import { AnalyticsPageSimple as AnalyticsPage } from './routes/AnalyticsPageSimple';
+import { HistoryPage } from './routes/HistoryPage';
+import { PricingPage } from './routes/PricingPage';
+import { TermsPage } from './routes/TermsPage';
+import { PrivacyPage } from './routes/PrivacyPage';
 const App = () => {
-    return (_jsxs("div", { className: "min-h-screen bg-[color:var(--color-gray-50)]", children: [_jsx(SignedOut, { children: _jsx(AuthLayout, {}) }), _jsx(SignedIn, { children: _jsx(DashboardLayout, { children: _jsx(Suspense, { fallback: _jsx(LoadingSpinner, {}), children: _jsxs(Routes, { children: [_jsx(Route, { path: "/", element: _jsx(DashboardPage, {}) }), _jsx(Route, { path: "/intake", element: _jsx(IntakePage, {}) }), _jsx(Route, { path: "/chat", element: _jsx(ChatPage, {}) }), _jsx(Route, { path: "/results/:id", element: _jsx(ResultsPage, {}) }), _jsx(Route, { path: "/profile", element: _jsx(ProfilePage, {}) }), _jsx(Route, { path: "/billing", element: _jsx(BillingPage, {}) }), _jsx(Route, { path: "/analytics", element: _jsx(AnalyticsPage, {}) })] }) }) }) })] }));
+    return (_jsxs("div", { className: "min-h-screen bg-[color:var(--color-gray-50)]", children: [_jsx(SignedOut, { children: _jsx(AuthLayout, {}) }), _jsx(SignedIn, { children: _jsx(DashboardLayout, { children: _jsx(Suspense, { fallback: _jsx(LoadingSpinner, {}), children: _jsxs(Routes, { children: [_jsx(Route, { path: "/", element: _jsx(DashboardPage, {}) }), _jsx(Route, { path: "/intake", element: _jsx(IntakePage, {}) }), _jsx(Route, { path: "/chat", element: _jsx(ChatPage, {}) }), _jsx(Route, { path: "/results/:id", element: _jsx(ResultsPage, {}) }), _jsx(Route, { path: "/history", element: _jsx(HistoryPage, {}) }), _jsx(Route, { path: "/profile", element: _jsx(ProfilePage, {}) }), _jsx(Route, { path: "/billing", element: _jsx(BillingPage, {}) }), _jsx(Route, { path: "/analytics", element: _jsx(AnalyticsPage, {}) }), _jsx(Route, { path: "/pricing", element: _jsx(PricingPage, {}) }), _jsx(Route, { path: "/terms", element: _jsx(TermsPage, {}) }), _jsx(Route, { path: "/privacy", element: _jsx(PrivacyPage, {}) })] }) }) }) })] }));
 };
 export default App;

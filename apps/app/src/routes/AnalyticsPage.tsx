@@ -1,6 +1,7 @@
 import { useQuery } from '@tanstack/react-query';
 import { Banner, Card, Badge, UsageMeter } from '@carrierllm/ui';
 import { fetchAnalytics } from '../lib/api';
+// import { PlanGate, FeatureGate } from '../components/auth/FeatureGates';
 import type { AnalyticsSummary } from '../types';
 
 export const AnalyticsPage = () => {
@@ -52,20 +53,20 @@ export const AnalyticsPage = () => {
         </p>
       </div>
 
-      {/* Key Metrics */}
+      {/* Key Metrics - Available to all */}
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
         <Card>
           <div className="flex items-center">
             <div className="flex-shrink-0">
               <div className="flex items-center justify-center w-8 h-8 bg-blue-100 rounded-lg">
-                <svg className="w-5 h-5 text-blue-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
-                </svg>
+                <span className="text-blue-600 font-bold text-sm">
+                  📊
+                </span>
               </div>
             </div>
-            <div className="ml-4">
-              <p className="text-sm font-medium text-gray-600">Total Submissions</p>
-              <p className="text-2xl font-semibold text-gray-900">{data.stats.totalIntakes}</p>
+            <div className="ml-3">
+              <p className="text-sm font-medium text-gray-500">Total Intakes</p>
+              <p className="text-lg font-bold text-gray-900">{data.stats.totalIntakes}</p>
             </div>
           </div>
         </Card>
@@ -74,14 +75,14 @@ export const AnalyticsPage = () => {
           <div className="flex items-center">
             <div className="flex-shrink-0">
               <div className="flex items-center justify-center w-8 h-8 bg-green-100 rounded-lg">
-                <svg className="w-5 h-5 text-green-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z" />
-                </svg>
+                <span className="text-green-600 font-bold text-sm">
+                  🎯
+                </span>
               </div>
             </div>
-            <div className="ml-4">
-              <p className="text-sm font-medium text-gray-600">Average Fit Score</p>
-              <p className="text-2xl font-semibold text-gray-900">{Math.round(data.stats.averageFitScore)}%</p>
+            <div className="ml-3">
+              <p className="text-sm font-medium text-gray-500">Avg Fit Score</p>
+              <p className="text-lg font-bold text-gray-900">{data.stats.averageFitScore}%</p>
             </div>
           </div>
         </Card>
@@ -90,14 +91,14 @@ export const AnalyticsPage = () => {
           <div className="flex items-center">
             <div className="flex-shrink-0">
               <div className="flex items-center justify-center w-8 h-8 bg-purple-100 rounded-lg">
-                <svg className="w-5 h-5 text-purple-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 7h8m0 0v8m0-8l-8 8-4-4-6 6" />
-                </svg>
+                <span className="text-purple-600 font-bold text-sm">
+                  ✅
+                </span>
               </div>
             </div>
-            <div className="ml-4">
-              <p className="text-sm font-medium text-gray-600">Placement Rate</p>
-              <p className="text-2xl font-semibold text-gray-900">{Math.round(data.stats.placementRate)}%</p>
+            <div className="ml-3">
+              <p className="text-sm font-medium text-gray-500">Placement Rate</p>
+              <p className="text-lg font-bold text-gray-900">{data.stats.placementRate}%</p>
             </div>
           </div>
         </Card>
@@ -105,101 +106,124 @@ export const AnalyticsPage = () => {
         <Card>
           <div className="flex items-center">
             <div className="flex-shrink-0">
-              <div className="flex items-center justify-center w-8 h-8 bg-orange-100 rounded-lg">
-                <svg className="w-5 h-5 text-orange-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1" />
-                </svg>
+              <div className="flex items-center justify-center w-8 h-8 bg-yellow-100 rounded-lg">
+                <span className="text-yellow-600 font-bold text-sm">
+                  🔄
+                </span>
               </div>
             </div>
-            <div className="ml-4">
-              <p className="text-sm font-medium text-gray-600">Remaining Recommendations</p>
-              <p className="text-2xl font-semibold text-gray-900">{data.stats.remainingRecommendations}</p>
+            <div className="ml-3">
+              <p className="text-sm font-medium text-gray-500">Remaining</p>
+              <p className="text-lg font-bold text-gray-900">{data.stats.remainingRecommendations}</p>
             </div>
           </div>
         </Card>
       </div>
 
-      {/* Performance Overview */}
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-        {/* Top Performing Carriers */}
-        <Card>
-          <h3 className="text-lg font-medium text-gray-900 mb-4">Top Performing Carriers</h3>
-          <div className="space-y-4">
-            {topCarriers.map((carrier, index) => (
-              <div key={carrier.carrierName} className="flex items-center justify-between">
-                <div className="flex items-center space-x-3">
-                  <div className="flex-shrink-0">
-                    <div className="w-8 h-8 bg-gray-100 rounded-full flex items-center justify-center">
-                      <span className="text-sm font-medium text-gray-600">{index + 1}</span>
+      {/* Advanced Analytics - Individual plan and up */}
+      {/* <PlanGate plan="individual"> */}
+        <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+          {/* Top Carriers */}
+          <Card>
+            <h3 className="text-lg font-medium text-gray-900 mb-4">Top Performing Carriers</h3>
+            {topCarriers.length > 0 ? (
+              <div className="space-y-3">
+                {topCarriers.map((carrier, index) => (
+                  <div key={carrier.id} className="flex items-center justify-between">
+                    <div className="flex items-center">
+                      <span className="text-sm font-medium text-gray-500 w-6">
+                        {index + 1}.
+                      </span>
+                      <span className="ml-2 text-sm font-medium text-gray-900">
+                        {carrier.name}
+                      </span>
+                    </div>
+                    <div className="flex items-center gap-2">
+                      <Badge variant={carrier.successRate > 70 ? 'success' : 'secondary'}>
+                        {carrier.successRate}% success
+                      </Badge>
+                      <span className="text-xs text-gray-500">
+                        {carrier.count} placements
+                      </span>
                     </div>
                   </div>
-                  <div>
-                    <p className="text-sm font-medium text-gray-900">{carrier.carrierName}</p>
-                    <p className="text-xs text-gray-500">{carrier.recommendations} recommendations</p>
-                  </div>
-                </div>
-                <div className="text-right">
-                  <p className="text-sm font-medium text-gray-900">{Math.round((carrier.placements / carrier.recommendations) * 100)}%</p>
-                  <p className="text-xs text-gray-500">placement rate</p>
-                </div>
+                ))}
               </div>
-            ))}
-          </div>
-        </Card>
+            ) : (
+              <p className="text-sm text-gray-500">No carrier data available yet.</p>
+            )}
+          </Card>
 
-        {/* Monthly Trends */}
+          {/* Monthly Trends */}
+          <Card>
+            <h3 className="text-lg font-medium text-gray-900 mb-4">Monthly Trends</h3>
+            {monthlyTrends.length > 0 ? (
+              <div className="space-y-3">
+                {monthlyTrends.map((trend) => (
+                  <div key={trend.month} className="flex items-center justify-between">
+                    <span className="text-sm font-medium text-gray-600">
+                      {new Date(trend.month).toLocaleDateString('en-US', {
+                        month: 'short',
+                        year: 'numeric'
+                      })}
+                    </span>
+                    <div className="flex items-center gap-4">
+                      <div className="text-right">
+                        <p className="text-sm font-medium text-gray-900">
+                          {trend.intakes} intakes
+                        </p>
+                        <p className="text-xs text-gray-500">
+                          {trend.conversions} conversions
+                        </p>
+                      </div>
+                      <UsageMeter
+                        value={trend.conversionRate}
+                        label=""
+                        className="w-20"
+                      />
+                    </div>
+                  </div>
+                ))}
+              </div>
+            ) : (
+              <p className="text-sm text-gray-500">No trend data available yet.</p>
+            )}
+          </Card>
+        </div>
+      {/* </PlanGate> */}
+
+      {/* Export Features - Individual plan and up */}
+      {/* <FeatureGate feature="export_analytics"> */}
         <Card>
-          <h3 className="text-lg font-medium text-gray-900 mb-4">Monthly Trends</h3>
-          <div className="space-y-4">
-            {monthlyTrends.map((month) => (
-              <div key={month.month} className="flex items-center justify-between">
-                <div>
-                  <p className="text-sm font-medium text-gray-900">{month.month}</p>
-                  <p className="text-xs text-gray-500">{month.recommendations} recommendations</p>
-                </div>
-                <div className="flex items-center space-x-4">
-                  <div className="flex-1 max-w-20">
-                    <UsageMeter
-                      value={(month.placements / month.recommendations) * 100}
-                      label="Placement rate"
-                    />
-                  </div>
-                  <div className="text-right">
-                    <p className="text-sm font-medium text-gray-900">{Math.round((month.placements / month.recommendations) * 100)}%</p>
-                  </div>
-                </div>
-              </div>
-            ))}
-          </div>
-        </Card>
-      </div>
-
-      {/* Performance Insights */}
-      <Card>
-        <h3 className="text-lg font-medium text-gray-900 mb-4">Performance Insights</h3>
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-          <div className="p-4 bg-green-50 rounded-lg">
-            <h4 className="text-sm font-medium text-green-800 mb-2">Subscription Status</h4>
-            <p className="text-sm text-green-600">
-              {data.user.subscriptionTier} plan ({data.user.subscriptionStatus})
-            </p>
-          </div>
-          <div className="p-4 bg-blue-50 rounded-lg">
-            <h4 className="text-sm font-medium text-blue-800 mb-2">Usage</h4>
-            <p className="text-sm text-blue-600">
-              {data.user.recommendationsUsed} / {data.user.recommendationsLimit} recommendations used
-            </p>
-          </div>
-          {topCarriers.length > 0 && (
-            <div className="p-4 bg-amber-50 rounded-lg">
-              <h4 className="text-sm font-medium text-amber-800 mb-2">Top Carrier</h4>
-              <p className="text-sm text-amber-600">
-                {topCarriers[0].carrierName} shows the highest placement rate ({Math.round((topCarriers[0].placements / topCarriers[0].recommendations) * 100)}%)
+          <div className="flex items-center justify-between">
+            <div>
+              <h3 className="text-lg font-medium text-gray-900">Export Analytics</h3>
+              <p className="text-sm text-gray-600 mt-1">
+                Download your analytics data in CSV or PDF format
               </p>
             </div>
-          )}
-        </div>
-      </Card>
+            <div className="flex gap-2">
+              <button className="px-4 py-2 text-sm font-medium text-gray-700 bg-white border border-gray-300 rounded-md hover:bg-gray-50">
+                Export CSV
+              </button>
+              <button className="px-4 py-2 text-sm font-medium text-gray-700 bg-white border border-gray-300 rounded-md hover:bg-gray-50">
+                Export PDF
+              </button>
+            </div>
+          </div>
+        </Card>
+      {/* </FeatureGate> */}
+
+      {/* Team Analytics - Enterprise only */}
+      {/* <PlanGate plan="enterprise"> */}
+        <Card>
+          <h3 className="text-lg font-medium text-gray-900 mb-4">Team Performance</h3>
+          <div className="text-sm text-gray-600">
+            <p>Team-wide analytics and individual agent performance metrics will appear here.</p>
+            <p className="mt-2">This feature is available for Enterprise plans.</p>
+          </div>
+        </Card>
+      {/* </PlanGate> */}
     </div>
   );
 };

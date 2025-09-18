@@ -11,6 +11,11 @@ import { ResultsPage } from './routes/ResultsPage';
 import { ProfilePage } from './routes/ProfilePage';
 import { BillingPage } from './routes/BillingPage';
 import { AnalyticsPage } from './routes/AnalyticsPage';
+// import { AnalyticsPageSimple as AnalyticsPage } from './routes/AnalyticsPageSimple';
+import { HistoryPage } from './routes/HistoryPage';
+import { PricingPage } from './routes/PricingPage';
+import { TermsPage } from './routes/TermsPage';
+import { PrivacyPage } from './routes/PrivacyPage';
 
 const App = () => {
   return (
@@ -27,9 +32,13 @@ const App = () => {
               <Route path="/intake" element={<IntakePage />} />
               <Route path="/chat" element={<ChatPage />} />
               <Route path="/results/:id" element={<ResultsPage />} />
+              <Route path="/history" element={<HistoryPage />} />
               <Route path="/profile" element={<ProfilePage />} />
               <Route path="/billing" element={<BillingPage />} />
               <Route path="/analytics" element={<AnalyticsPage />} />
+              <Route path="/pricing" element={<PricingPage />} />
+              <Route path="/terms" element={<TermsPage />} />
+              <Route path="/privacy" element={<PrivacyPage />} />
             </Routes>
           </Suspense>
         </DashboardLayout>

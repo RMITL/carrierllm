@@ -1,4 +1,5 @@
 import { useState } from 'react';
+import { Button } from '../primitives/Button';
 
 export interface CarrierCitation {
   chunkId: string;
@@ -7,6 +8,7 @@ export interface CarrierCitation {
   effectiveDate: string;
   page?: number;
   section?: string;
+  score?: number;
 }
 
 export interface EvidencePopoverProps {
@@ -17,7 +19,7 @@ export interface EvidencePopoverProps {
 
 export const EvidencePopover = ({
   citations,
-  trigger = 'View sources',
+  trigger,
   className = ''
 }: EvidencePopoverProps) => {
   const [isOpen, setIsOpen] = useState(false);
@@ -25,17 +27,22 @@ export const EvidencePopover = ({
   const handleToggle = () => setIsOpen(!isOpen);
   const handleClose = () => setIsOpen(false);
 
+  // Custom trigger with citation count
+  const triggerContent = trigger || (
+    <Button
+      variant="secondary"
+      size="sm"
+      aria-label={`View ${citations.length} underwriting sources`}
+    >
+      View Sources ({citations.length})
+    </Button>
+  );
+
   return (
     <div className={`relative inline-block ${className}`}>
-      <button
-        onClick={handleToggle}
-        className="text-sm text-blue-600 hover:text-blue-800 underline focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-1 rounded"
-        aria-haspopup="true"
-        aria-expanded={isOpen}
-        aria-describedby={isOpen ? 'evidence-popover' : undefined}
-      >
-        {trigger}
-      </button>
+      <div onClick={handleToggle}>
+        {triggerContent}
+      </div>
 
       {isOpen && (
         <>
@@ -69,38 +76,78 @@ export const EvidencePopover = ({
               </div>
 
               <div className="space-y-4 max-h-80 overflow-y-auto">
-                {citations.map((citation, index) => (
-                  <div key={citation.chunkId || index} className="border-l-4 border-blue-200 pl-4">
-                    <div className="text-sm">
-                      <div className="font-medium text-gray-900 mb-1">
-                        {citation.documentTitle}
-                      </div>
+                {citations.length > 0 ? (
+                  citations.map((citation, index) => (
+                    <div key={citation.chunkId || index} className="border-l-4 border-blue-400 pl-4 pb-3">
+                      <div className="text-sm">
+                        <div className="flex items-start justify-between mb-1">
+                          <div className="font-medium text-gray-900 flex-1">
+                            {citation.documentTitle || 'Carrier Underwriting Guide'}
+                          </div>
+                          {citation.score && (
+                            <span className="text-xs bg-green-100 text-green-800 px-2 py-1 rounded ml-2">
+                              {Math.round(citation.score * 100)}% match
+                            </span>
+                          )}
+                        </div>
 
-                      <div className="text-gray-600 mb-2">
-                        <span>Effective: {new Date(citation.effectiveDate).toLocaleDateString()}</span>
-                        {citation.page && <span className="ml-2">• Page {citation.page}</span>}
-                        {citation.section && <span className="ml-2">• {citation.section}</span>}
-                      </div>
+                        <div className="text-xs text-gray-600 mb-2 flex flex-wrap gap-2">
+                          {citation.effectiveDate && (
+                            <span>
+                              📅 Effective: {new Date(citation.effectiveDate).toLocaleDateString('en-US', {
+                                month: 'short',
+                                year: 'numeric'
+                              })}
+                            </span>
+                          )}
+                          {citation.page && <span>📄 Page {citation.page}</span>}
+                          {citation.section && <span>📑 {citation.section}</span>}
+                        </div>
 
-                      <blockquote className="text-gray-700 bg-gray-50 p-3 rounded border-l-2 border-gray-200 italic">
-                        "{citation.snippet}"
-                      </blockquote>
+                        <blockquote className="text-gray-700 bg-blue-50 p-3 rounded-md border-l-3 border-blue-300">
+                          <p className="text-sm leading-relaxed">
+                            {citation.snippet ? (
+                              <>
+                                <span className="font-serif text-gray-900">"</span>
+                                {citation.snippet}
+                                <span className="font-serif text-gray-900">"</span>
+                              </>
+                            ) : (
+                              <span className="italic text-gray-500">
+                                Underwriting evidence for this carrier recommendation
+                              </span>
+                            )}
+                          </p>
+                        </blockquote>
+                      </div>
                     </div>
-                  </div>
-                ))}
-
-                {citations.length === 0 && (
-                  <div className="text-center text-gray-500 py-4">
-                    No sources available
+                  ))
+                ) : (
+                  <div className="text-center py-8">
+                    <div className="text-gray-400 mb-2">
+                      <svg className="w-12 h-12 mx-auto" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5}
+                              d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
+                      </svg>
+                    </div>
+                    <p className="text-sm text-gray-500 font-medium">No citations available</p>
+                    <p className="text-xs text-gray-400 mt-1">
+                      Underwriting sources will appear here once processed
+                    </p>
                   </div>
                 )}
               </div>
 
               <div className="mt-4 pt-3 border-t border-gray-200">
-                <p className="text-xs text-gray-500">
-                  Citations are extracted from carrier underwriting guides and documentation.
-                  Verify current requirements with carrier representatives.
-                </p>
+                <div className="flex items-start gap-2">
+                  <svg className="w-4 h-4 text-amber-500 mt-0.5 flex-shrink-0" fill="currentColor" viewBox="0 0 20 20">
+                    <path fillRule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7-4a1 1 0 11-2 0 1 1 0 012 0zM9 9a1 1 0 000 2v3a1 1 0 001 1h1a1 1 0 100-2v-3a1 1 0 00-1-1H9z" clipRule="evenodd" />
+                  </svg>
+                  <p className="text-xs text-gray-600">
+                    <span className="font-medium">Important:</span> These citations are extracted from carrier underwriting guides.
+                    Always verify current requirements and pricing with carrier representatives before submitting applications.
+                  </p>
+                </div>
               </div>
             </div>
           </div>

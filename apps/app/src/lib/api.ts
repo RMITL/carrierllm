@@ -25,14 +25,20 @@ const client = axios.create({
 // Add auth interceptor for Clerk integration
 client.interceptors.request.use(async (config) => {
   try {
-    // Get the Clerk token for authenticated requests
+    // Get the Clerk token and user ID for authenticated requests
     const token = await window.Clerk?.session?.getToken();
+    const userId = window.Clerk?.user?.id;
+
     if (token) {
       config.headers.Authorization = `Bearer ${token}`;
     }
+
+    if (userId) {
+      config.headers['X-User-Id'] = userId;
+    }
   } catch (error) {
-    console.warn('Failed to get Clerk token:', error);
-    // Don't fail the request if auth token retrieval fails
+    console.warn('Failed to get Clerk auth info:', error);
+    // Don't fail the request if auth info retrieval fails
   }
   return config;
 });
@@ -160,8 +166,30 @@ export const getUserUsage = async (): Promise<{
   recommendationsLimit: number;
 }> => {
   return withRetry(async () => {
-    const response = await client.get('/user/usage');
-    return response.data;
+    const userId = window.Clerk?.user?.id;
+    if (!userId) {
+      // Return free tier defaults if not logged in
+      return {
+        plan: 'Free',
+        status: 'active',
+        recommendationsUsed: 0,
+        recommendationsLimit: 5
+      };
+    }
+
+    const response = await client.get(`/subscriptions/${userId}`);
+    const subscription = response.data;
+
+    // Map subscription data to expected format
+    return {
+      plan: subscription.planKey === 'free_user' ? 'Free' :
+            subscription.planKey === 'individual' ? 'Individual' :
+            subscription.planKey === 'free_org' ? 'Team Free' :
+            subscription.planKey === 'enterprise' ? 'Enterprise' : 'Free',
+      status: subscription.status,
+      recommendationsUsed: subscription.usage.recommendationsUsed,
+      recommendationsLimit: subscription.usage.recommendationsLimit
+    };
   });
 };
 
@@ -194,4 +222,32 @@ export const updateUserProfile = async (profileData: {
   });
 };
 
+/**
+ * Get user history of intakes and recommendations
+ */
+export const getUserHistory = async (): Promise<Array<{
+  id: string;
+  recommendationId?: string;
+  type: 'intake' | 'recommendation';
+  data: any;
+  createdAt: string;
+  status?: string;
+  summary?: {
+    averageFit?: number;
+    eligibleCarriers?: number;
+    topCarrierId?: string;
+  };
+}>> => {
+  return withRetry(async () => {
+    const userId = window.Clerk?.user?.id;
+    if (!userId) {
+      return [];
+    }
+
+    const response = await client.get(`/user/${userId}/history`);
+    return response.data;
+  });
+};
+
+export const api = client;
 export default client;

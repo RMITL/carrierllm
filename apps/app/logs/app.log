@@ -776,3 +776,204 @@
 2025-09-16T12:46:40:   [32m➜[39m  [1mNetwork[22m: [36mhttp://10.10.0.1:[1m5174[22m/[39m
 2025-09-16T12:46:40:   [32m➜[39m  [1mNetwork[22m: [36mhttp://172.24.80.1:[1m5174[22m/[39m
 2025-09-16T12:46:40:   [32m➜[39m  [1mNetwork[22m: [36mhttp://172.22.80.1:[1m5174[22m/[39m
+2025-09-16T19:11:46: [2m7:11:46 PM[22m [36m[1m[vite][22m[39m [32mvite.config.ts changed, restarting server...[39m
+2025-09-16T19:11:46: [2m7:11:46 PM[22m [36m[1m[vite][22m[39m [32mvite.config.ts changed, restarting server...[39m
+2025-09-16T19:11:47: Re-optimizing dependencies because lockfile has changed
+2025-09-16T19:11:47: [2m7:11:47 PM[22m [36m[1m[vite][22m[39m server restarted.
+2025-09-16T19:12:06: [2m7:12:06 PM[22m [36m[1m[vite][22m[39m [32mvite.config.js changed, restarting server...[39m
+2025-09-16T19:12:06: [2m7:12:06 PM[22m [36m[1m[vite][22m[39m server restarted.
+2025-09-16T19:14:05: [2m7:14:05 PM[22m [36m[1m[vite][22m[39m [32m.env.local changed, restarting server...[39m
+2025-09-16T19:14:05: [2m7:14:05 PM[22m [36m[1m[vite][22m[39m server restarted.
+2025-09-16T19:40:23: 
+2025-09-16T19:40:23:   [32m[1mVITE[22m v5.4.20[39m  [2mready in [0m[1m845[22m[2m[0m ms[22m
+2025-09-16T19:40:23: 
+2025-09-16T19:40:23:   [32m➜[39m  [1mLocal[22m:   [36mhttp://localhost:[1m5174[22m/[39m
+2025-09-16T19:40:23:   [32m➜[39m  [1mNetwork[22m: [36mhttp://192.168.1.18:[1m5174[22m/[39m
+2025-09-16T19:40:23:   [32m➜[39m  [1mNetwork[22m: [36mhttp://10.20.0.1:[1m5174[22m/[39m
+2025-09-16T19:40:23:   [32m➜[39m  [1mNetwork[22m: [36mhttp://10.30.0.1:[1m5174[22m/[39m
+2025-09-16T19:40:23:   [32m➜[39m  [1mNetwork[22m: [36mhttp://10.10.0.1:[1m5174[22m/[39m
+2025-09-16T19:40:23:   [32m➜[39m  [1mNetwork[22m: [36mhttp://172.24.80.1:[1m5174[22m/[39m
+2025-09-16T19:40:23:   [32m➜[39m  [1mNetwork[22m: [36mhttp://172.22.80.1:[1m5174[22m/[39m
+2025-09-16T21:09:14: [2m9:09:14 PM[22m [36m[1m[vite][22m[39m [32m.env.local changed, restarting server...[39m
+2025-09-16T21:09:14: [2m9:09:14 PM[22m [36m[1m[vite][22m[39m server restarted.
+2025-09-16T21:12:16: [2m9:12:16 PM[22m [36m[1m[vite][22m[39m [32mpage reload [39m[2msrc/lib/api.ts[22m
+2025-09-16T21:12:52: [2m9:12:52 PM[22m [36m[1m[vite][22m[39m [32mpage reload [39m[2msrc/routes/IntakePage.tsx[22m
+2025-09-16T21:13:28: [2m9:13:28 PM[22m [36m[1m[vite][22m[39m [32mpage reload [39m[2msrc/routes/IntakePage.tsx[22m
+2025-09-16T21:16:07: [2m9:16:07 PM[22m [36m[1m[vite][22m[39m [32mpage reload [39m[2msrc/routes/AnalyticsPage.tsx[22m
+2025-09-16T21:18:05: [2m9:18:05 PM[22m [36m[1m[vite][22m[39m [32mpage reload [39m[2msrc/types.ts[22m
+2025-09-16T21:18:56: [2m9:18:56 PM[22m [36m[1m[vite][22m[39m [32mpage reload [39m[2msrc/routes/AnalyticsPage.tsx[22m
+2025-09-16T21:20:00: [2m9:20:00 PM[22m [36m[1m[vite][22m[39m [32mpage reload [39m[2msrc/routes/BillingPage.tsx[22m
+2025-09-16T21:21:00: [2m9:21:00 PM[22m [36m[1m[vite][22m[39m [32mpage reload [39m[2msrc/routes/ChatPage.tsx[22m
+2025-09-16T21:22:12: [2m9:22:12 PM[22m [36m[1m[vite][22m[39m [32mpage reload [39m[2msrc/routes/DashboardPage.tsx[22m
+2025-09-16T21:24:55: [2m9:24:55 PM[22m [36m[1m[vite][22m[39m [32mvite.config.js changed, restarting server...[39m
+2025-09-16T21:24:56: Port 5174 is in use, trying another one...
+2025-09-16T21:24:56: Port 5175 is in use, trying another one...
+2025-09-16T21:24:56: Port 5176 is in use, trying another one...
+2025-09-16T21:24:56: [2m9:24:56 PM[22m [36m[1m[vite][22m[39m server restarted.
+2025-09-16T21:24:56: 
+2025-09-16T21:24:56:   [32m➜[39m  [1mLocal[22m:   [36mhttp://localhost:[1m5177[22m/[39m
+2025-09-16T21:24:56:   [32m➜[39m  [1mNetwork[22m: [36mhttp://192.168.1.18:[1m5177[22m/[39m
+2025-09-16T21:24:56:   [32m➜[39m  [1mNetwork[22m: [36mhttp://10.20.0.1:[1m5177[22m/[39m
+2025-09-16T21:24:56:   [32m➜[39m  [1mNetwork[22m: [36mhttp://10.30.0.1:[1m5177[22m/[39m
+2025-09-16T21:24:56:   [32m➜[39m  [1mNetwork[22m: [36mhttp://10.10.0.1:[1m5177[22m/[39m
+2025-09-16T21:24:56:   [32m➜[39m  [1mNetwork[22m: [36mhttp://172.24.80.1:[1m5177[22m/[39m
+2025-09-16T21:24:56:   [32m➜[39m  [1mNetwork[22m: [36mhttp://172.22.80.1:[1m5177[22m/[39m
+2025-09-16T22:15:47: 
+2025-09-16T22:15:47:   [32m[1mVITE[22m v5.4.20[39m  [2mready in [0m[1m21176[22m[2m[0m ms[22m
+2025-09-16T22:15:47: 
+2025-09-16T22:15:47:   [32m➜[39m  [1mLocal[22m:   [36mhttp://localhost:[1m5174[22m/[39m
+2025-09-16T22:15:47:   [32m➜[39m  [1mNetwork[22m: [36mhttp://172.24.80.1:[1m5174[22m/[39m
+2025-09-16T22:15:47:   [32m➜[39m  [1mNetwork[22m: [36mhttp://172.22.80.1:[1m5174[22m/[39m
+2025-09-16T22:15:47:   [32m➜[39m  [1mNetwork[22m: [36mhttp://192.168.1.18:[1m5174[22m/[39m
+2025-09-16T22:15:47:   [32m➜[39m  [1mNetwork[22m: [36mhttp://10.20.0.1:[1m5174[22m/[39m
+2025-09-16T22:15:47:   [32m➜[39m  [1mNetwork[22m: [36mhttp://10.30.0.1:[1m5174[22m/[39m
+2025-09-16T22:15:47:   [32m➜[39m  [1mNetwork[22m: [36mhttp://10.10.0.1:[1m5174[22m/[39m
+2025-09-16T22:43:46: 
+2025-09-16T22:43:46:   [32m[1mVITE[22m v5.4.20[39m  [2mready in [0m[1m765[22m[2m[0m ms[22m
+2025-09-16T22:43:46: 
+2025-09-16T22:43:46:   [32m➜[39m  [1mLocal[22m:   [36mhttp://localhost:[1m5174[22m/[39m
+2025-09-16T22:43:46:   [32m➜[39m  [1mNetwork[22m: [36mhttp://172.24.80.1:[1m5174[22m/[39m
+2025-09-16T22:43:46:   [32m➜[39m  [1mNetwork[22m: [36mhttp://172.22.80.1:[1m5174[22m/[39m
+2025-09-16T22:43:46:   [32m➜[39m  [1mNetwork[22m: [36mhttp://192.168.1.18:[1m5174[22m/[39m
+2025-09-16T22:43:46:   [32m➜[39m  [1mNetwork[22m: [36mhttp://10.20.0.1:[1m5174[22m/[39m
+2025-09-16T22:43:46:   [32m➜[39m  [1mNetwork[22m: [36mhttp://10.30.0.1:[1m5174[22m/[39m
+2025-09-16T22:43:46:   [32m➜[39m  [1mNetwork[22m: [36mhttp://10.10.0.1:[1m5174[22m/[39m
+2025-09-16T22:49:01: [2m10:49:01 PM[22m [36m[1m[vite][22m[39m [32mpage reload [39m[2msrc/lib/api.ts[22m
+2025-09-16T22:49:08: [2m10:49:08 PM[22m [36m[1m[vite][22m[39m [32mpage reload [39m[2msrc/routes/DashboardPage.tsx[22m
+2025-09-16T22:49:19: [2m10:49:19 PM[22m [36m[1m[vite][22m[39m [32mpage reload [39m[2msrc/routes/DashboardPage.tsx[22m
+2025-09-16T22:49:26: [2m10:49:26 PM[22m [36m[1m[vite][22m[39m [32mpage reload [39m[2msrc/routes/DashboardPage.tsx[22m
+2025-09-16T22:49:32: [2m10:49:32 PM[22m [36m[1m[vite][22m[39m [32mpage reload [39m[2msrc/routes/DashboardPage.tsx[22m
+2025-09-16T22:49:38: [2m10:49:38 PM[22m [36m[1m[vite][22m[39m [32mpage reload [39m[2msrc/routes/DashboardPage.tsx[22m
+2025-09-17T08:08:05: [2m8:08:05 AM[22m [36m[1m[vite][22m[39m [32mpage reload [39m[2msrc/lib/api.ts[22m
+2025-09-17T08:43:16: [2m8:43:16 AM[22m [36m[1m[vite][22m[39m [32mpage reload [39m[2msrc/lib/api.ts[22m
+2025-09-17T08:43:39: [2m8:43:39 AM[22m [36m[1m[vite][22m[39m [32mpage reload [39m[2msrc/lib/api.ts[22m
+2025-09-17T08:43:58: [2m8:43:58 AM[22m [36m[1m[vite][22m[39m [32mpage reload [39m[2msrc/features/recommendations/RecommendationList.tsx[22m
+2025-09-17T08:44:17: [2m8:44:17 AM[22m [36m[1m[vite][22m[39m [32mpage reload [39m[2msrc/features/recommendations/RecommendationList.tsx[22m
+2025-09-17T08:44:26: [2m8:44:26 AM[22m [36m[1m[vite][22m[39m [32mpage reload [39m[2msrc/features/recommendations/RecommendationList.tsx[22m
+2025-09-17T08:44:36: [2m8:44:36 AM[22m [36m[1m[vite][22m[39m [32mpage reload [39m[2msrc/features/recommendations/RecommendationList.tsx[22m
+2025-09-17T08:44:44: [2m8:44:44 AM[22m [36m[1m[vite][22m[39m [32mpage reload [39m[2msrc/features/recommendations/RecommendationList.tsx[22m
+2025-09-17T18:05:48: [2m6:05:48 PM[22m [36m[1m[vite][22m[39m [32mhmr update [39m[2m/@fs/C:/sites/carrierllm/packages/ui/src/blocks/EvidencePopover.tsx[22m
+2025-09-17T18:06:18: [2m6:06:18 PM[22m [36m[1m[vite][22m[39m [32mhmr update [39m[2m/@fs/C:/sites/carrierllm/packages/ui/src/blocks/EvidencePopover.tsx[22m
+2025-09-17T18:06:31: [2m6:06:31 PM[22m [36m[1m[vite][22m[39m [32mhmr update [39m[2m/@fs/C:/sites/carrierllm/packages/ui/src/blocks/EvidencePopover.tsx[22m
+2025-09-17T19:17:30: [2m7:17:30 PM[22m [36m[1m[vite][22m[39m [32mpage reload [39m[2msrc/components/layout/AuthLayout.tsx[22m
+2025-09-17T19:19:24: [2m7:19:24 PM[22m [36m[1m[vite][22m[39m [32mpage reload [39m[2msrc/routes/IntakePage.tsx[22m
+2025-09-17T19:21:50: [2m7:21:50 PM[22m [36m[1m[vite][22m[39m [32mpage reload [39m[2msrc/lib/api.ts[22m
+2025-09-17T19:22:11: [2m7:22:11 PM[22m [36m[1m[vite][22m[39m [32mpage reload [39m[2msrc/lib/api.ts[22m
+2025-09-17T20:21:41: [2m8:21:41 PM[22m [36m[1m[vite][22m[39m [32mpage reload [39m[2msrc/routes/PricingPage.tsx[22m
+2025-09-17T20:21:56: [2m8:21:56 PM[22m [36m[1m[vite][22m[39m [32mpage reload [39m[2msrc/App.tsx[22m
+2025-09-17T20:22:50: [2m8:22:50 PM[22m [36m[1m[vite][22m[39m [32mpage reload [39m[2msrc/routes/IntakePage.tsx[22m
+2025-09-17T20:23:38: [2m8:23:38 PM[22m [36m[1m[vite][22m[39m [32mpage reload [39m[2msrc/routes/AnalyticsPage.tsx[22m
+2025-09-17T20:26:08: [2m8:26:08 PM[22m [36m[1m[vite][22m[39m [32mpage reload [39m[2msrc/components/auth/FeatureGates.tsx[22m
+2025-09-17T20:26:15: [2m8:26:15 PM[22m [36m[1m[vite][22m[39m [32mpage reload [39m[2msrc/components/auth/FeatureGates.tsx[22m
+2025-09-17T20:26:58: [2m8:26:58 PM[22m [36m[1m[vite][22m[39m [32mpage reload [39m[2msrc/routes/PricingPage.tsx[22m
+2025-09-17T20:27:56: [2m8:27:56 PM[22m [36m[1m[vite][22m[39m [32mpage reload [39m[2msrc/components/billing/PricingTable.tsx[22m
+2025-09-17T20:28:03: [2m8:28:03 PM[22m [36m[1m[vite][22m[39m [32mpage reload [39m[2msrc/components/auth/PlanProtect.tsx[22m
+2025-09-17T20:28:11: [2m8:28:11 PM[22m [36m[1m[vite][22m[39m [32mpage reload [39m[2msrc/hooks/useSubscription.ts[22m
+2025-09-17T20:42:47: [2m8:42:47 PM[22m [36m[1m[vite][22m[39m [32mpage reload [39m[2msrc/types.ts[22m
+2025-09-17T20:43:27: [2m8:43:27 PM[22m [36m[1m[vite][22m[39m [32mpage reload [39m[2msrc/components/layout/AuthLayout.tsx[22m
+2025-09-17T20:43:41: [2m8:43:41 PM[22m [36m[1m[vite][22m[39m [32mpage reload [39m[2msrc/components/layout/AuthLayout.tsx[22m
+2025-09-17T20:46:04: [2m8:46:04 PM[22m [36m[1m[vite][22m[39m [32mpage reload [39m[2msrc/App.tsx[22m
+2025-09-17T23:43:24: [2m11:43:24 PM[22m [36m[1m[vite][22m[39m [32mpage reload [39m[2msrc/routes/AnalyticsPage.tsx[22m
+2025-09-17T23:44:25: [2m11:44:25 PM[22m [36m[1m[vite][22m[39m [32mpage reload [39m[2msrc/App.tsx[22m
+2025-09-17T23:51:51: [2m11:51:51 PM[22m [36m[1m[vite][22m[39m [32mpage reload [39m[2msrc/App.tsx[22m
+2025-09-17T23:52:13: [2m11:52:13 PM[22m [36m[1m[vite][22m[39m [32mhmr update [39m[2m/src/components/layout/DashboardLayout.js[22m
+2025-09-17T23:52:13: [2m11:52:13 PM[22m [36m[1m[vite][22m[39m [32mhmr update [39m[2m/src/components/layout/AuthLayout.js[22m
+2025-09-17T23:52:13: [2m11:52:13 PM[22m [36m[1m[vite][22m[39m [32mhmr update [39m[2m/src/components/ui/LoadingSpinner.js[22m
+2025-09-17T23:52:13: [2m11:52:13 PM[22m [36m[1m[vite][22m[39m [32mhmr update [39m[2m/src/routes/DashboardPage.js, /src/routes/ChatPage.js, /src/routes/IntakePage.js, /src/routes/ResultsPage.js, /src/routes/BillingPage.js, /src/routes/AnalyticsPage.js, /src/features/recommendations/RecommendationList.js[22m
+2025-09-17T23:52:13: [2m11:52:13 PM[22m [36m[1m[vite][22m[39m [32mhmr update [39m[2m/src/routes/DashboardPage.js[22m
+2025-09-17T23:52:13: [2m11:52:13 PM[22m [36m[1m[vite][22m[39m [32mhmr update [39m[2m/src/features/intake/OrionIntakeForm.js[22m
+2025-09-17T23:52:13: [2m11:52:13 PM[22m [36m[1m[vite][22m[39m [32mhmr update [39m[2m/src/routes/IntakePage.js[22m
+2025-09-17T23:52:13: [2m11:52:13 PM[22m [36m[1m[vite][22m[39m [32mhmr update [39m[2m/src/routes/ChatPage.js[22m
+2025-09-17T23:52:13: [2m11:52:13 PM[22m [36m[1m[vite][22m[39m [32mhmr update [39m[2m/src/features/recommendations/RecommendationList.js[22m
+2025-09-17T23:52:13: [2m11:52:13 PM[22m [36m[1m[vite][22m[39m [32mhmr update [39m[2m/src/routes/ResultsPage.js[22m
+2025-09-17T23:52:13: [2m11:52:13 PM[22m [36m[1m[vite][22m[39m [32mhmr update [39m[2m/src/routes/ProfilePage.js[22m
+2025-09-17T23:52:13: [2m11:52:13 PM[22m [36m[1m[vite][22m[39m [32mhmr update [39m[2m/src/routes/BillingPage.js[22m
+2025-09-17T23:52:13: [2m11:52:13 PM[22m [36m[1m[vite][22m[39m [32mhmr update [39m[2m/src/routes/AnalyticsPage.js[22m
+2025-09-17T23:52:13: [2m11:52:13 PM[22m [36m[1m[vite][22m[39m [32mhmr update [39m[2m/src/App.js[22m
+2025-09-17T23:55:32: [2m11:55:32 PM[22m [36m[1m[vite][22m[39m [32mpage reload [39m[2msrc/types.ts[22m
+2025-09-17T23:55:51: [2m11:55:51 PM[22m [36m[1m[vite][22m[39m [32mpage reload [39m[2msrc/types.ts[22m
+2025-09-17T23:56:10: [2m11:56:10 PM[22m [36m[1m[vite][22m[39m [32mpage reload [39m[2msrc/types.ts[22m
+2025-09-18T00:18:32: [2m12:18:32 AM[22m [36m[1m[vite][22m[39m [32mpage reload [39m[2msrc/components/layout/DashboardLayout.tsx[22m
+2025-09-18T00:18:42: [2m12:18:42 AM[22m [36m[1m[vite][22m[39m [32mpage reload [39m[2msrc/components/layout/DashboardLayout.tsx[22m
+2025-09-18T00:19:41: [2m12:19:41 AM[22m [36m[1m[vite][22m[39m [32mpage reload [39m[2msrc/App.tsx[22m
+2025-09-18T00:19:48: [2m12:19:48 AM[22m [36m[1m[vite][22m[39m [32mpage reload [39m[2msrc/App.tsx[22m
+2025-09-18T00:20:41: [2m12:20:41 AM[22m [36m[1m[vite][22m[39m [32mpage reload [39m[2msrc/routes/BillingPage.tsx[22m
+2025-09-18T00:20:53: [2m12:20:53 AM[22m [36m[1m[vite][22m[39m [32mpage reload [39m[2msrc/routes/BillingPage.tsx[22m
+2025-09-18T00:21:09: [2m12:21:09 AM[22m [36m[1m[vite][22m[39m [32mpage reload [39m[2msrc/routes/BillingPage.tsx[22m
+2025-09-18T00:21:21: [2m12:21:21 AM[22m [36m[1m[vite][22m[39m [32mpage reload [39m[2msrc/routes/BillingPage.tsx[22m
+2025-09-18T00:21:28: [2m12:21:28 AM[22m [36m[1m[vite][22m[39m [32mpage reload [39m[2msrc/routes/BillingPage.tsx[22m
+2025-09-18T00:21:37: [2m12:21:37 AM[22m [36m[1m[vite][22m[39m [32mpage reload [39m[2msrc/routes/BillingPage.tsx[22m
+2025-09-18T00:21:47: [2m12:21:47 AM[22m [36m[1m[vite][22m[39m [32mpage reload [39m[2msrc/routes/BillingPage.tsx[22m
+2025-09-18T00:21:57: [2m12:21:57 AM[22m [36m[1m[vite][22m[39m [32mpage reload [39m[2msrc/routes/BillingPage.tsx[22m
+2025-09-18T00:24:42: [2m12:24:42 AM[22m [36m[1m[vite][22m[39m [32mpage reload [39m[2msrc/lib/api.ts[22m
+2025-09-18T00:24:52: [2m12:24:52 AM[22m [36m[1m[vite][22m[39m [32mpage reload [39m[2msrc/routes/HistoryPage.tsx[22m
+2025-09-18T00:24:59: [2m12:24:59 AM[22m [36m[1m[vite][22m[39m [32mpage reload [39m[2msrc/routes/HistoryPage.tsx[22m
+2025-09-18T00:30:04: [2m12:30:04 AM[22m [36m[1m[vite][22m[39m [32mhmr update [39m[2m/src/components/layout/DashboardLayout.js[22m
+2025-09-18T00:30:04: [2m12:30:04 AM[22m [36m[1m[vite][22m[39m [32mhmr update [39m[2m/src/components/layout/AuthLayout.js[22m
+2025-09-18T00:30:04: [2m12:30:04 AM[22m [36m[1m[vite][22m[39m [32mhmr update [39m[2m/src/components/ui/LoadingSpinner.js[22m
+2025-09-18T00:30:04: [2m12:30:04 AM[22m [36m[1m[vite][22m[39m [32mhmr update [39m[2m/src/routes/DashboardPage.js, /src/routes/ChatPage.js, /src/routes/IntakePage.js, /src/routes/ResultsPage.js, /src/routes/BillingPage.js, /src/routes/AnalyticsPage.js, /src/features/recommendations/RecommendationList.js[22m
+2025-09-18T00:30:04: [2m12:30:04 AM[22m [36m[1m[vite][22m[39m [32mhmr update [39m[2m/src/routes/DashboardPage.js[22m
+2025-09-18T00:30:04: [2m12:30:04 AM[22m [36m[1m[vite][22m[39m [32mhmr update [39m[2m/src/features/intake/OrionIntakeForm.js[22m
+2025-09-18T00:30:04: [2m12:30:04 AM[22m [36m[1m[vite][22m[39m [32mhmr update [39m[2m/src/components/auth/FeatureGates.js[22m
+2025-09-18T00:30:04: [2m12:30:04 AM[22m [36m[1m[vite][22m[39m [32mhmr update [39m[2m/src/routes/IntakePage.js[22m
+2025-09-18T00:30:04: [2m12:30:04 AM[22m [36m[1m[vite][22m[39m [32mhmr update [39m[2m/src/routes/ChatPage.js[22m
+2025-09-18T00:30:04: [2m12:30:04 AM[22m [36m[1m[vite][22m[39m [32mhmr update [39m[2m/src/features/recommendations/RecommendationList.js[22m
+2025-09-18T00:30:04: [2m12:30:04 AM[22m [36m[1m[vite][22m[39m [32mhmr update [39m[2m/src/routes/ResultsPage.js[22m
+2025-09-18T00:30:04: [2m12:30:04 AM[22m [36m[1m[vite][22m[39m [32mhmr update [39m[2m/src/routes/ProfilePage.js[22m
+2025-09-18T00:30:04: [2m12:30:04 AM[22m [36m[1m[vite][22m[39m [32mhmr update [39m[2m/src/routes/BillingPage.js[22m
+2025-09-18T00:30:04: [2m12:30:04 AM[22m [36m[1m[vite][22m[39m [32mhmr update [39m[2m/src/routes/AnalyticsPage.js[22m
+2025-09-18T00:30:04: [2m12:30:04 AM[22m [36m[1m[vite][22m[39m [32mhmr update [39m[2m/src/App.js[22m
+2025-09-18T00:30:04: [2m12:30:04 AM[22m [36m[1m[vite][22m[39m [32mhmr update [39m[2m/src/routes/PricingPage.js[22m
+2025-09-18T00:30:04: [2m12:30:04 AM[22m [36m[1m[vite][22m[39m [32mhmr update [39m[2m/src/routes/TermsPage.js[22m
+2025-09-18T00:30:04: [2m12:30:04 AM[22m [36m[1m[vite][22m[39m [32mhmr update [39m[2m/src/routes/PrivacyPage.js[22m
+2025-09-18T00:30:05: [2m12:30:05 AM[22m [36m[1m[vite][22m[39m [33mhmr invalidate [39m[2m/src/components/auth/FeatureGates.js[22m Could not Fast Refresh ("useFeatureAccess" export is incompatible). Learn more at https://github.com/vitejs/vite-plugin-react/tree/main/packages/plugin-react#consistent-components-exports
+2025-09-18T00:30:05: [2m12:30:05 AM[22m [36m[1m[vite][22m[39m [32mhmr update [39m[2m/src/routes/IntakePage.js[22m
+2025-09-18T00:30:24: [2m12:30:24 AM[22m [36m[1m[vite][22m[39m [32mpage reload [39m[2msrc/routes/BillingPage.tsx[22m
+2025-09-18T00:30:32: [2m12:30:32 AM[22m [36m[1m[vite][22m[39m [32mpage reload [39m[2msrc/routes/BillingPage.tsx[22m
+2025-09-18T00:30:41: [2m12:30:41 AM[22m [36m[1m[vite][22m[39m [32mpage reload [39m[2msrc/routes/BillingPage.tsx[22m
+2025-09-18T00:39:49: [2m12:39:49 AM[22m [36m[1m[vite][22m[39m [32mpage reload [39m[2msrc/routes/BillingPage.tsx[22m
+2025-09-18T00:39:57: [2m12:39:57 AM[22m [36m[1m[vite][22m[39m [32mpage reload [39m[2msrc/routes/BillingPage.tsx[22m
+2025-09-18T00:40:32: [2m12:40:32 AM[22m [36m[1m[vite][22m[39m [32mpage reload [39m[2msrc/routes/BillingPage.tsx[22m
+2025-09-18T00:40:45: [2m12:40:45 AM[22m [36m[1m[vite][22m[39m [32mpage reload [39m[2msrc/routes/BillingPage.tsx[22m
+2025-09-18T00:40:59: [2m12:40:59 AM[22m [36m[1m[vite][22m[39m [32mpage reload [39m[2msrc/routes/BillingPage.tsx[22m
+2025-09-18T00:41:12: [2m12:41:12 AM[22m [36m[1m[vite][22m[39m [32mpage reload [39m[2msrc/routes/BillingPage.tsx[22m
+2025-09-18T00:45:41: [2m12:45:41 AM[22m [36m[1m[vite][22m[39m [32mpage reload [39m[2msrc/routes/BillingPage.tsx[22m
+2025-09-18T00:45:54: [2m12:45:54 AM[22m [36m[1m[vite][22m[39m [32mpage reload [39m[2msrc/routes/BillingPage.tsx[22m
+2025-09-18T00:46:18: [2m12:46:18 AM[22m [36m[1m[vite][22m[39m [32mpage reload [39m[2msrc/routes/BillingPage.tsx[22m
+2025-09-18T00:46:28: [2m12:46:28 AM[22m [36m[1m[vite][22m[39m [32mpage reload [39m[2msrc/routes/BillingPage.tsx[22m
+2025-09-18T00:46:36: [2m12:46:36 AM[22m [36m[1m[vite][22m[39m [32mpage reload [39m[2msrc/routes/BillingPage.tsx[22m
+2025-09-18T00:46:49: [2m12:46:49 AM[22m [36m[1m[vite][22m[39m [32mpage reload [39m[2msrc/routes/BillingPage.tsx[22m
+2025-09-18T00:47:03: [2m12:47:03 AM[22m [36m[1m[vite][22m[39m [32mpage reload [39m[2msrc/routes/BillingPage.tsx[22m
+2025-09-18T01:03:10: [2m1:03:10 AM[22m [36m[1m[vite][22m[39m [32mpage reload [39m[2msrc/routes/BillingPage.tsx[22m
+2025-09-18T01:05:48: [2m1:05:48 AM[22m [36m[1m[vite][22m[39m [32mpage reload [39m[2msrc/routes/BillingPage.tsx[22m
+2025-09-18T09:47:32: [2m9:47:32 AM[22m [36m[1m[vite][22m[39m [32mpage reload [39m[2msrc/routes/BillingPage.tsx[22m
+2025-09-18T09:52:25: [2m9:52:25 AM[22m [36m[1m[vite][22m[39m [32mpage reload [39m[2msrc/routes/BillingPage.tsx[22m
+2025-09-18T09:56:01: [2m9:56:01 AM[22m [36m[1m[vite][22m[39m [32mpage reload [39m[2msrc/routes/BillingPage.tsx[22m
+2025-09-18T10:01:51: [2m10:01:51 AM[22m [36m[1m[vite][22m[39m [32mpage reload [39m[2msrc/routes/ProfilePage.tsx[22m
+2025-09-18T10:02:23: [2m10:02:23 AM[22m [36m[1m[vite][22m[39m [32mpage reload [39m[2msrc/routes/BillingPage.tsx[22m
+2025-09-18T10:06:50: [2m10:06:50 AM[22m [36m[1m[vite][22m[39m [32m.env.local changed, restarting server...[39m
+2025-09-18T10:06:50: Re-optimizing dependencies because lockfile has changed
+2025-09-18T10:06:50: [2m10:06:50 AM[22m [36m[1m[vite][22m[39m server restarted.
+2025-09-18T10:07:12: [2m10:07:12 AM[22m [36m[1m[vite][22m[39m [32mpage reload [39m[2msrc/main.tsx[22m
+2025-09-18T10:08:09: [2m10:08:09 AM[22m [36m[1m[vite][22m[39m [32m.env.local changed, restarting server...[39m
+2025-09-18T10:08:10: [2m10:08:10 AM[22m [36m[1m[vite][22m[39m server restarted.
+2025-09-18T10:11:14: 
+2025-09-18T10:11:14:   [32m[1mVITE[22m v5.4.20[39m  [2mready in [0m[1m708[22m[2m[0m ms[22m
+2025-09-18T10:11:14: 
+2025-09-18T10:11:14:   [32m➜[39m  [1mLocal[22m:   [36mhttp://localhost:[1m5174[22m/[39m
+2025-09-18T10:11:14:   [32m➜[39m  [1mNetwork[22m: [36mhttp://172.24.80.1:[1m5174[22m/[39m
+2025-09-18T10:11:14:   [32m➜[39m  [1mNetwork[22m: [36mhttp://172.22.80.1:[1m5174[22m/[39m
+2025-09-18T10:11:14:   [32m➜[39m  [1mNetwork[22m: [36mhttp://192.168.1.18:[1m5174[22m/[39m
+2025-09-18T10:11:14:   [32m➜[39m  [1mNetwork[22m: [36mhttp://10.20.0.1:[1m5174[22m/[39m
+2025-09-18T10:11:14:   [32m➜[39m  [1mNetwork[22m: [36mhttp://10.30.0.1:[1m5174[22m/[39m
+2025-09-18T10:11:14:   [32m➜[39m  [1mNetwork[22m: [36mhttp://10.10.0.1:[1m5174[22m/[39m
+2025-09-18T10:12:50: 
+2025-09-18T10:12:50:   [32m[1mVITE[22m v5.4.20[39m  [2mready in [0m[1m700[22m[2m[0m ms[22m
+2025-09-18T10:12:50: 
+2025-09-18T10:12:50:   [32m➜[39m  [1mLocal[22m:   [36mhttp://localhost:[1m5174[22m/[39m
+2025-09-18T10:12:50:   [32m➜[39m  [1mNetwork[22m: [36mhttp://172.24.80.1:[1m5174[22m/[39m
+2025-09-18T10:12:50:   [32m➜[39m  [1mNetwork[22m: [36mhttp://172.22.80.1:[1m5174[22m/[39m
+2025-09-18T10:12:50:   [32m➜[39m  [1mNetwork[22m: [36mhttp://192.168.1.18:[1m5174[22m/[39m
+2025-09-18T10:12:50:   [32m➜[39m  [1mNetwork[22m: [36mhttp://10.20.0.1:[1m5174[22m/[39m
+2025-09-18T10:12:50:   [32m➜[39m  [1mNetwork[22m: [36mhttp://10.30.0.1:[1m5174[22m/[39m
+2025-09-18T10:12:50:   [32m➜[39m  [1mNetwork[22m: [36mhttp://10.10.0.1:[1m5174[22m/[39m

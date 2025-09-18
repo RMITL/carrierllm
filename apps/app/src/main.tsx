@@ -7,10 +7,10 @@ import App from './App';
 import './styles/tailwind.css';
 
 // Import Clerk publishable key
-const PUBLISHABLE_KEY = import.meta.env.VITE_CLERK_PUBLISHABLE_KEY || 'pk_test_aGVscGluZy1weXRob24tNDEuY2xlcmsuYWNjb3VudHMuZGV2JA';
+const PUBLISHABLE_KEY = import.meta.env.VITE_CLERK_PUBLISHABLE_KEY;
 
 if (!PUBLISHABLE_KEY) {
-  throw new Error('Missing Publishable Key');
+  throw new Error('Missing Clerk Publishable Key - Please set VITE_CLERK_PUBLISHABLE_KEY in your .env file');
 }
 
 const queryClient = new QueryClient({

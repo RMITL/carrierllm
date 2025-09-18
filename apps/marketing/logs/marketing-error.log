@@ -510,3 +510,27 @@
 2025-09-16T12:45:24:     at node:internal/main/run_main_module:36:49
 2025-09-16T12:45:24: 
 2025-09-16T12:45:24: Node.js v22.15.1
+2025-09-17T06:33:11: [2m6:33:11 AM[22m [31m[1m[vite][22m[39m [31mws error:[39m
+2025-09-17T06:33:11: RangeError: Invalid WebSocket frame: RSV1 must be clear
+2025-09-17T06:33:11:     at Receiver.getInfo (file:///C:/sites/carrierllm/node_modules/.pnpm/vite@5.4.20_@types+node@20.19.15/node_modules/vite/dist/node/chunks/dep-D_zLpgQd.js:55648:26)
+2025-09-17T06:33:11:     at Receiver.startLoop (file:///C:/sites/carrierllm/node_modules/.pnpm/vite@5.4.20_@types+node@20.19.15/node_modules/vite/dist/node/chunks/dep-D_zLpgQd.js:55594:16)
+2025-09-17T06:33:11:     at Receiver._write (file:///C:/sites/carrierllm/node_modules/.pnpm/vite@5.4.20_@types+node@20.19.15/node_modules/vite/dist/node/chunks/dep-D_zLpgQd.js:55533:10)
+2025-09-17T06:33:11:     at writeOrBuffer (node:internal/streams/writable:572:12)
+2025-09-17T06:33:11:     at _write (node:internal/streams/writable:501:10)
+2025-09-17T06:33:11:     at Writable.write (node:internal/streams/writable:510:10)
+2025-09-17T06:33:11:     at Socket.socketOnData (file:///C:/sites/carrierllm/node_modules/.pnpm/vite@5.4.20_@types+node@20.19.15/node_modules/vite/dist/node/chunks/dep-D_zLpgQd.js:58590:37)
+2025-09-17T06:33:11:     at Socket.emit (node:events:518:28)
+2025-09-17T06:33:11:     at addChunk (node:internal/streams/readable:561:12)
+2025-09-17T06:33:11:     at readableAddChunkPushByteMode (node:internal/streams/readable:512:3)
+2025-09-17T06:33:11:     at Readable.push (node:internal/streams/readable:392:5)
+2025-09-17T06:33:11:     at TCP.onStreamRead (node:internal/stream_base_commons:189:23)
+2025-09-17T23:31:24: The request url "C:\sites\carrierllm\apps\marketing\.env" is outside of Vite serving allow list.
+2025-09-17T23:31:24: 
+2025-09-17T23:31:24: - C:/sites/carrierllm
+2025-09-17T23:31:24: 
+2025-09-17T23:31:24: Refer to docs https://vite.dev/config/server-options.html#server-fs-allow for configurations and more details.
+2025-09-17T23:31:24: 
+2025-09-18T02:18:36: The request url "C:\sites\carrierllm\apps\marketing\.env" is outside of Vite serving allow list.
+2025-09-18T02:18:36: The request url "C:\sites\carrierllm\apps\marketing\.env" is outside of Vite serving allow list.
+2025-09-18T03:12:24: The request url "C:\sites\carrierllm\apps\marketing\.env" is outside of Vite serving allow list.
+2025-09-18T03:20:45: The request url "C:\sites\carrierllm\apps\marketing\.env" is outside of Vite serving allow list.

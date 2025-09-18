@@ -1,20 +1,47 @@
 import { jsx as _jsx, jsxs as _jsxs } from "react/jsx-runtime";
 import { SignIn, SignUp } from '@clerk/clerk-react';
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { Button } from '@carrierllm/ui';
 export const AuthLayout = () => {
     const [mode, setMode] = useState('sign-in');
-    return (_jsxs("div", { className: "min-h-screen flex", children: [_jsx("div", { className: "hidden lg:flex lg:flex-1 lg:flex-col lg:justify-center lg:px-8 bg-gradient-to-br from-blue-600 to-blue-800", children: _jsxs("div", { className: "mx-auto max-w-md text-white", children: [_jsx("h1", { className: "text-4xl font-bold tracking-tight mb-6", children: "Welcome to CarrierLLM" }), _jsx("p", { className: "text-xl text-blue-100 mb-8", children: "The AI-powered insurance carrier placement platform that helps agents find the perfect match for their clients in seconds." }), _jsxs("div", { className: "space-y-4 text-blue-100", children: [_jsxs("div", { className: "flex items-center gap-3", children: [_jsx("svg", { className: "w-5 h-5 text-blue-200", fill: "currentColor", viewBox: "0 0 20 20", children: _jsx("path", { fillRule: "evenodd", d: "M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z", clipRule: "evenodd" }) }), _jsx("span", { children: "Instant carrier recommendations" })] }), _jsxs("div", { className: "flex items-center gap-3", children: [_jsx("svg", { className: "w-5 h-5 text-blue-200", fill: "currentColor", viewBox: "0 0 20 20", children: _jsx("path", { fillRule: "evenodd", d: "M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z", clipRule: "evenodd" }) }), _jsx("span", { children: "Evidence-backed decisions" })] }), _jsxs("div", { className: "flex items-center gap-3", children: [_jsx("svg", { className: "w-5 h-5 text-blue-200", fill: "currentColor", viewBox: "0 0 20 20", children: _jsx("path", { fillRule: "evenodd", d: "M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z", clipRule: "evenodd" }) }), _jsx("span", { children: "Higher placement rates" })] })] })] }) }), _jsx("div", { className: "flex flex-1 flex-col justify-center px-6 py-12 lg:px-8 bg-white", children: _jsxs("div", { className: "mx-auto w-full max-w-sm", children: [_jsxs("div", { className: "text-center mb-8", children: [_jsx("h2", { className: "text-2xl font-bold text-[color:var(--color-primary)]", children: "CarrierLLM" }), _jsx("p", { className: "mt-2 text-sm text-gray-600", children: mode === 'sign-in'
+    const [selectedPlan, setSelectedPlan] = useState(null);
+    useEffect(() => {
+        // Check if a plan was selected before redirect
+        const plan = localStorage.getItem('selectedPlanKey');
+        if (plan) {
+            setSelectedPlan(plan);
+            setMode('sign-up');
+        }
+    }, []);
+    return (_jsxs("div", { className: "min-h-screen flex", children: [_jsx("div", { className: "hidden lg:flex lg:flex-1 lg:flex-col lg:justify-center lg:px-8 bg-gradient-to-br from-blue-600 to-blue-800", children: _jsxs("div", { className: "mx-auto max-w-md text-white", children: [_jsx("h1", { className: "text-4xl font-bold tracking-tight mb-6", children: "Welcome to CarrierLLM" }), _jsx("p", { className: "text-xl text-blue-100 mb-8", children: "The AI-powered insurance carrier placement platform that helps agents find the perfect match for their clients in seconds." }), _jsxs("div", { className: "space-y-4 text-blue-100", children: [_jsxs("div", { className: "flex items-center gap-3", children: [_jsx("svg", { className: "w-5 h-5 text-blue-200", fill: "currentColor", viewBox: "0 0 20 20", children: _jsx("path", { fillRule: "evenodd", d: "M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z", clipRule: "evenodd" }) }), _jsx("span", { children: "Instant carrier recommendations" })] }), _jsxs("div", { className: "flex items-center gap-3", children: [_jsx("svg", { className: "w-5 h-5 text-blue-200", fill: "currentColor", viewBox: "0 0 20 20", children: _jsx("path", { fillRule: "evenodd", d: "M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z", clipRule: "evenodd" }) }), _jsx("span", { children: "Evidence-backed decisions" })] }), _jsxs("div", { className: "flex items-center gap-3", children: [_jsx("svg", { className: "w-5 h-5 text-blue-200", fill: "currentColor", viewBox: "0 0 20 20", children: _jsx("path", { fillRule: "evenodd", d: "M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z", clipRule: "evenodd" }) }), _jsx("span", { children: "Higher placement rates" })] })] })] }) }), _jsx("div", { className: "flex flex-1 flex-col justify-center px-8 py-12 sm:px-12 lg:px-16 bg-white", children: _jsxs("div", { className: "mx-auto w-full max-w-md", children: [_jsxs("div", { className: "text-center mb-8", children: [_jsx("h2", { className: "text-2xl font-bold text-[color:var(--color-primary)]", children: "CarrierLLM" }), _jsx("p", { className: "mt-2 text-sm text-gray-600", children: mode === 'sign-in'
                                         ? 'Sign in to your account'
                                         : 'Create your account' })] }), _jsxs("div", { className: "flex rounded-lg bg-gray-100 p-1 mb-6", children: [_jsx(Button, { variant: mode === 'sign-in' ? 'primary' : 'secondary', size: "sm", onClick: () => setMode('sign-in'), className: "flex-1 bg-transparent border-0 shadow-none", children: "Sign In" }), _jsx(Button, { variant: mode === 'sign-up' ? 'primary' : 'secondary', size: "sm", onClick: () => setMode('sign-up'), className: "flex-1 bg-transparent border-0 shadow-none", children: "Sign Up" })] }), _jsx("div", { className: "auth-component", children: mode === 'sign-in' ? (_jsx(SignIn, { appearance: {
                                     elements: {
                                         rootBox: 'w-full',
                                         card: 'shadow-none border-0 p-0',
+                                        formButtonPrimary: 'bg-blue-600 hover:bg-blue-700',
+                                        formFieldInput: 'rounded-md border-gray-300',
+                                        headerTitle: 'hidden',
+                                        headerSubtitle: 'hidden',
+                                    },
+                                    layout: {
+                                        socialButtonsPlacement: 'bottom',
+                                        socialButtonsVariant: 'blockButton',
                                     }
                                 }, routing: "hash", redirectUrl: "/dashboard" })) : (_jsx(SignUp, { appearance: {
                                     elements: {
                                         rootBox: 'w-full',
                                         card: 'shadow-none border-0 p-0',
+                                        formButtonPrimary: 'bg-blue-600 hover:bg-blue-700',
+                                        formFieldInput: 'rounded-md border-gray-300',
+                                        headerTitle: 'hidden',
+                                        headerSubtitle: 'hidden',
+                                    },
+                                    layout: {
+                                        socialButtonsPlacement: 'bottom',
+                                        socialButtonsVariant: 'blockButton',
                                     }
-                                }, routing: "hash", redirectUrl: "/dashboard" })) }), _jsx("div", { className: "mt-8 text-center", children: _jsxs("p", { className: "text-xs text-gray-500", children: ["By signing up, you agree to our", ' ', _jsx("a", { href: "#", className: "text-blue-600 hover:underline", children: "Terms of Service" }), ' ', "and", ' ', _jsx("a", { href: "#", className: "text-blue-600 hover:underline", children: "Privacy Policy" })] }) })] }) })] }));
+                                }, routing: "hash", redirectUrl: "/dashboard", unsafeMetadata: {
+                                    planKey: selectedPlan || 'free_user'
+                                } })) }), selectedPlan && selectedPlan !== 'free_user' && (_jsx("div", { className: "mt-4 p-3 bg-blue-50 rounded-lg border border-blue-200", children: _jsxs("p", { className: "text-sm text-blue-700 text-center", children: ["Selected Plan: ", _jsx("span", { className: "font-semibold", children: selectedPlan })] }) })), _jsx("div", { className: "mt-8 text-center", children: _jsxs("p", { className: "text-xs text-gray-500", children: ["By signing up, you agree to our", ' ', _jsx("a", { href: "/terms", className: "text-blue-600 hover:underline", children: "Terms of Service" }), ' ', "and", ' ', _jsx("a", { href: "/privacy", className: "text-blue-600 hover:underline", children: "Privacy Policy" })] }) })] }) })] }));
 };
