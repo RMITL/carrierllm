@@ -564,9 +564,17 @@ export default {
         try {
           console.log('Storing intake with userId:', userId, 'intakeId:', intakeId);
           const result = await env.DB.prepare(`
-            INSERT INTO intakes (id, data, user_id, created_at)
-            VALUES (?, ?, ?, ?)
-          `).bind(intakeId, JSON.stringify(intakeData), userId, new Date().toISOString()).run();
+            INSERT INTO intakes (id, tenant_id, payload_json, validated, tier2_triggered, created_at, user_id)
+            VALUES (?, ?, ?, ?, ?, ?, ?)
+          `).bind(
+            intakeId, 
+            userId, // tenant_id (required field)
+            JSON.stringify(intakeData), // payload_json
+            true, // validated
+            intakeData.tier2Triggered || false, // tier2_triggered
+            new Date().toISOString(), // created_at
+            userId // user_id
+          ).run();
           console.log('Intake stored successfully:', result);
         } catch (e) {
           console.log('Could not log intake to database:', e);
@@ -592,27 +600,30 @@ export default {
         console.log('Generated recommendations:', recommendations.length);
 
         // Store recommendations in database
-        for (const rec of recommendations) {
-          try {
-            console.log('Storing recommendation with userId:', userId, 'carrierId:', rec.carrierId);
-            const result = await env.DB.prepare(`
-              INSERT INTO recommendations (
-                id, recommendation_id, user_id, carrier_id, carrier_name,
-                fit_score, created_at
-              ) VALUES (?, ?, ?, ?, ?, ?, ?)
-            `).bind(
-              crypto.randomUUID(),
-              recommendationId,
-              userId,
-              rec.carrierId,
-              rec.carrierName,
-              rec.fitPct,
-              new Date().toISOString()
-            ).run();
-            console.log('Recommendation stored successfully:', result);
-          } catch (e) {
-            console.log('Could not store recommendation:', e);
-          }
+        try {
+          console.log('Storing recommendations with userId:', userId, 'intakeId:', intakeId);
+          const result = await env.DB.prepare(`
+            INSERT INTO recommendations (
+              id, intake_id, model_snapshot, fit_json, citations, latency_ms, created_at,
+              recommendation_id, user_id, carrier_id, carrier_name, fit_score
+            ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+          `).bind(
+            crypto.randomUUID(),
+            intakeId, // intake_id (required)
+            'llama-3.1-8b-instruct', // model_snapshot
+            JSON.stringify(recommendations), // fit_json (required)
+            JSON.stringify(recommendations.flatMap(r => r.citations || [])), // citations (required)
+            Date.now() - parseInt(recommendationId.split('-')[1]), // latency_ms
+            new Date().toISOString(), // created_at
+            recommendationId, // recommendation_id
+            userId, // user_id
+            recommendations[0]?.carrierId || null, // carrier_id (first carrier)
+            recommendations[0]?.carrierName || null, // carrier_name (first carrier)
+            Math.round(recommendations.reduce((sum, r) => sum + r.fitPct, 0) / recommendations.length) // fit_score (average)
+          ).run();
+          console.log('Recommendations stored successfully:', result);
+        } catch (e) {
+          console.log('Could not store recommendations:', e);
         }
 
         // Calculate summary statistics
