@@ -562,10 +562,12 @@ export default {
 
         // Store intake in database
         try {
-          await env.DB.prepare(`
+          console.log('Storing intake with userId:', userId, 'intakeId:', intakeId);
+          const result = await env.DB.prepare(`
             INSERT INTO intakes (id, data, user_id, created_at)
             VALUES (?, ?, ?, ?)
           `).bind(intakeId, JSON.stringify(intakeData), userId, new Date().toISOString()).run();
+          console.log('Intake stored successfully:', result);
         } catch (e) {
           console.log('Could not log intake to database:', e);
         }
@@ -592,7 +594,8 @@ export default {
         // Store recommendations in database
         for (const rec of recommendations) {
           try {
-            await env.DB.prepare(`
+            console.log('Storing recommendation with userId:', userId, 'carrierId:', rec.carrierId);
+            const result = await env.DB.prepare(`
               INSERT INTO recommendations (
                 id, recommendation_id, user_id, carrier_id, carrier_name,
                 fit_score, created_at
@@ -606,6 +609,7 @@ export default {
               rec.fitPct,
               new Date().toISOString()
             ).run();
+            console.log('Recommendation stored successfully:', result);
           } catch (e) {
             console.log('Could not store recommendation:', e);
           }
