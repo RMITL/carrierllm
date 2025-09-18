@@ -411,33 +411,79 @@ export default {
     if (path.startsWith('/api/user/') && path.endsWith('/history') && request.method === 'GET') {
       try {
         const userId = path.split('/')[3];
+        console.log('Fetching history for user:', userId);
         
-        // Query real user history from database
-        const history = await env.DB.prepare(`
+        // Get recommendations grouped by recommendation_id to avoid duplicates
+        const recommendations = await env.DB.prepare(`
           SELECT 
-            r.recommendation_id as id,
-            r.created_at as timestamp,
+            recommendation_id as id,
+            created_at as timestamp,
             'recommendation' as type,
-            r.carrier_name as title,
-            r.fit_score as score,
-            i.data as intake_data
-          FROM recommendations r
-          LEFT JOIN intakes i ON r.user_id = i.user_id AND DATE(r.created_at) = DATE(i.created_at)
-          WHERE r.user_id = ?
-          ORDER BY r.created_at DESC
+            carrier_name as title,
+            fit_score as score,
+            COUNT(*) as carrier_count,
+            AVG(fit_score) as avg_fit
+          FROM recommendations
+          WHERE user_id = ? AND recommendation_id IS NOT NULL
+          GROUP BY recommendation_id
+          ORDER BY created_at DESC
           LIMIT 50
         `).bind(userId).all();
 
-        const formattedHistory = history.results?.map((item: any) => ({
-          id: item.id,
-          timestamp: item.timestamp,
-          type: item.type,
-          title: `${item.title} - ${item.score}% fit`,
-          score: item.score,
-          intakeData: item.intake_data ? JSON.parse(item.intake_data) : null
-        })) || [];
+        console.log('Found recommendations:', recommendations.results?.length || 0);
 
-        return Response.json(formattedHistory, { headers: corsHeaders });
+        // Get intakes
+        const intakes = await env.DB.prepare(`
+          SELECT 
+            id,
+            created_at as timestamp,
+            'intake' as type,
+            'Intake submitted' as title,
+            data as intake_data
+          FROM intakes
+          WHERE user_id = ?
+          ORDER BY created_at DESC
+          LIMIT 50
+        `).bind(userId).all();
+
+        console.log('Found intakes:', intakes.results?.length || 0);
+
+        // Combine and format history
+        const history = [];
+        
+        // Add recommendations
+        if (recommendations.results) {
+          for (const rec of recommendations.results) {
+            history.push({
+              id: rec.id,
+              timestamp: rec.timestamp,
+              type: rec.type,
+              title: `${rec.title} - ${Math.round(rec.avg_fit)}% fit (${rec.carrier_count} carriers)`,
+              score: Math.round(rec.avg_fit),
+              intakeData: null
+            });
+          }
+        }
+
+        // Add intakes
+        if (intakes.results) {
+          for (const intake of intakes.results) {
+            history.push({
+              id: intake.id,
+              timestamp: intake.timestamp,
+              type: intake.type,
+              title: intake.title,
+              score: null,
+              intakeData: intake.intake_data ? JSON.parse(intake.intake_data) : null
+            });
+          }
+        }
+
+        // Sort by timestamp (newest first)
+        history.sort((a, b) => new Date(b.timestamp).getTime() - new Date(a.timestamp).getTime());
+
+        console.log('Returning history with', history.length, 'items');
+        return Response.json(history, { headers: corsHeaders });
       } catch (error) {
         console.error('History endpoint error:', error);
         return Response.json([], { headers: corsHeaders });
