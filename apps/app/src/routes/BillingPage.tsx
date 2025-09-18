@@ -21,9 +21,12 @@ export const BillingPage = () => {
 
   // Log page load and user context
   useEffect(() => {
+    const subscriptionInfo = getSubscriptionInfo();
     logger.billingInfo('BillingPage loaded', {
       userId: user?.id,
       userEmail: user?.emailAddresses?.[0]?.emailAddress,
+      publicMetadata: user?.publicMetadata,
+      subscriptionInfo,
       hasIndividualPlan: has?.({ plan: 'individual' }),
       hasEnterprisePlan: has?.({ plan: 'enterprise' }),
     });
@@ -51,16 +54,56 @@ export const BillingPage = () => {
     return () => clearInterval(interval);
   }, []);
 
-  // Check subscription status using Clerk's has() method
-  const hasIndividualPlan = has?.({ plan: 'individual' });
-  const hasEnterprisePlan = has?.({ plan: 'enterprise' });
-  const hasAnyPlan = hasIndividualPlan || hasEnterprisePlan;
+  // Get subscription info from Clerk's publicMetadata
+  const getSubscriptionInfo = () => {
+    if (!user?.publicMetadata) return null;
+    
+    const metadata = user.publicMetadata as any;
+    
+    // Check for Clerk billing subscription data
+    if (metadata.plan_name || metadata.plan_slug) {
+      const planName = metadata.plan_name || metadata.plan_slug;
+      const status = metadata.stripe_subscription_status || 'active';
+      
+      logger.billingInfo('Found Clerk subscription data', {
+        planName,
+        status,
+        metadata: metadata
+      });
+      
+      return {
+        planName,
+        status,
+        isActive: status === 'active' || status === 'trialing',
+        isTrial: status === 'trialing'
+      };
+    }
+    
+    // Fallback to legacy plan checking
+    const hasIndividualPlan = has?.({ plan: 'individual' });
+    const hasEnterprisePlan = has?.({ plan: 'enterprise' });
+    
+    if (hasEnterprisePlan) return { planName: 'Enterprise', status: 'active', isActive: true, isTrial: false };
+    if (hasIndividualPlan) return { planName: 'Individual', status: 'active', isActive: true, isTrial: false };
+    
+    return null;
+  };
 
-  // Get plan details
+  const subscriptionInfo = getSubscriptionInfo();
+  const hasAnyPlan = subscriptionInfo?.isActive || false;
+
+  // Get plan details with proper limits
   const getCurrentPlan = () => {
-    if (hasEnterprisePlan) return { name: 'Enterprise', limit: 500 };
-    if (hasIndividualPlan) return { name: 'Individual', limit: 100 };
-    return { name: 'Free', limit: 5 };
+    if (!subscriptionInfo) return { name: 'Free', limit: 5 };
+    
+    const planName = subscriptionInfo.planName?.toLowerCase() || '';
+    
+    if (planName.includes('enterprise')) return { name: 'Enterprise', limit: 500 };
+    if (planName.includes('individual') || planName.includes('pro')) return { name: 'Individual', limit: 100 };
+    if (planName.includes('trial')) return { name: 'Trial', limit: 100 };
+    
+    // Default for any other paid plan
+    return { name: subscriptionInfo.planName || 'Paid', limit: 100 };
   };
 
   const currentPlan = getCurrentPlan();
@@ -89,11 +132,21 @@ export const BillingPage = () => {
               <div>
                 <p className="text-xl font-semibold text-gray-900">{currentPlan.name} Plan</p>
                 <p className="text-sm text-gray-500">
-                  {hasAnyPlan ? 'Active subscription' : 'Free tier'}
+                  {subscriptionInfo?.isTrial ? 'Trial period' : 
+                   hasAnyPlan ? 'Active subscription' : 'Free tier'}
                 </p>
+                {subscriptionInfo && (
+                  <p className="text-xs text-gray-400 mt-1">
+                    Status: {subscriptionInfo.status} | Plan: {subscriptionInfo.planName}
+                  </p>
+                )}
               </div>
-              <Badge variant={hasAnyPlan ? 'success' : 'warning'}>
-                {hasAnyPlan ? 'Active' : 'Free'}
+              <Badge variant={
+                subscriptionInfo?.isTrial ? 'info' :
+                hasAnyPlan ? 'success' : 'warning'
+              }>
+                {subscriptionInfo?.isTrial ? 'Trial' :
+                 hasAnyPlan ? 'Active' : 'Free'}
               </Badge>
             </div>
 
@@ -137,6 +190,20 @@ export const BillingPage = () => {
             >
               Dismiss
             </button>
+          </div>
+        )}
+
+        {/* Debug info for subscription detection */}
+        {import.meta.env.DEV && (
+          <div className="mb-4 p-4 bg-blue-50 border border-blue-200 rounded-lg">
+            <div className="text-blue-800 font-medium">Debug: Subscription Detection</div>
+            <div className="text-blue-600 text-sm mt-1">
+              <p>User ID: {user?.id}</p>
+              <p>Public Metadata: {JSON.stringify(user?.publicMetadata, null, 2)}</p>
+              <p>Subscription Info: {JSON.stringify(subscriptionInfo, null, 2)}</p>
+              <p>Current Plan: {JSON.stringify(currentPlan, null, 2)}</p>
+              <p>Has Any Plan: {hasAnyPlan ? 'Yes' : 'No'}</p>
+            </div>
           </div>
         )}
 

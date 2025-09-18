@@ -67,16 +67,29 @@ export default {
     if (path.startsWith('/api/subscriptions/') && request.method === 'GET') {
       const userId = path.split('/')[3];
       try {
-        // Return empty subscription data (user doesn't have a subscription yet)
+        // For now, return demo subscription data that matches Clerk's format
+        // In production, this would query Clerk's API or your database
         return Response.json({
           userId,
-          subscription: null,
+          subscription: {
+            id: 'sub_demo_' + userId,
+            status: 'trialing', // or 'active' for paid users
+            plan_name: 'Individual Trial',
+            plan_slug: 'individual-trial',
+            current_period_start: new Date().toISOString(),
+            current_period_end: new Date(Date.now() + 14 * 24 * 60 * 60 * 1000).toISOString(), // 14 days trial
+            trial_end: new Date(Date.now() + 14 * 24 * 60 * 60 * 1000).toISOString()
+          },
           usage: {
             current: 0,
             limit: 100,
             resetDate: new Date(Date.now() + 30 * 24 * 60 * 60 * 1000).toISOString() // 30 days from now
           },
-          plan: null
+          plan: {
+            name: 'Individual Trial',
+            slug: 'individual-trial',
+            limit: 100
+          }
         }, { headers: corsHeaders });
       } catch (error) {
         console.error('Subscription endpoint error:', error);
