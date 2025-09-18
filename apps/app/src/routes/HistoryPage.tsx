@@ -33,7 +33,7 @@ export const HistoryPage = () => {
     staleTime: 30000
   });
 
-  const sortedAndFilteredHistory = history
+  const sortedAndFilteredHistory = (history || [])
     .filter(item => filterType === 'all' || item.type === filterType)
     .sort((a, b) => {
       let aValue: any;

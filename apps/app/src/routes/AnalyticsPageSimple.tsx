@@ -85,7 +85,7 @@ export const AnalyticsPageSimple = () => {
         <Card className="p-4">
           <h3 className="text-lg font-medium text-gray-900 mb-4">Top Performing Carriers</h3>
           <div className="space-y-2">
-            {data.topCarriers.map((carrier: any, index: number) => (
+            {(data.topCarriers || []).map((carrier: any, index: number) => (
               <div key={carrier.id} className="flex items-center justify-between py-2 border-b last:border-0">
                 <div className="flex items-center">
                   <span className="text-sm font-medium text-gray-500 w-6">{index + 1}.</span>

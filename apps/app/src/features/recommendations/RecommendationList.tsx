@@ -132,7 +132,7 @@ export const RecommendationList = memo(({ data, isOrionFormat }: RecommendationL
       <div>
         <h3 className="text-lg font-semibold text-gray-900 mb-4">Top Carrier Recommendations</h3>
         <div className="grid gap-4 lg:grid-cols-2">
-          {recommendations.map((rec) => (
+          {recommendations && recommendations.length > 0 ? recommendations.map((rec) => (
             <CarrierCard
               key={rec.carrierId}
               carrierName={rec.carrierName}
@@ -152,7 +152,11 @@ export const RecommendationList = memo(({ data, isOrionFormat }: RecommendationL
                 }
               }}
             />
-          ))}
+          )) : (
+            <div className="col-span-2 text-center py-8">
+              <p className="text-gray-500">No recommendations available</p>
+            </div>
+          )}
         </div>
       </div>
 

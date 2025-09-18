@@ -38,8 +38,8 @@ export const AnalyticsPage = () => {
     );
   }
 
-  const topCarriers = data.topCarriers || [];
-  const monthlyTrends = data.trends || [];
+  const topCarriers = data?.topCarriers || [];
+  const monthlyTrends = data?.trends || [];
 
   return (
     <div className="space-y-6">
