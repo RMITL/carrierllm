@@ -139,10 +139,10 @@ export const RecommendationList = memo(({ data, isOrionFormat }: RecommendationL
               program={isOrionFormat ? rec.product : rec.program || rec.product || 'Standard Program'}
               fitPct={isOrionFormat ? rec.fitPct : rec.fitPercent || rec.fitPct}
               confidence={rec.confidence}
-              reasons={rec.reasons}
-              advisories={rec.advisories}
-              apsLikely={rec.apsLikely}
-              citations={rec.citations}
+              reasons={rec.reasons || []}
+              advisories={rec.advisories || []}
+              apsLikely={rec.apsLikely || false}
+              citations={rec.citations || []}
               ctas={rec.ctas}
               onApply={() => {
                 if (rec.ctas?.portalUrl) {

@@ -68,7 +68,7 @@ export const CarrierCard = ({
       description={`Program: ${program}`}
       footer={
         <div className="flex flex-wrap gap-2">
-          {citations.length > 0 ? (
+          {(citations || []).length > 0 ? (
             <EvidencePopover citations={citations} />
           ) : (
             <Button variant="secondary" onClick={handleViewSource} aria-label={`View underwriting sources for ${carrierName}`}>
@@ -100,17 +100,17 @@ export const CarrierCard = ({
         <div>
           <p className="text-sm font-medium text-[color:var(--color-gray-900)] mb-2">Top reasons</p>
           <ul className="list-disc space-y-1 pl-5 text-sm text-[color:var(--color-gray-700)]">
-            {reasons.map((reason, index) => (
+            {(reasons || []).map((reason, index) => (
               <li key={index}>{reason}</li>
             ))}
           </ul>
         </div>
 
-        {advisories.length > 0 && (
+        {(advisories || []).length > 0 && (
           <div>
             <p className="text-sm font-medium text-[color:var(--color-amber-700)] mb-2">Advisories</p>
             <ul className="list-disc space-y-1 pl-5 text-sm text-[color:var(--color-amber-700)]">
-              {advisories.map((advisory, index) => (
+              {(advisories || []).map((advisory, index) => (
                 <li key={index}>{advisory}</li>
               ))}
             </ul>
