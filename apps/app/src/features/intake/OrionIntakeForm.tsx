@@ -5,6 +5,7 @@ import type { OrionIntake, OrionCoreIntake } from '../../types';
 export interface OrionIntakeFormProps {
   onSubmit: (intake: OrionIntake) => Promise<void> | void;
   isSubmitting?: boolean;
+  disabled?: boolean;
 }
 
 const defaultCoreIntake = (): OrionCoreIntake => ({
@@ -25,7 +26,7 @@ const defaultCoreIntake = (): OrionCoreIntake => ({
   }
 });
 
-export const OrionIntakeForm = ({ onSubmit, isSubmitting }: OrionIntakeFormProps) => {
+export const OrionIntakeForm = ({ onSubmit, isSubmitting, disabled }: OrionIntakeFormProps) => {
   const [core, setCore] = useState<OrionCoreIntake>(defaultCoreIntake);
   const [errors, setErrors] = useState<Record<string, string>>({});
   const [showTier2, setShowTier2] = useState(false);
@@ -85,13 +86,19 @@ export const OrionIntakeForm = ({ onSubmit, isSubmitting }: OrionIntakeFormProps
 
   const handleSubmit = async (event: React.FormEvent) => {
     event.preventDefault();
+    console.log('OrionIntakeForm: Form submitted');
 
-    if (!validateCore()) return;
+    if (!validateCore()) {
+      console.log('OrionIntakeForm: Validation failed');
+      return;
+    }
 
     const tier2Triggered = checkTier2Triggers();
+    console.log('OrionIntakeForm: Tier2 triggered:', tier2Triggered, 'showTier2:', showTier2);
 
     // If tier 2 is triggered but we haven't shown tier 2 questions yet, show them
     if (tier2Triggered && !showTier2) {
+      console.log('OrionIntakeForm: Showing tier 2 questions');
       setShowTier2(true);
       return;
     }
@@ -103,7 +110,9 @@ export const OrionIntakeForm = ({ onSubmit, isSubmitting }: OrionIntakeFormProps
       tier2Triggered
     };
 
+    console.log('OrionIntakeForm: Calling onSubmit with intake:', intake);
     await onSubmit(intake);
+    console.log('OrionIntakeForm: onSubmit completed');
   };
 
   return (
@@ -489,7 +498,12 @@ export const OrionIntakeForm = ({ onSubmit, isSubmitting }: OrionIntakeFormProps
         </div>
       )}
 
-      <Button type="submit" disabled={isSubmitting} className="w-full">
+      <Button 
+        type="submit" 
+        disabled={isSubmitting || disabled} 
+        className="w-full"
+        onClick={() => console.log('Button clicked, isSubmitting:', isSubmitting, 'disabled:', disabled)}
+      >
         {isSubmitting ? 'Processing...' : 'Get carrier recommendations'}
       </Button>
     </form>

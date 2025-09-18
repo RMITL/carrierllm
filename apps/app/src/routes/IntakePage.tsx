@@ -57,11 +57,22 @@ export const IntakePage = () => {
   });
 
   const handleSubmit = async (intake: OrionIntake) => {
+    console.log('IntakePage: handleSubmit called with intake:', intake);
+    console.log('IntakePage: Usage check - used:', usage.used, 'limit:', usage.limit);
+    
     // Check if user has reached limit
     if (usage.used >= usage.limit) {
+      console.log('IntakePage: User has reached limit, not submitting');
       return;
     }
-    await mutateAsync(intake);
+    
+    console.log('IntakePage: Calling mutateAsync');
+    try {
+      await mutateAsync(intake);
+      console.log('IntakePage: mutateAsync completed successfully');
+    } catch (error) {
+      console.error('IntakePage: mutateAsync failed:', error);
+    }
   };
 
   const hasReachedLimit = usage.used >= usage.limit;

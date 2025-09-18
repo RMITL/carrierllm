@@ -200,7 +200,12 @@ export const ChatPage = () => {
   };
 
   const handleSendMessage = async () => {
-    if (!currentInput.trim() || isPending) return;
+    console.log('ChatPage: handleSendMessage called, currentInput:', currentInput.trim(), 'isPending:', isPending);
+    
+    if (!currentInput.trim() || isPending) {
+      console.log('ChatPage: Not sending message - empty input or pending');
+      return;
+    }
 
     const userMessage: ChatMessage = {
       id: Date.now().toString(),
@@ -209,6 +214,7 @@ export const ChatPage = () => {
       timestamp: new Date()
     };
 
+    console.log('ChatPage: Adding user message:', userMessage);
     setMessages(prev => [...prev, userMessage]);
 
     const currentStep = chatFlow[chatState.currentStep];
@@ -245,6 +251,7 @@ export const ChatPage = () => {
 
     if (nextStep >= chatFlow.length) {
       // Chat complete, submit intake
+      console.log('ChatPage: Chat flow complete, submitting intake');
       setChatState(prev => ({ ...prev, isComplete: true, intake: updatedIntake }));
 
       setIsTyping(true);
@@ -256,6 +263,7 @@ export const ChatPage = () => {
           content: "Perfect! I have all the information I need. Let me find the best carrier recommendations for your client...",
           timestamp: new Date()
         };
+        console.log('ChatPage: Adding completion message:', completeMessage);
         setMessages(prev => [...prev, completeMessage]);
 
         // Submit the intake
@@ -265,6 +273,7 @@ export const ChatPage = () => {
           tier2Triggered: false // For now, we'll set this to false in chat mode
         };
 
+        console.log('ChatPage: Submitting intake:', orionIntake);
         mutateAsync(orionIntake);
       }, 1000);
     } else {
@@ -290,6 +299,7 @@ export const ChatPage = () => {
   const handleKeyPress = (e: React.KeyboardEvent) => {
     if (e.key === 'Enter' && !e.shiftKey) {
       e.preventDefault();
+      console.log('ChatPage: Enter key pressed, calling handleSendMessage');
       handleSendMessage();
     }
   };
@@ -360,7 +370,10 @@ export const ChatPage = () => {
               className="flex-1 border border-gray-300 rounded-md px-3 py-2 focus:outline-none focus:ring-2 focus:ring-[color:var(--color-primary)] focus:border-transparent"
             />
             <Button
-              onClick={handleSendMessage}
+              onClick={() => {
+                console.log('ChatPage: Send button clicked');
+                handleSendMessage();
+              }}
               disabled={!currentInput.trim() || isPending || chatState.isComplete || isTyping}
             >
               {isPending ? 'Processing...' : 'Send'}
