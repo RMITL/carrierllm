@@ -413,7 +413,31 @@ export default {
         const userId = path.split('/')[3];
         console.log('Fetching history for user:', userId);
         
-        // Get recommendations grouped by recommendation_id to avoid duplicates
+        // First, let's check what tables exist and what data we have
+        const tableCheck = await env.DB.prepare(`
+          SELECT name FROM sqlite_master WHERE type='table' AND name IN ('intakes', 'recommendations', 'intake_submissions')
+        `).all();
+        console.log('Available tables:', tableCheck.results?.map((t: any) => t.name) || []);
+
+        // Check if we have any data in intakes table with user_id
+        const intakesCheck = await env.DB.prepare(`
+          SELECT COUNT(*) as count FROM intakes WHERE user_id = ?
+        `).bind(userId).first();
+        console.log('Intakes with user_id:', intakesCheck?.count || 0);
+
+        // Check if we have any data in recommendations table with user_id
+        const recommendationsCheck = await env.DB.prepare(`
+          SELECT COUNT(*) as count FROM recommendations WHERE user_id = ?
+        `).bind(userId).first();
+        console.log('Recommendations with user_id:', recommendationsCheck?.count || 0);
+
+        // Check intake_submissions table (legacy compatibility)
+        const intakeSubmissionsCheck = await env.DB.prepare(`
+          SELECT COUNT(*) as count FROM intake_submissions
+        `).first();
+        console.log('Total intake_submissions:', intakeSubmissionsCheck?.count || 0);
+
+        // Try to get recommendations from the current structure
         const recommendations = await env.DB.prepare(`
           SELECT 
             recommendation_id as id,
@@ -432,7 +456,7 @@ export default {
 
         console.log('Found recommendations:', recommendations.results?.length || 0);
 
-        // Get intakes
+        // Try to get intakes from the current structure
         const intakes = await env.DB.prepare(`
           SELECT 
             id,
@@ -447,6 +471,21 @@ export default {
         `).bind(userId).all();
 
         console.log('Found intakes:', intakes.results?.length || 0);
+
+        // Also try intake_submissions table as fallback
+        const intakeSubmissions = await env.DB.prepare(`
+          SELECT 
+            id,
+            created_at as timestamp,
+            'intake' as type,
+            'Intake submitted' as title,
+            data as intake_data
+          FROM intake_submissions
+          ORDER BY created_at DESC
+          LIMIT 50
+        `).all();
+
+        console.log('Found intake_submissions:', intakeSubmissions.results?.length || 0);
 
         // Combine and format history
         const history = [];
@@ -468,6 +507,20 @@ export default {
         // Add intakes
         if (intakes.results) {
           for (const intake of intakes.results) {
+            history.push({
+              id: intake.id,
+              timestamp: intake.timestamp,
+              type: intake.type,
+              title: intake.title,
+              score: null,
+              intakeData: intake.intake_data ? JSON.parse(intake.intake_data) : null
+            });
+          }
+        }
+
+        // Add intake_submissions as fallback
+        if (intakeSubmissions.results && history.length === 0) {
+          for (const intake of intakeSubmissions.results) {
             history.push({
               id: intake.id,
               timestamp: intake.timestamp,
