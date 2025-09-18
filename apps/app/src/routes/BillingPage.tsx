@@ -5,6 +5,7 @@ import { Card, Badge, UsageMeter } from '@carrierllm/ui';
 import { getUserUsage } from '../lib/api';
 import { logger } from '../lib/logger';
 import { BillingErrorBoundary } from '../components/ErrorBoundary';
+import { EnhancedPricingTable } from '../components/EnhancedPricingTable';
 import { useEffect, useState } from 'react';
 
 export const BillingPage = () => {
