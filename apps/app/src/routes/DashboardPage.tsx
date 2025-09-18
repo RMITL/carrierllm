@@ -49,7 +49,7 @@ const iconMap = {
 };
 
 export const DashboardPage = () => {
-  const { user } = useUser();
+  const { user, isLoaded: userLoaded } = useUser();
 
   // Fetch dashboard statistics with better error handling
   const { data: analytics, isLoading: statsLoading, error } = useQuery<AnalyticsSummary>({
@@ -58,6 +58,7 @@ export const DashboardPage = () => {
     retry: 1,
     staleTime: 30000,
     refetchOnWindowFocus: false,
+    enabled: userLoaded && !!user, // Only fetch when user is loaded
     // Provide fallback data to prevent white screen
     placeholderData: {
       stats: {
@@ -65,9 +66,17 @@ export const DashboardPage = () => {
         averageFitScore: 0,
         placementRate: 0,
         remainingRecommendations: 5
-      },
-      recentActivity: []
-    }
+      }
+    } as AnalyticsSummary
+  });
+
+  // Add debugging logs
+  console.log('DashboardPage render:', {
+    userLoaded,
+    user: user?.id,
+    statsLoading,
+    error: error?.message,
+    analytics: !!analytics
   });
 
   const getGreeting = () => {
@@ -76,6 +85,25 @@ export const DashboardPage = () => {
     if (hour < 18) return 'Good afternoon';
     return 'Good evening';
   };
+
+  // Show loading state while user is loading
+  if (!userLoaded) {
+    return (
+      <div className="space-y-8">
+        <div className="animate-pulse">
+          <div className="h-8 bg-gray-200 rounded w-1/3 mb-2"></div>
+          <div className="h-4 bg-gray-200 rounded w-1/2"></div>
+        </div>
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+          {[1, 2, 3].map((i) => (
+            <div key={i} className="animate-pulse">
+              <div className="h-48 bg-gray-200 rounded-lg"></div>
+            </div>
+          ))}
+        </div>
+      </div>
+    );
+  }
 
   // Show error state if there's a critical error
   if (error && !analytics) {

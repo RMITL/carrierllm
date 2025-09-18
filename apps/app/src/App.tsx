@@ -20,11 +20,17 @@ import { PrivacyPage } from './routes/PrivacyPage';
 const App = () => {
   const { isLoaded } = useAuth();
 
+  // Add debugging
+  console.log('App render:', { isLoaded });
+
   // Show loading spinner while Clerk is initializing
   if (!isLoaded) {
     return (
       <div className="min-h-screen bg-[color:var(--color-gray-50)] flex items-center justify-center">
-        <LoadingSpinner />
+        <div className="text-center">
+          <LoadingSpinner />
+          <p className="mt-4 text-gray-600">Loading CarrierLLM...</p>
+        </div>
       </div>
     );
   }

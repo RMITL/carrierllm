@@ -26,8 +26,8 @@ const client = axios.create({
 client.interceptors.request.use(async (config) => {
   try {
     // Get the Clerk token and user ID for authenticated requests
-    const token = await window.Clerk?.session?.getToken();
-    const userId = window.Clerk?.user?.id;
+    const token = await (window as any).Clerk?.session?.getToken();
+    const userId = (window as any).Clerk?.user?.id;
 
     if (token) {
       config.headers.Authorization = `Bearer ${token}`;
@@ -36,6 +36,13 @@ client.interceptors.request.use(async (config) => {
     if (userId) {
       config.headers['X-User-Id'] = userId;
     }
+
+    console.log('API Request:', {
+      url: config.url,
+      method: config.method,
+      hasToken: !!token,
+      userId: userId
+    });
   } catch (error) {
     console.warn('Failed to get Clerk auth info:', error);
     // Don't fail the request if auth info retrieval fails
@@ -131,26 +138,24 @@ export const fetchOrionRecommendation = async (recommendationId: string): Promis
  * Get analytics summary for dashboard
  */
 export const fetchAnalytics = async (): Promise<AnalyticsSummary> => {
-  return withRetry(async () => {
-    try {
-      const response = await client.get<AnalyticsSummary>('/analytics/summary', {
-        timeout: TIMEOUTS.analytics
-      });
-      return response.data;
-    } catch (error) {
-      // If API is not available, return default analytics data
-      console.warn('Analytics API not available, returning default data:', error);
+  try {
+    const response = await client.get<AnalyticsSummary>('/analytics/summary', {
+      timeout: TIMEOUTS.analytics
+    });
+    console.log('Analytics API response:', response.data);
+    return response.data;
+  } catch (error) {
+    // If API is not available, return default analytics data
+    console.warn('Analytics API not available, returning default data:', error);
       return {
         stats: {
           totalIntakes: 0,
           averageFitScore: 0,
           placementRate: 0,
           remainingRecommendations: 5
-        },
-        recentActivity: []
-      };
-    }
-  });
+        }
+      } as AnalyticsSummary;
+  }
 };
 
 /**
@@ -180,7 +185,7 @@ export const getUserUsage = async (): Promise<{
   recommendationsLimit: number;
 }> => {
   return withRetry(async () => {
-    const userId = window.Clerk?.user?.id;
+    const userId = (window as any).Clerk?.user?.id;
     if (!userId) {
       // Return free tier defaults if not logged in
       return {
@@ -253,7 +258,7 @@ export const getUserHistory = async (): Promise<Array<{
   };
 }>> => {
   return withRetry(async () => {
-    const userId = window.Clerk?.user?.id;
+    const userId = (window as any).Clerk?.user?.id;
     if (!userId) {
       return [];
     }
@@ -261,6 +266,20 @@ export const getUserHistory = async (): Promise<Array<{
     const response = await client.get(`/user/${userId}/history`);
     return response.data;
   });
+};
+
+/**
+ * Health check to test API connectivity
+ */
+export const healthCheck = async (): Promise<boolean> => {
+  try {
+    const response = await client.get('/health', { timeout: 5000 });
+    console.log('API Health check successful:', response.status);
+    return true;
+  } catch (error) {
+    console.warn('API Health check failed:', error);
+    return false;
+  }
 };
 
 export const api = client;
