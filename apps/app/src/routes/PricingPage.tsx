@@ -1,14 +1,16 @@
-import { PricingTable } from '@clerk/clerk-react';
+import { PricingTable, useOrganization } from '@clerk/clerk-react';
 import { useAuth } from '@clerk/clerk-react';
 import { Card, Button } from '@carrierllm/ui';
 import { useState } from 'react';
 
 export const PricingPage = () => {
   const { has } = useAuth();
+  const { organization } = useOrganization();
   const [showTeamSeats, setShowTeamSeats] = useState(false);
 
   // Check if user is on an organization plan
   const hasOrgPlan = has?.({ plan: 'free_org' }) || has?.({ plan: 'enterprise' });
+  const isOrganizationContext = !!organization;
 
   const handleAddTeamSeat = () => {
     // This would trigger the extra_team_seat purchase through Clerk
@@ -23,13 +25,21 @@ export const PricingPage = () => {
             Simple, Transparent Pricing
           </h1>
           <p className="text-lg text-gray-600 max-w-2xl mx-auto">
-            Start free and scale as you grow. No hidden fees, no surprises.
+            {isOrganizationContext 
+              ? 'Manage your organization\'s subscription and billing'
+              : 'Start free and scale as you grow. No hidden fees, no surprises.'
+            }
           </p>
+          {isOrganizationContext && organization && (
+            <p className="text-sm text-gray-500 mt-2">
+              Managing pricing for: <strong>{organization.name}</strong>
+            </p>
+          )}
         </div>
 
-        {/* Clerk's native PricingTable - automatically shows your configured plans */}
+        {/* Clerk's native PricingTable - shows organization or individual plans based on context */}
         <div className="max-w-5xl mx-auto">
-          <PricingTable />
+          <PricingTable forOrganizations={isOrganizationContext} />
         </div>
 
         {/* Additional team seats for organizations */}

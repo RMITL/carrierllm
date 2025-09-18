@@ -5,6 +5,7 @@ import HomePage from './pages/HomePage';
 import Success from './pages/Success';
 import { TermsPage } from './pages/TermsPage';
 import { PrivacyPage } from './pages/PrivacyPage';
+import OrganizationPricingPage from './pages/OrganizationPricingPage';
 
 const AppRouter: React.FC = () => {
   return (
@@ -12,6 +13,7 @@ const AppRouter: React.FC = () => {
       <Routes>
         <Route path="/" element={<HomePage />} />
         <Route path="/pricing" element={<HomePage scrollTo="pricing" />} />
+        <Route path="/organization-pricing" element={<OrganizationPricingPage />} />
         <Route path="/terms" element={<TermsPage />} />
         <Route path="/privacy" element={<PrivacyPage />} />
         <Route

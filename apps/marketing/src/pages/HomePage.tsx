@@ -84,7 +84,10 @@ const HomePage: React.FC<HomePageProps> = ({ scrollTo }) => {
               How It Works
             </a>
             <a href="#pricing" className="text-[color:var(--color-gray-600)] hover:text-[color:var(--color-gray-900)] transition">
-              Pricing
+              Individual Pricing
+            </a>
+            <a href="/organization-pricing" className="text-[color:var(--color-gray-600)] hover:text-[color:var(--color-gray-900)] transition">
+              Organization Pricing
             </a>
             <a href="#compliance" className="text-[color:var(--color-gray-600)] hover:text-[color:var(--color-gray-900)] transition">
               Compliance
@@ -413,7 +416,8 @@ const HomePage: React.FC<HomePageProps> = ({ scrollTo }) => {
               <h3 className="font-semibold mb-4">Product</h3>
               <ul className="space-y-2 text-sm text-gray-600">
                 <li><a href="#features" className="hover:text-gray-900">Features</a></li>
-                <li><a href="#pricing" className="hover:text-gray-900">Pricing</a></li>
+                <li><a href="#pricing" className="hover:text-gray-900">Individual Pricing</a></li>
+                <li><a href="/organization-pricing" className="hover:text-gray-900">Organization Pricing</a></li>
                 <li><a href="#how-it-works" className="hover:text-gray-900">How it Works</a></li>
                 <li><a href="https://app.carrierllm.com" className="hover:text-gray-900">Sign In</a></li>
               </ul>
