@@ -79,6 +79,30 @@ export const BillingPage = () => {
       };
     }
     
+    // Check if user recently signed up (within last 24 hours) - likely on trial
+    const userCreatedAt = user?.createdAt ? new Date(user.createdAt) : null;
+    const isRecentUser = userCreatedAt && (Date.now() - userCreatedAt.getTime()) < 24 * 60 * 60 * 1000;
+    
+    // Check if user manually started a trial (stored in localStorage)
+    const manualTrialStart = localStorage.getItem('carrierllm_trial_started');
+    const isManualTrial = manualTrialStart && (Date.now() - parseInt(manualTrialStart)) < 14 * 24 * 60 * 60 * 1000; // 14 days
+    
+    if (isRecentUser || isManualTrial) {
+      logger.billingInfo('Detected trial user', {
+        userCreatedAt: userCreatedAt?.toISOString(),
+        isRecentUser,
+        isManualTrial,
+        manualTrialStart
+      });
+      
+      return {
+        planName: 'Individual Trial',
+        status: 'trialing',
+        isActive: true,
+        isTrial: true
+      };
+    }
+    
     // Fallback to legacy plan checking
     const hasIndividualPlan = has?.({ plan: 'individual' });
     const hasEnterprisePlan = has?.({ plan: 'enterprise' });
@@ -199,10 +223,32 @@ export const BillingPage = () => {
             <div className="text-blue-800 font-medium">Debug: Subscription Detection</div>
             <div className="text-blue-600 text-sm mt-1">
               <p>User ID: {user?.id}</p>
+              <p>User Created: {user?.createdAt ? new Date(user.createdAt).toISOString() : 'Unknown'}</p>
               <p>Public Metadata: {JSON.stringify(user?.publicMetadata, null, 2)}</p>
               <p>Subscription Info: {JSON.stringify(subscriptionInfo, null, 2)}</p>
               <p>Current Plan: {JSON.stringify(currentPlan, null, 2)}</p>
               <p>Has Any Plan: {hasAnyPlan ? 'Yes' : 'No'}</p>
+              <div className="mt-2 space-x-2">
+                <button
+                  onClick={() => {
+                    logger.billingInfo('Manual refresh requested');
+                    window.location.reload();
+                  }}
+                  className="px-3 py-1 bg-blue-600 text-white text-xs rounded hover:bg-blue-700"
+                >
+                  Refresh Page
+                </button>
+                <button
+                  onClick={() => {
+                    localStorage.setItem('carrierllm_trial_started', Date.now().toString());
+                    logger.billingInfo('Manual trial started');
+                    window.location.reload();
+                  }}
+                  className="px-3 py-1 bg-green-600 text-white text-xs rounded hover:bg-green-700"
+                >
+                  Start Trial (Test)
+                </button>
+              </div>
             </div>
           </div>
         )}
