@@ -575,6 +575,7 @@ export default {
         history.sort((a, b) => new Date(b.timestamp).getTime() - new Date(a.timestamp).getTime());
 
         console.log('Returning history with', history.length, 'items');
+        console.log('History items:', JSON.stringify(history, null, 2));
         return Response.json(history, { headers: corsHeaders });
       } catch (error) {
         console.error('History endpoint error:', error);
