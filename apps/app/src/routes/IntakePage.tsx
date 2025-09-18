@@ -6,7 +6,7 @@ import { OrionIntakeForm } from '../features/intake/OrionIntakeForm';
 import { submitOrionIntake } from '../lib/api';
 import { useFeatureAccess } from '../components/auth/FeatureGates';
 import type { OrionIntake } from '../types';
-import { useEffect, useState } from 'react';
+import { useEffect, useState, useMemo } from 'react';
 
 export const IntakePage = () => {
   const navigate = useNavigate();
@@ -15,8 +15,8 @@ export const IntakePage = () => {
   const { getPlanLimits } = useFeatureAccess();
   const [usage, setUsage] = useState({ used: 0, limit: 5 });
 
-  // Get plan limits
-  const limits = getPlanLimits();
+  // Memoize plan limits to prevent infinite re-renders
+  const limits = useMemo(() => getPlanLimits(), [has]);
 
   useEffect(() => {
     // Fetch current usage from user metadata
@@ -25,7 +25,7 @@ export const IntakePage = () => {
       used: currentUsage,
       limit: limits.recommendations === -1 ? 999 : limits.recommendations
     });
-  }, [user, limits]);
+  }, [user, limits.recommendations]);
 
   const { mutateAsync, isPending, isError, error } = useMutation({
     mutationFn: submitOrionIntake,
@@ -35,12 +35,17 @@ export const IntakePage = () => {
       
       // Update usage count in user metadata
       if (user) {
-        await user.update({
-          publicMetadata: {
-            ...user.publicMetadata,
-            monthlyUsage: (usage.used || 0) + 1
-          }
-        });
+        try {
+          await user.update({
+            publicMetadata: {
+              ...user.publicMetadata,
+              monthlyUsage: (usage.used || 0) + 1
+            }
+          });
+        } catch (metadataError) {
+          console.warn('Failed to update user metadata:', metadataError);
+          // Continue with navigation even if metadata update fails
+        }
       }
       
       if (data.recommendationId) {
