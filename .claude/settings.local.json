@@ -70,7 +70,8 @@
       "WebFetch(domain:clerk.com)",
       "Bash(wrangler routes:*)",
       "WebSearch",
-      "Bash(npx tsc:*)"
+      "Bash(npx tsc:*)",
+      "Bash(xargs rm:*)"
     ],
     "deny": [],
     "ask": []
