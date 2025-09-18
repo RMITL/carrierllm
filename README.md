@@ -127,7 +127,7 @@ carrierllm/
 #### App (.env.local)
 ```env
 VITE_CLERK_PUBLISHABLE_KEY=pk_live_...
-VITE_API_BASE_URL=https://carrierllm-worker.wandering-pine-b19a.workers.dev/api
+VITE_API_BASE_URL=https://carrierllm.com/api
 VITE_APP_URL=https://app.carrierllm.com
 VITE_MARKETING_URL=https://carrierllm.com
 ```
@@ -169,6 +169,9 @@ pnpm --filter @carrierllm/ui dev
 ## 🌐 API Endpoints
 
 ### Core Endpoints (Cloudflare Worker)
+**Production:** `https://carrierllm.com/api` (routed via `*.carrierllm.com/api`)
+**Development:** `http://localhost:8787/api` (wrangler dev)
+
 - `POST /api/intake/submit` - Process intake forms
 - `GET /api/recommendations/:id` - Get carrier recommendations
 - `POST /api/outcomes` - Log recommendation outcomes

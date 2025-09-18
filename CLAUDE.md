@@ -26,10 +26,21 @@ cp .env.example .env  # Populate secrets before running
 pnpm dev
 
 # Run specific services
-pnpm --filter @carrierllm/worker dev    # Cloudflare Worker (wrangler dev)
-pnpm --filter @carrierllm/app dev       # React app (vite)
-pnpm --filter @carrierllm/marketing dev # Marketing site
+pnpm --filter @carrierllm/worker dev    # Cloudflare Worker (wrangler dev on port 8787)
+pnpm --filter @carrierllm/app dev       # React app (port 5175)
+pnpm --filter @carrierllm/marketing dev # Marketing site (port 5174)
 pnpm --filter @carrierllm/ui dev        # Storybook on port 6006
+```
+
+### Production Deployment (PM2)
+```bash
+# Start with PM2 - configured ports:
+pm2 start start-app-pm2.cjs --name carrierllm-app           # Port 5175
+pm2 start start-marketing-pm2.cjs --name carrierllm-marketing # Port 5174
+
+# Restart only (use pm2 reload 26 for marketing app)
+pm2 reload 26  # Marketing app
+pm2 reload 23  # App
 ```
 
 ### Build & Quality
@@ -58,6 +69,9 @@ pnpm deploy     # Deploy to Cloudflare Workers
 This is a pnpm workspace with TypeScript, ESLint, and Prettier configured at the root. All packages share the same dev dependencies and linting rules.
 
 ### Core APIs (Cloudflare Worker)
+**Production:** `https://carrierllm.com/api` (routed via `*.carrierllm.com/api`)
+**Development:** `http://localhost:8787/api` (wrangler dev)
+
 - `/api/intake/submit` - Process intake forms
 - `/api/recommendations/:id` - Get carrier recommendations
 - `/api/outcomes` - Log recommendation outcomes

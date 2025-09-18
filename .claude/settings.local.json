@@ -71,7 +71,12 @@
       "Bash(wrangler routes:*)",
       "WebSearch",
       "Bash(npx tsc:*)",
-      "Bash(xargs rm:*)"
+      "Bash(xargs rm:*)",
+      "Bash(PORT=5175 pm2 start 26)",
+      "Bash(PORT=5174 pm2 start 26)",
+      "Bash(PORT=5174 pm2 reload 26)",
+      "Bash(PORT=5174 pm2 start \"node_modules/vite/bin/vite.js --port 5174\" --name carrierllm-marketing)",
+      "Bash(git stash:*)"
     ],
     "deny": [],
     "ask": []
