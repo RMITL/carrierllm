@@ -49,7 +49,7 @@ export const AnalyticsPage = () => {
           Track your placement performance and identify trends to optimize your success rate.
         </p>
         <p className="text-xs text-gray-500 mt-1">
-          Last updated: {new Date(data.lastUpdated).toLocaleString()}
+          Last updated: {data.lastUpdated ? new Date(data.lastUpdated).toLocaleString() : 'Never'}
         </p>
       </div>
 

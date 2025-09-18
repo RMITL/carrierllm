@@ -17,15 +17,25 @@ export interface RecommendationListProps {
 export const RecommendationList = memo(({ data, isOrionFormat }: RecommendationListProps) => {
   // Memoized data extraction
   const extractedData = useMemo(() => {
+    if (!data) {
+      return {
+        recommendations: [],
+        summary: { averageFit: 0, totalCarriersEvaluated: 0, notes: '' },
+        stretch: undefined,
+        premiumSuggestion: undefined,
+        recommendationId: '',
+      };
+    }
+
     const orionData = data as OrionRecommendationResponse;
     const legacyData = data as RecommendationResponse;
 
     return {
-      recommendations: isOrionFormat ? orionData.top : legacyData.recommendations,
-      summary: isOrionFormat ? orionData.summary : legacyData.summary,
+      recommendations: isOrionFormat ? (orionData.top || []) : (legacyData.recommendations || []),
+      summary: isOrionFormat ? (orionData.summary || { averageFit: 0, totalCarriersEvaluated: 0, notes: '' }) : (legacyData.summary || { averageFit: 0, totalCarriersEvaluated: 0, notes: '' }),
       stretch: isOrionFormat ? orionData.stretch : undefined,
       premiumSuggestion: isOrionFormat ? orionData.premiumSuggestion : undefined,
-      recommendationId: isOrionFormat ? orionData.recommendationId : legacyData.submissionId,
+      recommendationId: isOrionFormat ? (orionData.recommendationId || '') : (legacyData.submissionId || ''),
     };
   }, [data, isOrionFormat]);
 
@@ -85,7 +95,7 @@ export const RecommendationList = memo(({ data, isOrionFormat }: RecommendationL
           <div>
             <p className="text-sm text-gray-500 mb-1">Top Carrier</p>
             <p className="text-base font-medium text-gray-900">
-              {recommendations[0]?.carrierName || summary.topCarrierId}
+              {recommendations[0]?.carrierName || summary.topCarrierId || 'N/A'}
             </p>
           </div>
           <div>
@@ -103,7 +113,7 @@ export const RecommendationList = memo(({ data, isOrionFormat }: RecommendationL
       </Card>
 
       {/* Premium Suggestion (Orion only) */}
-      {premiumSuggestion && (
+      {premiumSuggestion && premiumSuggestion.monthly && (
         <Card>
           <h3 className="text-lg font-semibold text-gray-900 mb-2">Premium Guidance</h3>
           <div className="flex items-center gap-4">
