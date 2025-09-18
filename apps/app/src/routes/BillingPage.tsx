@@ -1,16 +1,54 @@
 import { PricingTable } from '@clerk/clerk-react';
 import { useQuery } from '@tanstack/react-query';
-import { useAuth } from '@clerk/clerk-react';
+import { useAuth, useUser } from '@clerk/clerk-react';
 import { Card, Badge, UsageMeter } from '@carrierllm/ui';
 import { getUserUsage } from '../lib/api';
+import { logger } from '../lib/logger';
+import { BillingErrorBoundary } from '../components/ErrorBoundary';
+import { useEffect, useState } from 'react';
 
 export const BillingPage = () => {
   const { has } = useAuth();
+  const { user } = useUser();
+  const [billingError, setBillingError] = useState<string | null>(null);
+  const [isBillingLoading, setIsBillingLoading] = useState(false);
 
   const { data: usage, isLoading } = useQuery({
     queryKey: ['user-usage'],
     queryFn: getUserUsage
   });
+
+  // Log page load and user context
+  useEffect(() => {
+    logger.billingInfo('BillingPage loaded', {
+      userId: user?.id,
+      userEmail: user?.emailAddresses?.[0]?.emailAddress,
+      hasIndividualPlan: has?.({ plan: 'individual' }),
+      hasEnterprisePlan: has?.({ plan: 'enterprise' }),
+    });
+  }, [user, has]);
+
+  // Monitor Clerk billing state
+  useEffect(() => {
+    const checkBillingState = () => {
+      try {
+        // Check if Clerk billing is available
+        if (typeof window !== 'undefined' && (window as any).Clerk?.billing) {
+          logger.billingDebug('Clerk billing API available');
+        } else {
+          logger.billingWarn('Clerk billing API not available');
+        }
+      } catch (error) {
+        logger.billingError('Error checking Clerk billing state', { error });
+      }
+    };
+
+    checkBillingState();
+    
+    // Check periodically
+    const interval = setInterval(checkBillingState, 5000);
+    return () => clearInterval(interval);
+  }, []);
 
   // Check subscription status using Clerk's has() method
   const hasIndividualPlan = has?.({ plan: 'individual' });
@@ -84,9 +122,41 @@ export const BillingPage = () => {
         <h2 className="text-xl font-semibold text-gray-900 mb-6">
           {hasAnyPlan ? 'Change Your Plan' : 'Choose a Plan'}
         </h2>
+        
+        {billingError && (
+          <div className="mb-4 p-4 bg-red-50 border border-red-200 rounded-lg">
+            <div className="text-red-800 font-medium">Billing Error</div>
+            <div className="text-red-600 text-sm mt-1">{billingError}</div>
+            <button
+              onClick={() => {
+                setBillingError(null);
+                logger.billingInfo('User dismissed billing error');
+              }}
+              className="mt-2 text-red-600 hover:text-red-800 text-sm underline"
+            >
+              Dismiss
+            </button>
+          </div>
+        )}
+
         <div className="bg-gray-50 rounded-lg p-6">
-          <PricingTable />
+          <BillingErrorBoundary>
+            <EnhancedPricingTable 
+              onError={setBillingError}
+              onLoading={setIsBillingLoading}
+            />
+          </BillingErrorBoundary>
         </div>
+        
+        {isBillingLoading && (
+          <div className="mt-4 text-center">
+            <div className="inline-flex items-center text-sm text-gray-600">
+              <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-blue-600 mr-2"></div>
+              Processing billing request...
+            </div>
+          </div>
+        )}
+        
         <p className="text-sm text-gray-500 mt-4 text-center">
           {hasAnyPlan
             ? 'Select a different plan above to upgrade or downgrade. Changes take effect immediately.'

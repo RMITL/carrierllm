@@ -14,7 +14,7 @@
     "@carrierllm/theme": "workspace:*",
     "@carrierllm/ui": "workspace:*",
     "@clerk/backend": "^2.14.0",
-    "@clerk/clerk-react": "^5.47.0",
+    "@clerk/clerk-react": "5.48.0",
     "@clerk/types": "^4.86.0",
     "@stripe/stripe-js": "^7.9.0",
     "react": "^18.3.1",

@@ -1,70 +1,98 @@
 import React, { Component, ErrorInfo, ReactNode } from 'react';
+import { logger } from '../lib/logger';
 
 interface Props {
   children: ReactNode;
   fallback?: ReactNode;
+  context?: string;
+  onError?: (error: Error, errorInfo: ErrorInfo) => void;
 }
 
 interface State {
   hasError: boolean;
   error?: Error;
+  errorInfo?: ErrorInfo;
 }
 
 export class ErrorBoundary extends Component<Props, State> {
-  public state: State = {
-    hasError: false
-  };
-
-  public static getDerivedStateFromError(error: Error): State {
-    return { hasError: true, error };
+  constructor(props: Props) {
+    super(props);
+    this.state = { hasError: false };
   }
 
-  public componentDidCatch(error: Error, errorInfo: ErrorInfo) {
-    console.error('ErrorBoundary caught an error:', error, errorInfo);
+  static getDerivedStateFromError(error: Error): State {
+    return {
+      hasError: true,
+      error,
+    };
   }
 
-  public render() {
+  componentDidCatch(error: Error, errorInfo: ErrorInfo) {
+    const { context = 'ErrorBoundary', onError } = this.props;
+    
+    // Log the error
+    logger.error('Error boundary caught error', context, {
+      error: {
+        message: error.message,
+        stack: error.stack,
+        name: error.name,
+      },
+      errorInfo: {
+        componentStack: errorInfo.componentStack,
+      },
+    });
+
+    this.setState({ error, errorInfo });
+
+    // Call custom error handler if provided
+    if (onError) {
+      onError(error, errorInfo);
+    }
+  }
+
+  render() {
     if (this.state.hasError) {
-      if (this.props.fallback) {
-        return this.props.fallback;
+      const { fallback, context = 'ErrorBoundary' } = this.props;
+      
+      if (fallback) {
+        return fallback;
       }
 
       return (
-        <div className="min-h-screen bg-gray-50 flex items-center justify-center">
-          <div className="max-w-md w-full bg-white shadow-lg rounded-lg p-6">
-            <div className="flex items-center mb-4">
-              <div className="flex-shrink-0">
-                <svg className="h-8 w-8 text-red-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-2.5L13.732 4c-.77-.833-1.964-.833-2.732 0L3.732 16.5c-.77.833.192 2.5 1.732 2.5z" />
-                </svg>
-              </div>
-              <div className="ml-3">
-                <h3 className="text-lg font-medium text-gray-900">
-                  Something went wrong
-                </h3>
-              </div>
+        <div className="min-h-[200px] flex items-center justify-center p-6 bg-red-50 border border-red-200 rounded-lg">
+          <div className="text-center">
+            <div className="text-red-600 text-lg font-semibold mb-2">
+              Something went wrong
             </div>
-            <div className="text-sm text-gray-600 mb-4">
-              We encountered an unexpected error. Please try refreshing the page.
+            <div className="text-red-500 text-sm mb-4">
+              {context}: {this.state.error?.message || 'Unknown error'}
             </div>
-            <div className="flex space-x-3">
+            <div className="space-y-2">
               <button
-                onClick={() => window.location.reload()}
-                className="inline-flex items-center px-3 py-2 border border-transparent text-sm leading-4 font-medium rounded-md text-white bg-blue-600 hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500"
-              >
-                Refresh Page
-              </button>
-              <button
-                onClick={() => this.setState({ hasError: false, error: undefined })}
-                className="inline-flex items-center px-3 py-2 border border-gray-300 text-sm leading-4 font-medium rounded-md text-gray-700 bg-white hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500"
+                onClick={() => {
+                  logger.info('User clicked retry button', context);
+                  this.setState({ hasError: false, error: undefined, errorInfo: undefined });
+                }}
+                className="px-4 py-2 bg-red-600 text-white rounded hover:bg-red-700 transition-colors"
               >
                 Try Again
               </button>
+              <button
+                onClick={() => {
+                  logger.info('User clicked report button', context);
+                  this.reportError();
+                }}
+                className="ml-2 px-4 py-2 bg-gray-600 text-white rounded hover:bg-gray-700 transition-colors"
+              >
+                Report Issue
+              </button>
             </div>
             {process.env.NODE_ENV === 'development' && this.state.error && (
-              <details className="mt-4">
-                <summary className="text-sm text-gray-500 cursor-pointer">Error Details</summary>
-                <pre className="mt-2 text-xs text-red-600 bg-red-50 p-2 rounded overflow-auto">
+              <details className="mt-4 text-left">
+                <summary className="cursor-pointer text-sm text-gray-600">
+                  Error Details (Development)
+                </summary>
+                <pre className="mt-2 p-2 bg-gray-100 rounded text-xs overflow-auto">
                   {this.state.error.stack}
                 </pre>
               </details>
@@ -76,4 +104,67 @@ export class ErrorBoundary extends Component<Props, State> {
 
     return this.props.children;
   }
+
+  private reportError() {
+    const { error, errorInfo } = this.state;
+    if (!error) return;
+
+    const errorReport = {
+      message: error.message,
+      stack: error.stack,
+      componentStack: errorInfo?.componentStack,
+      timestamp: new Date().toISOString(),
+      userAgent: navigator.userAgent,
+      url: window.location.href,
+    };
+
+    // Copy to clipboard
+    navigator.clipboard.writeText(JSON.stringify(errorReport, null, 2))
+      .then(() => {
+        alert('Error details copied to clipboard. Please share this with support.');
+      })
+      .catch(() => {
+        // Fallback: show in alert
+        alert(`Error details:\n\n${error.message}\n\nPlease share this with support.`);
+      });
+
+    logger.info('User reported error', 'ErrorBoundary', errorReport);
+  }
 }
+
+// Specialized error boundary for billing components
+export const BillingErrorBoundary: React.FC<{ children: ReactNode }> = ({ children }) => {
+  return (
+    <ErrorBoundary
+      context="BillingErrorBoundary"
+      fallback={
+        <div className="min-h-[300px] flex items-center justify-center p-6 bg-yellow-50 border border-yellow-200 rounded-lg">
+          <div className="text-center max-w-md">
+            <div className="text-yellow-800 text-lg font-semibold mb-2">
+              Billing Temporarily Unavailable
+            </div>
+            <div className="text-yellow-700 text-sm mb-4">
+              We're experiencing issues with our billing system. Please try again in a few minutes or contact support.
+            </div>
+            <div className="space-y-2">
+              <button
+                onClick={() => window.location.reload()}
+                className="px-4 py-2 bg-yellow-600 text-white rounded hover:bg-yellow-700 transition-colors"
+              >
+                Refresh Page
+              </button>
+              <a
+                href="mailto:support@carrierllm.com?subject=Billing Issue"
+                className="ml-2 px-4 py-2 bg-gray-600 text-white rounded hover:bg-gray-700 transition-colors inline-block"
+              >
+                Contact Support
+              </a>
+            </div>
+          </div>
+        </div>
+      }
+    >
+      {children}
+    </ErrorBoundary>
+  );
+};

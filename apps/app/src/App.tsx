@@ -17,6 +17,7 @@ import { HistoryPage } from './routes/HistoryPage';
 import { PricingPage } from './routes/PricingPage';
 import { TermsPage } from './routes/TermsPage';
 import { PrivacyPage } from './routes/PrivacyPage';
+import { BillingDebugPanel } from './components/BillingDebugPanel';
 
 const App = () => {
   const { isLoaded } = useAuth();
@@ -63,6 +64,9 @@ const App = () => {
           </ErrorBoundary>
         </DashboardLayout>
       </SignedIn>
+      
+      {/* Debug Panel - only shows in development or when enabled */}
+      <BillingDebugPanel />
     </div>
   );
 };
