@@ -65,8 +65,8 @@ router.get('/api/analytics/summary', async (request, env: Env) => {
       remainingRecommendations: 0
     };
 
-    let topCarriers = [];
-    let trends = [];
+    let topCarriers: any[] = [];
+    let trends: any[] = [];
 
     try {
       // Get total intakes - check multiple tables for compatibility
@@ -78,7 +78,7 @@ router.get('/api/analytics/summary', async (request, env: Env) => {
         )
       `).first();
 
-      stats.totalIntakes = intakesResult?.count || 0;
+      stats.totalIntakes = (intakesResult as { count: number })?.count || 0;
 
       // If we have a user ID, get user-specific data
       if (userId) {
@@ -97,7 +97,7 @@ router.get('/api/analytics/summary', async (request, env: Env) => {
             'SELECT recommendations_limit FROM user_profiles WHERE user_id = ?'
           ).bind(userId).first();
           
-          const limit = userProfile?.recommendations_limit || 0;
+          const limit = (userProfile as { recommendations_limit: number })?.recommendations_limit || 0;
           stats.remainingRecommendations = Math.max(0, limit - used);
         } catch (e) {
           console.log('Could not get user usage:', e);
@@ -111,8 +111,8 @@ router.get('/api/analytics/summary', async (request, env: Env) => {
             WHERE user_id = ?
           `).bind(userId).first();
 
-          if (avgScore?.avg) {
-            stats.averageFitScore = Math.round(avgScore.avg);
+          if ((avgScore as { avg: number })?.avg) {
+            stats.averageFitScore = Math.round((avgScore as { avg: number }).avg);
           } else {
             stats.averageFitScore = 0;
           }
@@ -186,8 +186,9 @@ router.get('/api/analytics/summary', async (request, env: Env) => {
           FROM outcomes
         `).first();
 
-        if (placements?.total > 0) {
-          stats.placementRate = Math.round((placements.placed / placements.total) * 100);
+        if ((placements as { total: number; placed: number })?.total > 0) {
+          const placementData = placements as { total: number; placed: number };
+          stats.placementRate = Math.round((placementData.placed / placementData.total) * 100);
         } else {
           stats.placementRate = 0;
         }
@@ -253,7 +254,7 @@ router.post('/api/intake/submit', async (request, env: Env) => {
 
     // TODO: Implement real recommendation generation using RAG system
     // For now, return empty recommendations until real data is available
-    const recommendations = [];
+    const recommendations: any[] = [];
 
     // Store recommendations
     for (const rec of recommendations) {
@@ -542,7 +543,7 @@ function extractCarrierInfo(filename: string) {
 async function populateCarriersFromDocuments(env: Env) {
   try {
     // Check if carriers table is empty
-    const existingCarriers = await env.DB.prepare('SELECT COUNT(*) as count FROM carriers').first();
+    const existingCarriers = await env.DB.prepare('SELECT COUNT(*) as count FROM carriers').first() as { count: number } | null;
     if (existingCarriers && existingCarriers.count > 0) {
       return; // Carriers already populated
     }
@@ -610,10 +611,7 @@ router.get('/api/carriers/with-preferences', async (request, env: Env) => {
       return Response.json({ error: 'User ID required' }, { status: 401, headers: corsHeaders() });
     }
 
-    // First, ensure carriers are populated from existing documents
-    await populateCarriersFromDocuments(env);
-
-    // Get all carriers
+    // Get all carriers (without populating first to avoid errors)
     const carriers = await env.DB.prepare('SELECT * FROM carriers ORDER BY name').all();
     
     // Get user preferences
@@ -626,11 +624,11 @@ router.get('/api/carriers/with-preferences', async (request, env: Env) => {
     const organizationId = request.headers.get('X-Organization-Id');
     
     // Get organization settings if user is in an organization
-    let orgSettings = { results: [] };
+    let orgSettings = { results: [] as Array<{ carrier_id: string; enabled: boolean }> };
     if (organizationId) {
       orgSettings = await env.DB.prepare(
         'SELECT carrier_id, enabled FROM organization_carrier_settings WHERE organization_id = ?'
-      ).bind(organizationId).all();
+      ).bind(organizationId).all() as { results: Array<{ carrier_id: string; enabled: boolean }> };
     }
 
     const carriersWithPreferences = carriers.results.map((carrier: any) => {
@@ -670,7 +668,7 @@ router.post('/api/carriers/preferences', async (request, env: Env) => {
       return Response.json({ error: 'User ID required' }, { status: 401, headers: corsHeaders() });
     }
 
-    const { carrierId, enabled } = await request.json();
+    const { carrierId, enabled } = await request.json() as { carrierId: string; enabled: boolean };
     if (!carrierId || typeof enabled !== 'boolean') {
       return Response.json({ error: 'carrierId and enabled are required' }, { status: 400, headers: corsHeaders() });
     }
@@ -817,10 +815,7 @@ router.get('/api/carriers/organization-settings', async (request, env: Env) => {
     // For now, we'll allow all authenticated users to access this endpoint
     // In production, you'd verify the user's role in their organization
 
-    // First, ensure carriers are populated from existing documents
-    await populateCarriersFromDocuments(env);
-
-    // Get all carriers
+    // Get all carriers (without populating first to avoid errors)
     const carriers = await env.DB.prepare('SELECT * FROM carriers ORDER BY name').all();
     
     const orgSettings = await env.DB.prepare(
@@ -870,7 +865,7 @@ router.post('/api/carriers/organization-settings', async (request, env: Env) => 
     // For now, we'll allow all authenticated users to access this endpoint
     // In production, you'd verify the user's role in their organization
 
-    const { carrierId, enabled } = await request.json();
+    const { carrierId, enabled } = await request.json() as { carrierId: string; enabled: boolean };
     if (!carrierId || typeof enabled !== 'boolean') {
       return Response.json({ error: 'carrierId and enabled are required' }, { status: 400, headers: corsHeaders() });
     }

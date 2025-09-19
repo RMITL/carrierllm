@@ -5,165 +5,117 @@ interface Env {
   DOCS_BUCKET: R2Bucket;
   CARRIER_INDEX: any;
   AI: any;
-  STRIPE_WEBHOOK_SECRET: string;
-  CLOUDFLARE_ACCOUNT_ID: string;
-  CLOUDFLARE_API_TOKEN: string;
-  CLERK_SECRET_KEY: string;
-  APP_URL: string;
-  WWW_URL: string;
 }
 
 const router = Router();
 
-// Health check endpoint
-router.get('/api/health', async () => {
-  return new Response(JSON.stringify({ status: 'healthy', timestamp: new Date().toISOString() }), {
-    headers: { 'Content-Type': 'application/json' }
-  });
-});
-
-// Analytics endpoint with demo data for testing
-router.get('/api/analytics/summary', async (request, env: Env) => {
-  const userId = request.headers.get('X-User-Id');
-
-  // Return demo data
-  return Response.json({
-    stats: {
-      totalIntakes: 42,
-      averageFitScore: 85,
-      placementRate: 72,
-      remainingRecommendations: 58
-    },
-    topCarriers: [
-      { id: '1', name: 'Progressive', count: 15, successRate: 89 },
-      { id: '2', name: 'State Farm', count: 12, successRate: 85 },
-      { id: '3', name: 'Allstate', count: 10, successRate: 78 },
-      { id: '4', name: 'Geico', count: 8, successRate: 92 },
-      { id: '5', name: 'Liberty Mutual', count: 6, successRate: 75 }
-    ],
-    trends: [
-      { month: '2025-01', intakes: 12, conversions: 9, conversionRate: 75 },
-      { month: '2024-12', intakes: 18, conversions: 13, conversionRate: 72 },
-      { month: '2024-11', intakes: 15, conversions: 10, conversionRate: 67 },
-      { month: '2024-10', intakes: 20, conversions: 14, conversionRate: 70 },
-      { month: '2024-09', intakes: 10, conversions: 8, conversionRate: 80 },
-      { month: '2024-08', intakes: 14, conversions: 11, conversionRate: 79 }
-    ],
-    lastUpdated: new Date().toISOString()
-  });
-});
-
-// Intake endpoint for submitting forms
-router.post('/api/intake/submit', async (request, env: Env) => {
-  const intake = await request.json();
-  const intakeId = crypto.randomUUID();
-  const recommendationId = crypto.randomUUID();
-
-  // Return mock successful response
-  return Response.json({
-    intakeId,
-    recommendationId,
-    summary: {
-      averageFit: 85,
-      eligibleCarriers: 5,
-      processingTime: 1250
-    },
-    recommendations: [
-      {
-        carrierId: 'progressive',
-        carrierName: 'Progressive',
-        fitScore: 92,
-        highlights: ['Competitive rates', 'Strong financial stability', 'Good customer service'],
-        concerns: [],
-        premiumRange: { min: 1200, max: 1800 },
-        citations: [
-          {
-            id: '1',
-            source: 'Progressive Underwriting Guide',
-            section: 'Risk Assessment',
-            content: 'Coverage available for standard risk profiles',
-            confidence: 0.92,
-            metadata: { page: 42 }
-          }
-        ]
-      },
-      {
-        carrierId: 'statefarm',
-        carrierName: 'State Farm',
-        fitScore: 88,
-        highlights: ['Local agent support', 'Multi-policy discounts'],
-        concerns: ['Premium may be higher'],
-        premiumRange: { min: 1400, max: 2000 },
-        citations: []
-      },
-      {
-        carrierId: 'allstate',
-        carrierName: 'Allstate',
-        fitScore: 85,
-        highlights: ['Accident forgiveness', 'Safe driving bonuses'],
-        concerns: [],
-        premiumRange: { min: 1300, max: 1900 },
-        citations: []
-      }
-    ]
-  });
-});
-
-// Get recommendation by ID
-router.get('/api/recommendations/:id', async (request, env: Env) => {
-  return Response.json({
-    recommendationId: request.params.id,
-    summary: {
-      averageFit: 85,
-      eligibleCarriers: 3
-    },
-    recommendations: [
-      {
-        carrierId: 'progressive',
-        carrierName: 'Progressive',
-        fitScore: 92,
-        highlights: ['Best match for profile'],
-        citations: []
-      }
-    ]
-  });
-});
+// Helper function to add CORS headers
+function corsHeaders() {
+  return {
+    'Access-Control-Allow-Origin': '*',
+    'Access-Control-Allow-Methods': 'GET, POST, PUT, DELETE, OPTIONS',
+    'Access-Control-Allow-Headers': 'Content-Type, Authorization, X-User-Id, X-Organization-Id',
+    'Content-Type': 'application/json'
+  };
+}
 
 // CORS preflight
 router.options('*', () => {
   return new Response(null, {
-    headers: {
-      'Access-Control-Allow-Origin': '*',
-      'Access-Control-Allow-Methods': 'GET, POST, PUT, DELETE, OPTIONS',
-      'Access-Control-Allow-Headers': 'Content-Type, Authorization'
-    }
+    status: 204,
+    headers: corsHeaders()
   });
 });
 
-// Catch all
-router.all('*', () => Response.json({ message: 'Not found' }, { status: 404 }));
+// Health check
+router.get('/api/health', () => {
+  return Response.json(
+    { status: 'healthy', timestamp: new Date().toISOString() },
+    { headers: corsHeaders() }
+  );
+});
 
+// Test carriers endpoint
+router.get('/api/carriers/test', () => {
+  return Response.json(
+    { message: 'Carriers test endpoint working' },
+    { headers: corsHeaders() }
+  );
+});
+
+// Get carriers with user preferences
+router.get('/api/carriers/with-preferences', async (request, env: Env) => {
+  try {
+    const userId = request.headers.get('X-User-Id');
+    if (!userId) {
+      return Response.json({ error: 'User ID required' }, { status: 401, headers: corsHeaders() });
+    }
+
+    // Get all carriers
+    const carriers = await env.DB.prepare('SELECT * FROM carriers ORDER BY name').all();
+    
+    // Get user preferences
+    const userPreferences = await env.DB.prepare(
+      'SELECT carrier_id, enabled FROM user_carrier_preferences WHERE user_id = ?'
+    ).bind(userId).all();
+
+    // Get organization settings (if user is in an organization)
+    const organizationId = request.headers.get('X-Organization-Id');
+    let orgSettings = { results: [] as Array<{ carrier_id: string; enabled: boolean }> };
+    if (organizationId) {
+      orgSettings = await env.DB.prepare(
+        'SELECT carrier_id, enabled FROM organization_carrier_settings WHERE organization_id = ?'
+      ).bind(organizationId).all() as { results: Array<{ carrier_id: string; enabled: boolean }> };
+    }
+
+    const carriersWithPreferences = carriers.results.map((carrier: any) => {
+      const userPref = userPreferences.results.find((pref: any) => pref.carrier_id === carrier.id);
+      const orgSetting = orgSettings.results.find((setting: any) => setting.carrier_id === carrier.id);
+      
+      const userEnabled = userPref ? userPref.enabled : true; // Default to enabled
+      const organizationEnabled = orgSetting ? orgSetting.enabled : true; // Default to enabled
+      const isOrganizationControlled = organizationId && orgSetting && !orgSetting.enabled; // Controlled if org disabled it
+
+      return {
+        id: carrier.id,
+        name: carrier.name,
+        amBest: carrier.am_best,
+        portalUrl: carrier.portal_url,
+        agentPhone: carrier.agent_phone,
+        preferredTierRank: carrier.preferred_tier_rank,
+        availableStates: carrier.available_states ? JSON.parse(carrier.available_states) : [],
+        userEnabled,
+        organizationEnabled,
+        isOrganizationControlled
+      };
+    });
+
+    return Response.json(carriersWithPreferences, { headers: corsHeaders() });
+  } catch (error) {
+    console.error('Error fetching carriers with preferences:', error);
+    return Response.json({ error: 'Failed to fetch carriers' }, { status: 500, headers: corsHeaders() });
+  }
+});
+
+// Default 404 handler
+router.all('*', () => {
+  return Response.json(
+    { message: 'Not found' },
+    { status: 404, headers: corsHeaders() }
+  );
+});
+
+// Export worker
 export default {
   async fetch(request: Request, env: Env, ctx: ExecutionContext): Promise<Response> {
     try {
-      const response = await router.handle(request, env, ctx);
-
-      // Add CORS headers to all responses
-      response.headers.set('Access-Control-Allow-Origin', '*');
-      response.headers.set('Access-Control-Allow-Methods', 'GET, POST, PUT, DELETE, OPTIONS');
-      response.headers.set('Access-Control-Allow-Headers', 'Content-Type, Authorization');
-
-      return response;
-    } catch (err) {
-      console.error('Worker error:', err);
-      return new Response('Internal Server Error', {
-        status: 500,
-        headers: {
-          'Access-Control-Allow-Origin': '*',
-          'Access-Control-Allow-Methods': 'GET, POST, PUT, DELETE, OPTIONS',
-          'Access-Control-Allow-Headers': 'Content-Type, Authorization'
-        }
-      });
+      return await router.handle(request, env, ctx);
+    } catch (error) {
+      console.error('Worker error:', error);
+      return Response.json(
+        { error: 'Internal server error' },
+        { status: 500, headers: corsHeaders() }
+      );
     }
   }
 };

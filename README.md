@@ -13,11 +13,14 @@ CarrierLLM is a Retrieval-Augmented carrier placement assistant for insurance ag
 
 ### Technology Stack
 - **Frontend**: React 18, Vite, TanStack Query, React Router, Tailwind CSS
-- **Backend**: Cloudflare Workers, itty-router
+- **Backend**: Cloudflare Workers (native fetch API - **DO NOT USE itty-router**)
 - **Database**: Cloudflare D1 (SQLite), R2 (document storage), Vectorize (embeddings)
 - **Auth & Billing**: Clerk (with native Stripe integration)
 - **Testing**: Vitest, @testing-library/react
 - **Process Management**: PM2 for production deployment
+
+### ⚠️ Important Backend Note
+**DO NOT USE itty-router**: This project experienced critical deployment issues (Error 1101) when using itty-router in Cloudflare Workers. The worker would fail to start and throw exceptions. Use the native `fetch` API with manual routing instead. See `apps/worker/src/working-carriers.ts` for the correct pattern.
 
 ### Data Policy
 **NO MOCK DATA**: The application never uses mock, demo, or fake data for display purposes. All data starts with real zeros and populates through actual API usage. This ensures users see accurate, real data and prevents confusion from fake information.
