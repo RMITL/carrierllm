@@ -25,9 +25,10 @@ const client = axios.create({
 // Add auth interceptor for Clerk integration
 client.interceptors.request.use(async (config) => {
   try {
-    // Get the Clerk token and user ID for authenticated requests
+    // Get the Clerk token, user ID, and organization info for authenticated requests
     const token = await (window as any).Clerk?.session?.getToken();
     const userId = (window as any).Clerk?.user?.id;
+    const organization = (window as any).Clerk?.organization;
 
     if (token) {
       config.headers.Authorization = `Bearer ${token}`;
@@ -37,11 +38,16 @@ client.interceptors.request.use(async (config) => {
       config.headers['X-User-Id'] = userId;
     }
 
+    if (organization?.id) {
+      config.headers['X-Organization-Id'] = organization.id;
+    }
+
     console.log('API Request:', {
       url: config.url,
       method: config.method,
       hasToken: !!token,
-      userId: userId
+      userId: userId,
+      organizationId: organization?.id
     });
   } catch (error) {
     console.warn('Failed to get Clerk auth info:', error);

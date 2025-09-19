@@ -508,14 +508,24 @@ router.get('/api/carriers/with-preferences', async (request, env: Env) => {
     ).bind(userId).all();
 
     // Get organization settings (if user is in an organization)
-    // For now, we'll assume all carriers are available at organization level
-    // In a real implementation, you'd check the user's organization membership
+    // We'll get the organization ID from the request headers
+    const organizationId = request.headers.get('X-Organization-Id');
     
+    // Get organization settings if user is in an organization
+    let orgSettings = { results: [] };
+    if (organizationId) {
+      orgSettings = await env.DB.prepare(
+        'SELECT carrier_id, enabled FROM organization_carrier_settings WHERE organization_id = ?'
+      ).bind(organizationId).all();
+    }
+
     const carriersWithPreferences = carriers.results.map((carrier: any) => {
       const userPref = userPreferences.results.find((pref: any) => pref.carrier_id === carrier.id);
+      const orgSetting = orgSettings.results.find((setting: any) => setting.carrier_id === carrier.id);
+      
       const userEnabled = userPref ? userPref.enabled : true; // Default to enabled
-      const organizationEnabled = true; // For now, all carriers are org-enabled
-      const isOrganizationControlled = false; // For now, no org control
+      const organizationEnabled = orgSetting ? orgSetting.enabled : true; // Default to enabled
+      const isOrganizationControlled = organizationId && orgSetting && !orgSetting.enabled; // Controlled if org disabled it
 
       return {
         id: carrier.id,
@@ -683,16 +693,18 @@ router.get('/api/carriers/organization-settings', async (request, env: Env) => {
       return Response.json({ error: 'User ID required' }, { status: 401, headers: corsHeaders() });
     }
 
-    // TODO: Check if user is admin in organization
+    // Get organization ID from headers
+    const organizationId = request.headers.get('X-Organization-Id');
+    if (!organizationId) {
+      return Response.json({ error: 'Organization ID required' }, { status: 400, headers: corsHeaders() });
+    }
+
+    // TODO: Verify user is admin in this organization using Clerk
     // For now, we'll allow all authenticated users to access this endpoint
     // In production, you'd verify the user's role in their organization
 
     // Get all carriers
     const carriers = await env.DB.prepare('SELECT * FROM carriers ORDER BY name').all();
-    
-    // Get organization settings (for now, we'll use a default organization ID)
-    // In production, you'd get the user's organization ID from Clerk
-    const organizationId = 'default-org'; // This would come from user's organization membership
     
     const orgSettings = await env.DB.prepare(
       'SELECT carrier_id, enabled FROM organization_carrier_settings WHERE organization_id = ?'
@@ -731,7 +743,13 @@ router.post('/api/carriers/organization-settings', async (request, env: Env) => 
       return Response.json({ error: 'User ID required' }, { status: 401, headers: corsHeaders() });
     }
 
-    // TODO: Check if user is admin in organization
+    // Get organization ID from headers
+    const organizationId = request.headers.get('X-Organization-Id');
+    if (!organizationId) {
+      return Response.json({ error: 'Organization ID required' }, { status: 400, headers: corsHeaders() });
+    }
+
+    // TODO: Verify user is admin in this organization using Clerk
     // For now, we'll allow all authenticated users to access this endpoint
     // In production, you'd verify the user's role in their organization
 
@@ -739,10 +757,6 @@ router.post('/api/carriers/organization-settings', async (request, env: Env) => 
     if (!carrierId || typeof enabled !== 'boolean') {
       return Response.json({ error: 'carrierId and enabled are required' }, { status: 400, headers: corsHeaders() });
     }
-
-    // For now, we'll use a default organization ID
-    // In production, you'd get the user's organization ID from Clerk
-    const organizationId = 'default-org';
 
     // Upsert organization setting
     await env.DB.prepare(`

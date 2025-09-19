@@ -15,7 +15,6 @@ import { AnalyticsPage } from './routes/AnalyticsPage';
 // import { AnalyticsPageSimple as AnalyticsPage } from './routes/AnalyticsPageSimple';
 import { HistoryPage } from './routes/HistoryPage';
 import { PricingPage } from './routes/PricingPage';
-import { SettingsPage } from './routes/SettingsPage';
 import { TermsPage } from './routes/TermsPage';
 import { PrivacyPage } from './routes/PrivacyPage';
 
@@ -56,7 +55,6 @@ const App = () => {
                 <Route path="/profile" element={<ProfilePage />} />
                 <Route path="/billing" element={<BillingPage />} />
                 <Route path="/analytics" element={<AnalyticsPage />} />
-                <Route path="/settings" element={<SettingsPage />} />
                 <Route path="/pricing" element={<PricingPage />} />
                 <Route path="/terms" element={<TermsPage />} />
                 <Route path="/privacy" element={<PrivacyPage />} />

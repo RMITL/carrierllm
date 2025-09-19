@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { useUser } from '@clerk/clerk-react';
+import { useUser, useOrganization } from '@clerk/clerk-react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { Card, Button, Badge } from '@carrierllm/ui';
 import type { 
@@ -17,23 +17,21 @@ interface CarriersPanelProps {
 
 export const CarriersPanel: React.FC<CarriersPanelProps> = ({ className = '' }) => {
   const { user, isLoaded: userLoaded } = useUser();
+  const { organization, membership } = useOrganization();
   const queryClient = useQueryClient();
   const [selectedCarriers, setSelectedCarriers] = useState<Set<string>>(new Set());
   const [uploading, setUploading] = useState(false);
   const [uploadProgress, setUploadProgress] = useState<{ [key: string]: number }>({});
 
+  // Check if user is admin in their organization
+  const isAdmin = membership?.role === 'admin' || membership?.role === 'org:admin';
+
   // Fetch carriers with user preferences
   const { data: carriers, isLoading: carriersLoading } = useQuery<CarrierWithPreferences[]>({
-    queryKey: ['carriers-with-preferences', user?.id],
+    queryKey: ['carriers-with-preferences', user?.id, organization?.id],
     queryFn: async () => {
-      const response = await fetch('/api/carriers/with-preferences', {
-        headers: {
-          'Authorization': `Bearer ${await (window as any).Clerk?.session?.getToken()}`,
-          'X-User-Id': user?.id || '',
-        },
-      });
-      if (!response.ok) throw new Error('Failed to fetch carriers');
-      return response.json();
+      if (!user?.id) throw new Error('User not authenticated');
+      return getCarriersWithPreferences();
     },
     enabled: userLoaded && !!user,
   });
@@ -42,66 +40,28 @@ export const CarriersPanel: React.FC<CarriersPanelProps> = ({ className = '' }) 
   const { data: userDocuments, isLoading: documentsLoading } = useQuery<UserDocument[]>({
     queryKey: ['user-documents', user?.id],
     queryFn: async () => {
-      const response = await fetch('/api/documents/user', {
-        headers: {
-          'Authorization': `Bearer ${await (window as any).Clerk?.session?.getToken()}`,
-          'X-User-Id': user?.id || '',
-        },
-      });
-      if (!response.ok) throw new Error('Failed to fetch documents');
-      return response.json();
+      if (!user?.id) throw new Error('User not authenticated');
+      return getUserDocuments();
     },
     enabled: userLoaded && !!user,
   });
 
   // Update carrier preference mutation
-  const updateCarrierPreference = useMutation({
+  const updateCarrierPreferenceMutation = useMutation({
     mutationFn: async ({ carrierId, enabled }: { carrierId: string; enabled: boolean }) => {
-      const response = await fetch('/api/carriers/preferences', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          'Authorization': `Bearer ${await (window as any).Clerk?.session?.getToken()}`,
-          'X-User-Id': user?.id || '',
-        },
-        body: JSON.stringify({ carrierId, enabled }),
-      });
-      if (!response.ok) throw new Error('Failed to update carrier preference');
-      return response.json();
+      if (!user?.id) throw new Error('User not authenticated');
+      return updateCarrierPreference(carrierId, enabled);
     },
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['carriers-with-preferences', user?.id] });
+      queryClient.invalidateQueries({ queryKey: ['carriers-with-preferences', user?.id, organization?.id] });
     },
   });
 
   // Document upload mutation
-  const uploadDocument = useMutation({
+  const uploadDocumentMutation = useMutation({
     mutationFn: async (uploadRequest: DocumentUploadRequest): Promise<DocumentUploadResponse> => {
-      const formData = new FormData();
-      formData.append('carrierId', uploadRequest.carrierId);
-      formData.append('carrierName', uploadRequest.carrierName);
-      formData.append('title', uploadRequest.title);
-      formData.append('file', uploadRequest.file);
-      formData.append('docType', uploadRequest.docType);
-      if (uploadRequest.effectiveDate) {
-        formData.append('effectiveDate', uploadRequest.effectiveDate);
-      }
-
-      const response = await fetch('/api/documents/upload', {
-        method: 'POST',
-        headers: {
-          'Authorization': `Bearer ${await (window as any).Clerk?.session?.getToken()}`,
-          'X-User-Id': user?.id || '',
-        },
-        body: formData,
-      });
-
-      if (!response.ok) {
-        const error = await response.json();
-        throw new Error(error.message || 'Failed to upload document');
-      }
-
-      return response.json();
+      if (!user?.id) throw new Error('User not authenticated');
+      return uploadDocument(uploadRequest);
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['user-documents', user?.id] });
@@ -141,7 +101,7 @@ export const CarriersPanel: React.FC<CarriersPanelProps> = ({ className = '' }) 
       return newSet;
     });
 
-    updateCarrierPreference.mutate({ carrierId, enabled });
+    updateCarrierPreferenceMutation.mutate({ carrierId, enabled });
   };
 
   const handleDocumentUpload = async (event: React.ChangeEvent<HTMLInputElement>) => {
@@ -160,7 +120,7 @@ export const CarriersPanel: React.FC<CarriersPanelProps> = ({ className = '' }) 
     };
 
     setUploading(true);
-    uploadDocument.mutate(uploadRequest);
+    uploadDocumentMutation.mutate(uploadRequest);
   };
 
   const formatFileSize = (bytes?: number) => {
