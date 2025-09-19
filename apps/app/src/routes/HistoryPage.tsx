@@ -35,6 +35,8 @@ export const HistoryPage = () => {
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['user-history', user?.id] });
       setShowClearConfirm(false);
+      // Show success message (you could add a toast notification here)
+      console.log('History cleared successfully');
     },
     onError: (error) => {
       console.error('Failed to clear history:', error);
@@ -214,7 +216,6 @@ export const HistoryPage = () => {
               {!showClearConfirm ? (
                 <Button
                   variant="secondary"
-                  size="sm"
                   onClick={() => setShowClearConfirm(true)}
                   className="text-red-600 hover:text-red-700 hover:bg-red-50"
                 >
@@ -224,18 +225,16 @@ export const HistoryPage = () => {
                 <div className="flex items-center gap-2">
                   <Button
                     variant="secondary"
-                    size="sm"
                     onClick={() => setShowClearConfirm(false)}
                   >
                     Cancel
                   </Button>
                   <Button
-                    variant="destructive"
-                    size="sm"
                     onClick={() => clearHistoryMutation.mutate()}
                     disabled={clearHistoryMutation.isPending}
+                    className="w-full"
                   >
-                    {clearHistoryMutation.isPending ? 'Clearing...' : 'Confirm Clear'}
+                    {clearHistoryMutation.isPending ? 'Clearing...' : 'Clear History'}
                   </Button>
                 </div>
               )}

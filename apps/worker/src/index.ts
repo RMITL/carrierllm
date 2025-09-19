@@ -471,6 +471,39 @@ router.get('/api/user/:userId/history', async (request, env: Env) => {
   }
 });
 
+// Clear user history endpoint
+router.delete('/api/user/:userId/history', async (request, env: Env) => {
+  const { userId } = request.params;
+
+  try {
+    console.log('Clearing history for user:', userId);
+    
+    // Delete from all relevant tables
+    await env.DB.prepare(`
+      DELETE FROM recommendations WHERE user_id = ?
+    `).bind(userId).run();
+    
+    await env.DB.prepare(`
+      DELETE FROM intakes WHERE user_id = ?
+    `).bind(userId).run();
+    
+    await env.DB.prepare(`
+      DELETE FROM intake_submissions WHERE user_id = ?
+    `).bind(userId).run();
+    
+    console.log('History cleared successfully for user:', userId);
+    return Response.json({ success: true, message: 'History cleared successfully' }, { 
+      headers: corsHeaders() 
+    });
+  } catch (error) {
+    console.error('Error clearing history:', error);
+    return Response.json({ error: 'Failed to clear history' }, { 
+      status: 500, 
+      headers: corsHeaders() 
+    });
+  }
+});
+
 // Get recommendation by ID
 router.get('/api/recommendations/:id', async (request, env: Env) => {
   const { id } = request.params;
