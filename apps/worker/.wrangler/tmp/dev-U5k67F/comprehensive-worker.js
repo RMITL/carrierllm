@@ -1,6 +1,625 @@
 var __defProp = Object.defineProperty;
 var __name = (target, value) => __defProp(target, "name", { value, configurable: true });
 
+// src/clerk-email-notifications.ts
+async function sendOrganizationWelcomeEmail(org, env) {
+  if (!env.RESEND_API_KEY) return false;
+  try {
+    const response = await fetch("https://api.resend.com/emails", {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        "Authorization": `Bearer ${env.RESEND_API_KEY}`
+      },
+      body: JSON.stringify({
+        from: env.FROM_EMAIL || "noreply@mail.carrierllm.com",
+        to: "admin@carrierllm.com",
+        // You'd get this from the org admin
+        subject: `\u{1F389} Welcome to CarrierLLM! Your organization "${org.name}" is ready`,
+        html: `
+          <div style="font-family: system-ui, -apple-system, sans-serif; max-width: 600px; margin: 0 auto;">
+            <h1 style="color: #3b82f6; font-size: 28px; margin-bottom: 20px;">Welcome to CarrierLLM!</h1>
+            
+            <p style="color: #4b5563; font-size: 16px; line-height: 1.6;">
+              Congratulations! Your organization <strong>${org.name}</strong> has been successfully created and is ready to use.
+            </p>
+
+            <div style="background: #eff6ff; padding: 24px; border-radius: 12px; margin: 24px 0;">
+              <h3 style="color: #1e40af; margin-top: 0;">\u{1F680} What's Next?</h3>
+              <ul style="color: #4b5563; line-height: 1.8;">
+                <li>Invite your team members to collaborate</li>
+                <li>Upload your carrier underwriting documents</li>
+                <li>Configure carrier preferences for your organization</li>
+                <li>Start getting intelligent carrier recommendations</li>
+              </ul>
+            </div>
+
+            <div style="text-align: center; margin: 32px 0;">
+              <a href="${env.APP_URL}/carriers" 
+                 style="background: #3b82f6; color: white; padding: 12px 24px; border-radius: 8px; text-decoration: none; font-weight: 600;">
+                Get Started \u2192
+              </a>
+            </div>
+
+            <div style="background: #f9fafb; padding: 20px; border-radius: 8px; margin: 24px 0;">
+              <h4 style="color: #1a1a1a; margin-top: 0;">Organization Details:</h4>
+              <p style="color: #4b5563; margin: 4px 0;"><strong>Name:</strong> ${org.name}</p>
+              <p style="color: #4b5563; margin: 4px 0;"><strong>Created:</strong> ${new Date(org.created_at).toLocaleDateString()}</p>
+              <p style="color: #4b5563; margin: 4px 0;"><strong>Member Limit:</strong> ${org.max_allowed_memberships}</p>
+            </div>
+
+            <p style="color: #6b7280; font-size: 14px; margin-top: 32px;">
+              Need help? Contact our support team at <a href="mailto:info@carrierllm.com" style="color: #3b82f6;">info@carrierllm.com</a>
+            </p>
+          </div>
+        `
+      })
+    });
+    return response.ok;
+  } catch (error) {
+    console.error("Failed to send organization welcome email:", error);
+    return false;
+  }
+}
+__name(sendOrganizationWelcomeEmail, "sendOrganizationWelcomeEmail");
+async function sendTeamWelcomeEmail(membership, env) {
+  if (!env.RESEND_API_KEY || !membership.public_user_data?.user_id) return false;
+  try {
+    const userEmail = membership.public_user_data?.identifier || "team@carrierllm.com";
+    const response = await fetch("https://api.resend.com/emails", {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        "Authorization": `Bearer ${env.RESEND_API_KEY}`
+      },
+      body: JSON.stringify({
+        from: env.FROM_EMAIL || "noreply@mail.carrierllm.com",
+        to: userEmail,
+        subject: `\u{1F44B} Welcome to ${membership.organization.name} on CarrierLLM!`,
+        html: `
+          <div style="font-family: system-ui, -apple-system, sans-serif; max-width: 600px; margin: 0 auto;">
+            <h1 style="color: #3b82f6; font-size: 28px; margin-bottom: 20px;">Welcome to the team!</h1>
+            
+            <p style="color: #4b5563; font-size: 16px; line-height: 1.6;">
+              Hi ${membership.public_user_data?.first_name || "there"},<br><br>
+              You've been added to <strong>${membership.organization.name}</strong> on CarrierLLM! 
+              You now have access to our intelligent carrier recommendation platform.
+            </p>
+
+            <div style="background: #eff6ff; padding: 24px; border-radius: 12px; margin: 24px 0;">
+              <h3 style="color: #1e40af; margin-top: 0;">\u{1F3AF} Your Role: ${membership.role_name}</h3>
+              <p style="color: #4b5563; line-height: 1.6;">
+                As a ${membership.role_name.toLowerCase()}, you can:
+                ${membership.permissions?.map((perm) => `<li style="margin: 8px 0;">${formatPermission(perm)}</li>`).join("")}
+              </p>
+            </div>
+
+            <div style="text-align: center; margin: 32px 0;">
+              <a href="${env.APP_URL}/dashboard" 
+                 style="background: #3b82f6; color: white; padding: 12px 24px; border-radius: 8px; text-decoration: none; font-weight: 600;">
+                Access Dashboard \u2192
+              </a>
+            </div>
+
+            <div style="background: #f9fafb; padding: 20px; border-radius: 8px; margin: 24px 0;">
+              <h4 style="color: #1a1a1a; margin-top: 0;">Quick Start Guide:</h4>
+              <ol style="color: #4b5563; line-height: 1.8;">
+                <li>Review your organization's carrier preferences</li>
+                <li>Submit your first intake form to get recommendations</li>
+                <li>Explore the analytics dashboard</li>
+                <li>Upload additional carrier documents if needed</li>
+              </ol>
+            </div>
+
+            <p style="color: #6b7280; font-size: 14px; margin-top: 32px;">
+              Questions? Reach out to your team admin or contact us at <a href="mailto:info@carrierllm.com" style="color: #3b82f6;">info@carrierllm.com</a>
+            </p>
+          </div>
+        `
+      })
+    });
+    return response.ok;
+  } catch (error) {
+    console.error("Failed to send team welcome email:", error);
+    return false;
+  }
+}
+__name(sendTeamWelcomeEmail, "sendTeamWelcomeEmail");
+async function sendOrganizationInvitationEmail(invitation, env) {
+  if (!env.RESEND_API_KEY) return false;
+  try {
+    const response = await fetch("https://api.resend.com/emails", {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        "Authorization": `Bearer ${env.RESEND_API_KEY}`
+      },
+      body: JSON.stringify({
+        from: env.FROM_EMAIL || "noreply@mail.carrierllm.com",
+        to: invitation.email_address,
+        subject: `\u{1F3AF} You're invited to join ${invitation.organization?.name || "a team"} on CarrierLLM`,
+        html: `
+          <div style="font-family: system-ui, -apple-system, sans-serif; max-width: 600px; margin: 0 auto;">
+            <h1 style="color: #3b82f6; font-size: 28px; margin-bottom: 20px;">You're Invited!</h1>
+            
+            <p style="color: #4b5563; font-size: 16px; line-height: 1.6;">
+              You've been invited to join <strong>${invitation.organization?.name || "a team"}</strong> on CarrierLLM, 
+              the intelligent carrier recommendation platform for insurance professionals.
+            </p>
+
+            <div style="background: #eff6ff; padding: 24px; border-radius: 12px; margin: 24px 0;">
+              <h3 style="color: #1e40af; margin-top: 0;">\u{1F3AF} Your Role: ${invitation.role_name}</h3>
+              <p style="color: #4b5563; line-height: 1.6;">
+                You'll have access to:
+              </p>
+              <ul style="color: #4b5563; line-height: 1.8;">
+                <li>Intelligent carrier matching and recommendations</li>
+                <li>Team collaboration and shared carrier preferences</li>
+                <li>Analytics and reporting dashboard</li>
+                <li>Document management and upload capabilities</li>
+              </ul>
+            </div>
+
+            <div style="text-align: center; margin: 32px 0;">
+              <a href="${invitation.url}" 
+                 style="background: #3b82f6; color: white; padding: 12px 24px; border-radius: 8px; text-decoration: none; font-weight: 600;">
+                Accept Invitation \u2192
+              </a>
+            </div>
+
+            <div style="background: #fef3c7; padding: 20px; border-radius: 8px; margin: 24px 0; border-left: 4px solid #f59e0b;">
+              <p style="color: #92400e; margin: 0; font-weight: 600;">
+                \u23F0 This invitation expires on ${new Date(invitation.expires_at).toLocaleDateString()}
+              </p>
+            </div>
+
+            <p style="color: #6b7280; font-size: 14px; margin-top: 32px;">
+              Questions about this invitation? Contact us at <a href="mailto:info@carrierllm.com" style="color: #3b82f6;">info@carrierllm.com</a>
+            </p>
+          </div>
+        `
+      })
+    });
+    return response.ok;
+  } catch (error) {
+    console.error("Failed to send invitation email:", error);
+    return false;
+  }
+}
+__name(sendOrganizationInvitationEmail, "sendOrganizationInvitationEmail");
+async function sendTrialEndingEmail(item, env) {
+  if (!env.RESEND_API_KEY || !item.payer?.user_id) return false;
+  try {
+    const response = await fetch("https://api.resend.com/emails", {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        "Authorization": `Bearer ${env.RESEND_API_KEY}`
+      },
+      body: JSON.stringify({
+        from: env.FROM_EMAIL || "noreply@mail.carrierllm.com",
+        to: item.payer.email,
+        subject: `\u23F0 Your CarrierLLM trial is ending soon`,
+        html: `
+          <div style="font-family: system-ui, -apple-system, sans-serif; max-width: 600px; margin: 0 auto;">
+            <h1 style="color: #f59e0b; font-size: 28px; margin-bottom: 20px;">Trial Ending Soon</h1>
+            
+            <p style="color: #4b5563; font-size: 16px; line-height: 1.6;">
+              Hi ${item.payer.first_name || "there"},<br><br>
+              Your free trial for <strong>${item.plan.name}</strong> is ending soon. 
+              Don't lose access to your carrier recommendations and team collaboration features!
+            </p>
+
+            <div style="background: #fef3c7; padding: 24px; border-radius: 12px; margin: 24px 0; border-left: 4px solid #f59e0b;">
+              <h3 style="color: #92400e; margin-top: 0;">\u23F0 Trial Details</h3>
+              <p style="color: #92400e; margin: 4px 0;"><strong>Plan:</strong> ${item.plan.name}</p>
+              <p style="color: #92400e; margin: 4px 0;"><strong>Price:</strong> ${formatPrice(item.plan.amount, item.plan.currency)}</p>
+              <p style="color: #92400e; margin: 4px 0;"><strong>Billing:</strong> ${item.interval}</p>
+            </div>
+
+            <div style="text-align: center; margin: 32px 0;">
+              <a href="${env.APP_URL}/billing" 
+                 style="background: #3b82f6; color: white; padding: 12px 24px; border-radius: 8px; text-decoration: none; font-weight: 600;">
+                Continue Subscription \u2192
+              </a>
+            </div>
+
+            <div style="background: #eff6ff; padding: 20px; border-radius: 8px; margin: 24px 0;">
+              <h4 style="color: #1a1a1a; margin-top: 0;">What happens if you don't upgrade?</h4>
+              <ul style="color: #4b5563; line-height: 1.8;">
+                <li>Access to premium carrier recommendations will be limited</li>
+                <li>Team collaboration features will be disabled</li>
+                <li>Advanced analytics will no longer be available</li>
+                <li>Your data will be preserved for 30 days</li>
+              </ul>
+            </div>
+
+            <p style="color: #6b7280; font-size: 14px; margin-top: 32px;">
+              Questions about billing? Contact us at <a href="mailto:info@carrierllm.com" style="color: #3b82f6;">info@carrierllm.com</a>
+            </p>
+          </div>
+        `
+      })
+    });
+    return response.ok;
+  } catch (error) {
+    console.error("Failed to send trial ending email:", error);
+    return false;
+  }
+}
+__name(sendTrialEndingEmail, "sendTrialEndingEmail");
+async function sendPaymentConfirmationEmail(payment, env) {
+  if (!env.RESEND_API_KEY || !payment.payer?.user_id) return false;
+  try {
+    const response = await fetch("https://api.resend.com/emails", {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        "Authorization": `Bearer ${env.RESEND_API_KEY}`
+      },
+      body: JSON.stringify({
+        from: env.FROM_EMAIL || "noreply@mail.carrierllm.com",
+        to: payment.payer.email,
+        subject: `\u2705 Payment Confirmed - CarrierLLM`,
+        html: `
+          <div style="font-family: system-ui, -apple-system, sans-serif; max-width: 600px; margin: 0 auto;">
+            <h1 style="color: #10b981; font-size: 28px; margin-bottom: 20px;">Payment Confirmed!</h1>
+            
+            <p style="color: #4b5563; font-size: 16px; line-height: 1.6;">
+              Hi ${payment.payer.first_name || "there"},<br><br>
+              Thank you! Your payment has been successfully processed and your CarrierLLM subscription is now active.
+            </p>
+
+            <div style="background: #f0fdf4; padding: 24px; border-radius: 12px; margin: 24px 0; border-left: 4px solid #10b981;">
+              <h3 style="color: #166534; margin-top: 0;">\u{1F4B0} Payment Details</h3>
+              <p style="color: #166534; margin: 4px 0;"><strong>Amount:</strong> ${payment.totals.grand_total.amount_formatted}</p>
+              <p style="color: #166534; margin: 4px 0;"><strong>Date:</strong> ${new Date(payment.created_at).toLocaleDateString()}</p>
+              <p style="color: #166534; margin: 4px 0;"><strong>Status:</strong> ${payment.status}</p>
+            </div>
+
+            <div style="background: #eff6ff; padding: 20px; border-radius: 8px; margin: 24px 0;">
+              <h4 style="color: #1a1a1a; margin-top: 0;">\u{1F389} You now have access to:</h4>
+              <ul style="color: #4b5563; line-height: 1.8;">
+                <li>Unlimited carrier recommendations</li>
+                <li>Advanced analytics and reporting</li>
+                <li>Team collaboration features</li>
+                <li>Priority support</li>
+                <li>Document upload and management</li>
+              </ul>
+            </div>
+
+            <div style="text-align: center; margin: 32px 0;">
+              <a href="${env.APP_URL}/dashboard" 
+                 style="background: #3b82f6; color: white; padding: 12px 24px; border-radius: 8px; text-decoration: none; font-weight: 600;">
+                Access Dashboard \u2192
+              </a>
+            </div>
+
+            <p style="color: #6b7280; font-size: 14px; margin-top: 32px;">
+              Need help? Contact our support team at <a href="mailto:info@carrierllm.com" style="color: #3b82f6;">info@carrierllm.com</a>
+            </p>
+          </div>
+        `
+      })
+    });
+    return response.ok;
+  } catch (error) {
+    console.error("Failed to send payment confirmation email:", error);
+    return false;
+  }
+}
+__name(sendPaymentConfirmationEmail, "sendPaymentConfirmationEmail");
+function formatPermission(permission) {
+  return permission.replace(/org:/g, "").replace(/:/g, " ").split(" ").map((word) => word.charAt(0).toUpperCase() + word.slice(1)).join(" ");
+}
+__name(formatPermission, "formatPermission");
+async function sendUserWelcomeEmail(user, env) {
+  if (!env.RESEND_API_KEY || !user.email_addresses?.[0]?.email_address) return false;
+  try {
+    const response = await fetch("https://api.resend.com/emails", {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        "Authorization": `Bearer ${env.RESEND_API_KEY}`
+      },
+      body: JSON.stringify({
+        from: env.FROM_EMAIL || "noreply@mail.carrierllm.com",
+        to: user.email_addresses[0].email_address,
+        subject: `\u{1F389} Welcome to CarrierLLM!`,
+        html: `
+          <div style="font-family: system-ui, -apple-system, sans-serif; max-width: 600px; margin: 0 auto;">
+            <h1 style="color: #3b82f6; font-size: 28px; margin-bottom: 20px;">Welcome to CarrierLLM!</h1>
+            
+            <p style="color: #4b5563; font-size: 16px; line-height: 1.6;">
+              Hi ${user.first_name || "there"},<br><br>
+              Welcome to CarrierLLM! You now have access to our intelligent carrier recommendation platform 
+              that helps insurance professionals find the best carriers for their clients.
+            </p>
+
+            <div style="background: #eff6ff; padding: 24px; border-radius: 12px; margin: 24px 0;">
+              <h3 style="color: #1e40af; margin-top: 0;">\u{1F680} Getting Started</h3>
+              <ol style="color: #4b5563; line-height: 1.8;">
+                <li>Complete your profile setup</li>
+                <li>Configure your carrier preferences</li>
+                <li>Submit your first intake form</li>
+                <li>Get intelligent carrier recommendations</li>
+              </ol>
+            </div>
+
+            <div style="text-align: center; margin: 32px 0;">
+              <a href="${env.APP_URL}/dashboard" 
+                 style="background: #3b82f6; color: white; padding: 12px 24px; border-radius: 8px; text-decoration: none; font-weight: 600;">
+                Get Started \u2192
+              </a>
+            </div>
+
+            <p style="color: #6b7280; font-size: 14px; margin-top: 32px;">
+              Need help? Contact our support team at <a href="mailto:info@carrierllm.com" style="color: #3b82f6;">info@carrierllm.com</a>
+            </p>
+          </div>
+        `
+      })
+    });
+    return response.ok;
+  } catch (error) {
+    console.error("Failed to send user welcome email:", error);
+    return false;
+  }
+}
+__name(sendUserWelcomeEmail, "sendUserWelcomeEmail");
+async function sendRoleChangeNotification(membership, env) {
+  if (!env.RESEND_API_KEY || !membership.public_user_data?.user_id) return false;
+  try {
+    const response = await fetch("https://api.resend.com/emails", {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        "Authorization": `Bearer ${env.RESEND_API_KEY}`
+      },
+      body: JSON.stringify({
+        from: env.FROM_EMAIL || "noreply@mail.carrierllm.com",
+        to: membership.public_user_data.identifier,
+        subject: `\u{1F514} Role Update - ${membership.organization.name}`,
+        html: `
+          <div style="font-family: system-ui, -apple-system, sans-serif; max-width: 600px; margin: 0 auto;">
+            <h1 style="color: #3b82f6; font-size: 28px; margin-bottom: 20px;">Role Update</h1>
+            
+            <p style="color: #4b5563; font-size: 16px; line-height: 1.6;">
+              Hi ${membership.public_user_data.first_name || "there"},<br><br>
+              Your role in <strong>${membership.organization.name}</strong> has been updated to <strong>${membership.role_name}</strong>.
+            </p>
+
+            <div style="background: #eff6ff; padding: 24px; border-radius: 12px; margin: 24px 0;">
+              <h3 style="color: #1e40af; margin-top: 0;">\u{1F3AF} Your New Permissions</h3>
+              <ul style="color: #4b5563; line-height: 1.8;">
+                ${membership.permissions?.map((perm) => `<li>${formatPermission(perm)}</li>`).join("")}
+              </ul>
+            </div>
+
+            <div style="text-align: center; margin: 32px 0;">
+              <a href="${env.APP_URL}/dashboard" 
+                 style="background: #3b82f6; color: white; padding: 12px 24px; border-radius: 8px; text-decoration: none; font-weight: 600;">
+                Access Dashboard \u2192
+              </a>
+            </div>
+
+            <p style="color: #6b7280; font-size: 14px; margin-top: 32px;">
+              Questions about your new role? Contact your team admin or reach out to us at <a href="mailto:info@carrierllm.com" style="color: #3b82f6;">info@carrierllm.com</a>
+            </p>
+          </div>
+        `
+      })
+    });
+    return response.ok;
+  } catch (error) {
+    console.error("Failed to send role change notification:", error);
+    return false;
+  }
+}
+__name(sendRoleChangeNotification, "sendRoleChangeNotification");
+async function sendSecurityNotification(session, env) {
+  if (!env.RESEND_API_KEY || !session.user_id) return false;
+  try {
+    const response = await fetch("https://api.resend.com/emails", {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        "Authorization": `Bearer ${env.RESEND_API_KEY}`
+      },
+      body: JSON.stringify({
+        from: env.FROM_EMAIL || "noreply@mail.carrierllm.com",
+        to: "security@carrierllm.com",
+        // You'd get this from user data
+        subject: `\u{1F512} Security Alert - Session Revoked`,
+        html: `
+          <div style="font-family: system-ui, -apple-system, sans-serif; max-width: 600px; margin: 0 auto;">
+            <h1 style="color: #ef4444; font-size: 28px; margin-bottom: 20px;">Security Alert</h1>
+            
+            <p style="color: #4b5563; font-size: 16px; line-height: 1.6;">
+              A session has been revoked for security reasons.
+            </p>
+
+            <div style="background: #fef2f2; padding: 24px; border-radius: 12px; margin: 24px 0; border-left: 4px solid #ef4444;">
+              <h3 style="color: #dc2626; margin-top: 0;">\u26A0\uFE0F Session Details</h3>
+              <p style="color: #dc2626; margin: 4px 0;"><strong>User ID:</strong> ${session.user_id}</p>
+              <p style="color: #dc2626; margin: 4px 0;"><strong>Session ID:</strong> ${session.id}</p>
+              <p style="color: #dc2626; margin: 4px 0;"><strong>Revoked:</strong> ${new Date(session.updated_at).toLocaleString()}</p>
+            </div>
+
+            <p style="color: #6b7280; font-size: 14px; margin-top: 32px;">
+              This is an automated security notification from CarrierLLM.
+            </p>
+          </div>
+        `
+      })
+    });
+    return response.ok;
+  } catch (error) {
+    console.error("Failed to send security notification:", error);
+    return false;
+  }
+}
+__name(sendSecurityNotification, "sendSecurityNotification");
+async function sendPaymentReminderEmail(item, env) {
+  if (!env.RESEND_API_KEY || !item.payer?.user_id) return false;
+  try {
+    const response = await fetch("https://api.resend.com/emails", {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        "Authorization": `Bearer ${env.RESEND_API_KEY}`
+      },
+      body: JSON.stringify({
+        from: env.FROM_EMAIL || "noreply@mail.carrierllm.com",
+        to: item.payer.email,
+        subject: `\u26A0\uFE0F Payment Required - CarrierLLM Subscription`,
+        html: `
+          <div style="font-family: system-ui, -apple-system, sans-serif; max-width: 600px; margin: 0 auto;">
+            <h1 style="color: #f59e0b; font-size: 28px; margin-bottom: 20px;">Payment Required</h1>
+            
+            <p style="color: #4b5563; font-size: 16px; line-height: 1.6;">
+              Hi ${item.payer.first_name || "there"},<br><br>
+              Your CarrierLLM subscription payment is past due. Please update your payment method to avoid service interruption.
+            </p>
+
+            <div style="background: #fef3c7; padding: 24px; border-radius: 12px; margin: 24px 0; border-left: 4px solid #f59e0b;">
+              <h3 style="color: #92400e; margin-top: 0;">\u{1F4B0} Payment Details</h3>
+              <p style="color: #92400e; margin: 4px 0;"><strong>Plan:</strong> ${item.plan.name}</p>
+              <p style="color: #92400e; margin: 4px 0;"><strong>Amount:</strong> ${formatPrice(item.plan.amount, item.plan.currency)}</p>
+              <p style="color: #92400e; margin: 4px 0;"><strong>Status:</strong> Past Due</p>
+            </div>
+
+            <div style="text-align: center; margin: 32px 0;">
+              <a href="${env.APP_URL}/billing" 
+                 style="background: #3b82f6; color: white; padding: 12px 24px; border-radius: 8px; text-decoration: none; font-weight: 600;">
+                Update Payment Method \u2192
+              </a>
+            </div>
+
+            <p style="color: #6b7280; font-size: 14px; margin-top: 32px;">
+              Questions about billing? Contact us at <a href="mailto:info@carrierllm.com" style="color: #3b82f6;">info@carrierllm.com</a>
+            </p>
+          </div>
+        `
+      })
+    });
+    return response.ok;
+  } catch (error) {
+    console.error("Failed to send payment reminder email:", error);
+    return false;
+  }
+}
+__name(sendPaymentReminderEmail, "sendPaymentReminderEmail");
+async function sendCancellationConfirmationEmail(item, env) {
+  if (!env.RESEND_API_KEY || !item.payer?.user_id) return false;
+  try {
+    const response = await fetch("https://api.resend.com/emails", {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        "Authorization": `Bearer ${env.RESEND_API_KEY}`
+      },
+      body: JSON.stringify({
+        from: env.FROM_EMAIL || "noreply@mail.carrierllm.com",
+        to: item.payer.email,
+        subject: `\u{1F4DD} Subscription Cancelled - CarrierLLM`,
+        html: `
+          <div style="font-family: system-ui, -apple-system, sans-serif; max-width: 600px; margin: 0 auto;">
+            <h1 style="color: #6b7280; font-size: 28px; margin-bottom: 20px;">Subscription Cancelled</h1>
+            
+            <p style="color: #4b5563; font-size: 16px; line-height: 1.6;">
+              Hi ${item.payer.first_name || "there"},<br><br>
+              Your CarrierLLM subscription has been successfully cancelled. We're sorry to see you go!
+            </p>
+
+            <div style="background: #f9fafb; padding: 24px; border-radius: 12px; margin: 24px 0;">
+              <h3 style="color: #1a1a1a; margin-top: 0;">\u{1F4CB} Cancellation Details</h3>
+              <p style="color: #4b5563; margin: 4px 0;"><strong>Plan:</strong> ${item.plan.name}</p>
+              <p style="color: #4b5563; margin: 4px 0;"><strong>Cancelled:</strong> ${new Date(item.updated_at).toLocaleDateString()}</p>
+              <p style="color: #4b5563; margin: 4px 0;"><strong>Access Until:</strong> ${new Date(item.period_end).toLocaleDateString()}</p>
+            </div>
+
+            <div style="background: #eff6ff; padding: 20px; border-radius: 8px; margin: 24px 0;">
+              <h4 style="color: #1a1a1a; margin-top: 0;">\u{1F4BE} Your Data</h4>
+              <p style="color: #4b5563; line-height: 1.6;">
+                Your data will be preserved for 30 days. If you change your mind, you can reactivate your subscription 
+                before ${new Date(Date.now() + 30 * 24 * 60 * 60 * 1e3).toLocaleDateString()}.
+              </p>
+            </div>
+
+            <div style="text-align: center; margin: 32px 0;">
+              <a href="${env.APP_URL}/billing" 
+                 style="background: #3b82f6; color: white; padding: 12px 24px; border-radius: 8px; text-decoration: none; font-weight: 600;">
+                Reactivate Subscription \u2192
+              </a>
+            </div>
+
+            <p style="color: #6b7280; font-size: 14px; margin-top: 32px;">
+              We'd love to hear your feedback. Contact us at <a href="mailto:info@carrierllm.com" style="color: #3b82f6;">info@carrierllm.com</a>
+            </p>
+          </div>
+        `
+      })
+    });
+    return response.ok;
+  } catch (error) {
+    console.error("Failed to send cancellation confirmation email:", error);
+    return false;
+  }
+}
+__name(sendCancellationConfirmationEmail, "sendCancellationConfirmationEmail");
+async function sendPaymentFailedEmail(payment, env) {
+  if (!env.RESEND_API_KEY || !payment.payer?.user_id) return false;
+  try {
+    const response = await fetch("https://api.resend.com/emails", {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        "Authorization": `Bearer ${env.RESEND_API_KEY}`
+      },
+      body: JSON.stringify({
+        from: env.FROM_EMAIL || "noreply@mail.carrierllm.com",
+        to: payment.payer.email,
+        subject: `\u274C Payment Failed - CarrierLLM`,
+        html: `
+          <div style="font-family: system-ui, -apple-system, sans-serif; max-width: 600px; margin: 0 auto;">
+            <h1 style="color: #ef4444; font-size: 28px; margin-bottom: 20px;">Payment Failed</h1>
+            
+            <p style="color: #4b5563; font-size: 16px; line-height: 1.6;">
+              Hi ${payment.payer.first_name || "there"},<br><br>
+              We were unable to process your payment for your CarrierLLM subscription. Please update your payment method to continue service.
+            </p>
+
+            <div style="background: #fef2f2; padding: 24px; border-radius: 12px; margin: 24px 0; border-left: 4px solid #ef4444;">
+              <h3 style="color: #dc2626; margin-top: 0;">\u{1F4B3} Payment Details</h3>
+              <p style="color: #dc2626; margin: 4px 0;"><strong>Amount:</strong> ${payment.totals.grand_total.amount_formatted}</p>
+              <p style="color: #dc2626; margin: 4px 0;"><strong>Date:</strong> ${new Date(payment.created_at).toLocaleDateString()}</p>
+              <p style="color: #dc2626; margin: 4px 0;"><strong>Status:</strong> Failed</p>
+              ${payment.failed_reason ? `<p style="color: #dc2626; margin: 4px 0;"><strong>Reason:</strong> ${payment.failed_reason}</p>` : ""}
+            </div>
+
+            <div style="text-align: center; margin: 32px 0;">
+              <a href="${env.APP_URL}/billing" 
+                 style="background: #3b82f6; color: white; padding: 12px 24px; border-radius: 8px; text-decoration: none; font-weight: 600;">
+                Update Payment Method \u2192
+              </a>
+            </div>
+
+            <p style="color: #6b7280; font-size: 14px; margin-top: 32px;">
+              Need help? Contact our billing team at <a href="mailto:info@carrierllm.com" style="color: #3b82f6;">info@carrierllm.com</a>
+            </p>
+          </div>
+        `
+      })
+    });
+    return response.ok;
+  } catch (error) {
+    console.error("Failed to send payment failed email:", error);
+    return false;
+  }
+}
+__name(sendPaymentFailedEmail, "sendPaymentFailedEmail");
+
 // src/comprehensive-worker.ts
 function corsHeaders() {
   return {
@@ -534,6 +1153,162 @@ var comprehensive_worker_default = {
           });
         }
       }
+      if (path === "/webhook" && method === "POST") {
+        try {
+          const svixId = request.headers.get("svix-id");
+          const svixTimestamp = request.headers.get("svix-timestamp");
+          const svixSignature = request.headers.get("svix-signature");
+          if (!svixId || !svixTimestamp || !svixSignature) {
+            console.error("Missing Clerk webhook headers");
+            return new Response("Missing webhook headers", {
+              status: 400,
+              headers: corsHeaders()
+            });
+          }
+          const clientIP = request.headers.get("cf-connecting-ip") || "unknown";
+          const rateLimitKey = `webhook_rate_limit_${clientIP}`;
+          const rateLimitCheck = await env.DB.prepare(`
+            SELECT COUNT(*) as count FROM webhook_rate_limits 
+            WHERE ip_address = ? AND created_at > datetime('now', '-1 minute')
+          `).bind(clientIP).first();
+          if (rateLimitCheck?.count > 10) {
+            console.error(`Rate limit exceeded for IP: ${clientIP}`);
+            return new Response("Rate limit exceeded", {
+              status: 429,
+              headers: corsHeaders()
+            });
+          }
+          await env.DB.prepare(`
+            INSERT INTO webhook_rate_limits (ip_address, created_at)
+            VALUES (?, datetime('now'))
+          `).bind(clientIP).run();
+          const body = await request.text();
+          const event = JSON.parse(body);
+          console.log(`Received Clerk webhook: ${event.type} from IP: ${clientIP}`);
+          switch (event.type) {
+            // User Events
+            case "user.created": {
+              const user = event.data;
+              console.log(`New user created: ${user.email_addresses?.[0]?.email_address || "unknown"} (${user.id})`);
+              if (env.RESEND_API_KEY && user.email_addresses?.[0]?.email_address) {
+                await sendUserWelcomeEmail(user, env);
+              }
+              break;
+            }
+            case "user.updated": {
+              const user = event.data;
+              console.log(`User updated: ${user.email_addresses?.[0]?.email_address || "unknown"} (${user.id})`);
+              await logUserChanges(user, env);
+              break;
+            }
+            // Organization Events
+            case "organization.created": {
+              const org = event.data;
+              console.log(`New organization created: ${org.name} (${org.id})`);
+              if (env.RESEND_API_KEY && org.created_by) {
+                await sendOrganizationWelcomeEmail(org, env);
+              }
+              break;
+            }
+            case "organizationMembership.created": {
+              const membership = event.data;
+              console.log(`User ${membership.public_user_data?.identifier} joined organization ${membership.organization.name}`);
+              if (env.RESEND_API_KEY && membership.public_user_data?.user_id) {
+                await sendTeamWelcomeEmail(membership, env);
+              }
+              break;
+            }
+            case "organizationMembership.updated": {
+              const membership = event.data;
+              console.log(`Organization membership updated: ${membership.public_user_data?.identifier} role changed to ${membership.role_name}`);
+              if (env.RESEND_API_KEY && membership.public_user_data?.user_id) {
+                await sendRoleChangeNotification(membership, env);
+              }
+              break;
+            }
+            case "organizationInvitation.created": {
+              const invitation = event.data;
+              console.log(`Invitation sent to ${invitation.email_address} for organization`);
+              if (env.RESEND_API_KEY) {
+                await sendOrganizationInvitationEmail(invitation, env);
+              }
+              break;
+            }
+            // Session Events
+            case "session.created": {
+              const session = event.data;
+              console.log(`Session created for user ${session.user_id}`);
+              await trackUserSession(session, env);
+              break;
+            }
+            case "session.revoked": {
+              const session = event.data;
+              console.log(`Session revoked for user ${session.user_id}`);
+              if (env.RESEND_API_KEY) {
+                await sendSecurityNotification(session, env);
+              }
+              break;
+            }
+            // Subscription Events
+            case "subscriptionItem.freeTrialEnding": {
+              const item = event.data;
+              console.log(`Free trial ending for subscription ${item.subscription_id}`);
+              if (env.RESEND_API_KEY && item.payer?.user_id) {
+                await sendTrialEndingEmail(item, env);
+              }
+              break;
+            }
+            case "subscriptionItem.pastDue": {
+              const item = event.data;
+              console.log(`Subscription past due for ${item.subscription_id}`);
+              if (env.RESEND_API_KEY && item.payer?.user_id) {
+                await sendPaymentReminderEmail(item, env);
+              }
+              break;
+            }
+            case "subscriptionItem.canceled": {
+              const item = event.data;
+              console.log(`Subscription canceled for ${item.subscription_id}`);
+              if (env.RESEND_API_KEY && item.payer?.user_id) {
+                await sendCancellationConfirmationEmail(item, env);
+              }
+              break;
+            }
+            // Payment Events
+            case "paymentAttempt.created": {
+              const payment = event.data;
+              console.log(`Payment attempt created: ${payment.status}`);
+              if (env.RESEND_API_KEY && payment.status === "paid" && payment.payer?.user_id) {
+                await sendPaymentConfirmationEmail(payment, env);
+              }
+              break;
+            }
+            case "paymentAttempt.updated": {
+              const payment = event.data;
+              console.log(`Payment attempt updated: ${payment.status}`);
+              if (env.RESEND_API_KEY && payment.status === "failed" && payment.payer?.user_id) {
+                await sendPaymentFailedEmail(payment, env);
+              }
+              break;
+            }
+            default:
+              console.log(`Unhandled webhook event: ${event.type}`);
+          }
+          await logWebhookEvent(event, env);
+          return new Response(JSON.stringify({ received: true }), {
+            headers: corsHeaders()
+          });
+        } catch (error) {
+          console.error("Webhook processing error:", error);
+          return new Response(JSON.stringify({
+            error: "Webhook processing failed",
+            details: error instanceof Error ? error.message : String(error)
+          }), {
+            status: 500,
+            headers: corsHeaders()
+          });
+        }
+      }
       if (path.startsWith("/api/subscriptions/") && method === "GET") {
         const userId = request.headers.get("X-User-Id");
         if (!userId) {
@@ -584,6 +1359,49 @@ var comprehensive_worker_default = {
     }
   }
 };
+async function logUserChanges(user, env) {
+  try {
+    await env.DB.prepare(`
+      INSERT INTO user_audit_log (user_id, action, changes, created_at)
+      VALUES (?, 'profile_updated', ?, datetime('now'))
+    `).bind(user.id, JSON.stringify(user)).run();
+  } catch (error) {
+    console.error("Failed to log user changes:", error);
+  }
+}
+__name(logUserChanges, "logUserChanges");
+async function trackUserSession(session, env) {
+  try {
+    await env.DB.prepare(`
+      INSERT INTO user_sessions (user_id, session_id, ip_address, user_agent, created_at)
+      VALUES (?, ?, ?, ?, datetime('now'))
+    `).bind(
+      session.user_id,
+      session.id,
+      session.latest_activity?.ip_address || "unknown",
+      session.latest_activity?.browser_name || "unknown"
+    ).run();
+  } catch (error) {
+    console.error("Failed to track user session:", error);
+  }
+}
+__name(trackUserSession, "trackUserSession");
+async function logWebhookEvent(event, env) {
+  try {
+    await env.DB.prepare(`
+      INSERT INTO webhook_events (event_id, event_type, user_id, payload, status, created_at)
+      VALUES (?, ?, ?, ?, 'processed', datetime('now'))
+    `).bind(
+      event.id,
+      event.type,
+      event.data?.id || event.data?.user_id || null,
+      JSON.stringify(event)
+    ).run();
+  } catch (error) {
+    console.error("Failed to log webhook event:", error);
+  }
+}
+__name(logWebhookEvent, "logWebhookEvent");
 
 // ../../../../../Users/cinef/AppData/Local/npm-cache/_npx/d77349f55c2be1c0/node_modules/wrangler/templates/middleware/middleware-ensure-req-body-drained.ts
 var drainBody = /* @__PURE__ */ __name(async (request, env, _ctx, middlewareCtx) => {

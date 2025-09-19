@@ -1,4 +1,19 @@
 // Comprehensive worker with all necessary endpoints using native fetch API
+
+import {
+  sendOrganizationWelcomeEmail,
+  sendTeamWelcomeEmail,
+  sendOrganizationInvitationEmail,
+  sendTrialEndingEmail,
+  sendPaymentConfirmationEmail,
+  sendUserWelcomeEmail,
+  sendRoleChangeNotification,
+  sendSecurityNotification,
+  sendPaymentReminderEmail,
+  sendCancellationConfirmationEmail,
+  sendPaymentFailedEmail
+} from './clerk-email-notifications';
+
 interface Env {
   DB: D1Database;
   DOCS_BUCKET: R2Bucket;
@@ -661,6 +676,219 @@ export default {
         }
       }
 
+      // Clerk webhook endpoint with security and rate limiting
+      if (path === '/webhook' && method === 'POST') {
+        try {
+          // Verify webhook signature for security
+          const svixId = request.headers.get('svix-id');
+          const svixTimestamp = request.headers.get('svix-timestamp');
+          const svixSignature = request.headers.get('svix-signature');
+
+          if (!svixId || !svixTimestamp || !svixSignature) {
+            console.error('Missing Clerk webhook headers');
+            return new Response('Missing webhook headers', { 
+              status: 400, 
+              headers: corsHeaders() 
+            });
+          }
+
+          // Basic rate limiting (simple implementation)
+          const clientIP = request.headers.get('cf-connecting-ip') || 'unknown';
+          const rateLimitKey = `webhook_rate_limit_${clientIP}`;
+          
+          // Check if we've exceeded rate limit (10 requests per minute per IP)
+          const rateLimitCheck = await env.DB.prepare(`
+            SELECT COUNT(*) as count FROM webhook_rate_limits 
+            WHERE ip_address = ? AND created_at > datetime('now', '-1 minute')
+          `).bind(clientIP).first();
+
+          if ((rateLimitCheck as any)?.count > 10) {
+            console.error(`Rate limit exceeded for IP: ${clientIP}`);
+            return new Response('Rate limit exceeded', { 
+              status: 429, 
+              headers: corsHeaders() 
+            });
+          }
+
+          // Record this request for rate limiting
+          await env.DB.prepare(`
+            INSERT INTO webhook_rate_limits (ip_address, created_at)
+            VALUES (?, datetime('now'))
+          `).bind(clientIP).run();
+
+          const body = await request.text();
+          const event = JSON.parse(body);
+
+          console.log(`Received Clerk webhook: ${event.type} from IP: ${clientIP}`);
+
+          // Handle organization events for team management
+          switch (event.type) {
+            // User Events
+            case 'user.created': {
+              const user = event.data;
+              console.log(`New user created: ${user.email_addresses?.[0]?.email_address || 'unknown'} (${user.id})`);
+              
+              // Send welcome email to new user
+              if (env.RESEND_API_KEY && user.email_addresses?.[0]?.email_address) {
+                await sendUserWelcomeEmail(user, env);
+              }
+              break;
+            }
+
+            case 'user.updated': {
+              const user = event.data;
+              console.log(`User updated: ${user.email_addresses?.[0]?.email_address || 'unknown'} (${user.id})`);
+              
+              // Log user changes for audit trail
+              await logUserChanges(user, env);
+              break;
+            }
+
+            // Organization Events
+            case 'organization.created': {
+              const org = event.data;
+              console.log(`New organization created: ${org.name} (${org.id})`);
+              
+              // Send welcome email to organization admin
+              if (env.RESEND_API_KEY && org.created_by) {
+                await sendOrganizationWelcomeEmail(org, env);
+              }
+              break;
+            }
+
+            case 'organizationMembership.created': {
+              const membership = event.data;
+              console.log(`User ${membership.public_user_data?.identifier} joined organization ${membership.organization.name}`);
+              
+              // Send welcome email to new team member
+              if (env.RESEND_API_KEY && membership.public_user_data?.user_id) {
+                await sendTeamWelcomeEmail(membership, env);
+              }
+              break;
+            }
+
+            case 'organizationMembership.updated': {
+              const membership = event.data;
+              console.log(`Organization membership updated: ${membership.public_user_data?.identifier} role changed to ${membership.role_name}`);
+              
+              // Send role change notification
+              if (env.RESEND_API_KEY && membership.public_user_data?.user_id) {
+                await sendRoleChangeNotification(membership, env);
+              }
+              break;
+            }
+
+            case 'organizationInvitation.created': {
+              const invitation = event.data;
+              console.log(`Invitation sent to ${invitation.email_address} for organization`);
+              
+              // Send invitation email
+              if (env.RESEND_API_KEY) {
+                await sendOrganizationInvitationEmail(invitation, env);
+              }
+              break;
+            }
+
+            // Session Events
+            case 'session.created': {
+              const session = event.data;
+              console.log(`Session created for user ${session.user_id}`);
+              
+              // Track user activity for engagement analytics
+              await trackUserSession(session, env);
+              break;
+            }
+
+            case 'session.revoked': {
+              const session = event.data;
+              console.log(`Session revoked for user ${session.user_id}`);
+              
+              // Send security notification for revoked sessions
+              if (env.RESEND_API_KEY) {
+                await sendSecurityNotification(session, env);
+              }
+              break;
+            }
+
+            // Subscription Events
+            case 'subscriptionItem.freeTrialEnding': {
+              const item = event.data;
+              console.log(`Free trial ending for subscription ${item.subscription_id}`);
+              
+              // Send trial ending notification
+              if (env.RESEND_API_KEY && item.payer?.user_id) {
+                await sendTrialEndingEmail(item, env);
+              }
+              break;
+            }
+
+            case 'subscriptionItem.pastDue': {
+              const item = event.data;
+              console.log(`Subscription past due for ${item.subscription_id}`);
+              
+              // Send payment reminder
+              if (env.RESEND_API_KEY && item.payer?.user_id) {
+                await sendPaymentReminderEmail(item, env);
+              }
+              break;
+            }
+
+            case 'subscriptionItem.canceled': {
+              const item = event.data;
+              console.log(`Subscription canceled for ${item.subscription_id}`);
+              
+              // Send cancellation confirmation
+              if (env.RESEND_API_KEY && item.payer?.user_id) {
+                await sendCancellationConfirmationEmail(item, env);
+              }
+              break;
+            }
+
+            // Payment Events
+            case 'paymentAttempt.created': {
+              const payment = event.data;
+              console.log(`Payment attempt created: ${payment.status}`);
+              
+              // Send payment confirmation
+              if (env.RESEND_API_KEY && payment.status === 'paid' && payment.payer?.user_id) {
+                await sendPaymentConfirmationEmail(payment, env);
+              }
+              break;
+            }
+
+            case 'paymentAttempt.updated': {
+              const payment = event.data;
+              console.log(`Payment attempt updated: ${payment.status}`);
+              
+              // Handle failed payments
+              if (env.RESEND_API_KEY && payment.status === 'failed' && payment.payer?.user_id) {
+                await sendPaymentFailedEmail(payment, env);
+              }
+              break;
+            }
+
+            default:
+              console.log(`Unhandled webhook event: ${event.type}`);
+          }
+
+          // Log webhook event for audit trail
+          await logWebhookEvent(event, env);
+
+          return new Response(JSON.stringify({ received: true }), { 
+            headers: corsHeaders() 
+          });
+        } catch (error) {
+          console.error('Webhook processing error:', error);
+          return new Response(JSON.stringify({ 
+            error: 'Webhook processing failed',
+            details: error instanceof Error ? error.message : String(error)
+          }), { 
+            status: 500, 
+            headers: corsHeaders() 
+          });
+        }
+      }
+
       // Get user subscription/usage info
       if (path.startsWith('/api/subscriptions/') && method === 'GET') {
         const userId = request.headers.get('X-User-Id');
@@ -719,3 +947,47 @@ export default {
     }
   }
 };
+
+// Helper functions for webhook processing
+async function logUserChanges(user: any, env: Env): Promise<void> {
+  try {
+    await env.DB.prepare(`
+      INSERT INTO user_audit_log (user_id, action, changes, created_at)
+      VALUES (?, 'profile_updated', ?, datetime('now'))
+    `).bind(user.id, JSON.stringify(user)).run();
+  } catch (error) {
+    console.error('Failed to log user changes:', error);
+  }
+}
+
+async function trackUserSession(session: any, env: Env): Promise<void> {
+  try {
+    await env.DB.prepare(`
+      INSERT INTO user_sessions (user_id, session_id, ip_address, user_agent, created_at)
+      VALUES (?, ?, ?, ?, datetime('now'))
+    `).bind(
+      session.user_id,
+      session.id,
+      session.latest_activity?.ip_address || 'unknown',
+      session.latest_activity?.browser_name || 'unknown'
+    ).run();
+  } catch (error) {
+    console.error('Failed to track user session:', error);
+  }
+}
+
+async function logWebhookEvent(event: any, env: Env): Promise<void> {
+  try {
+    await env.DB.prepare(`
+      INSERT INTO webhook_events (event_id, event_type, user_id, payload, status, created_at)
+      VALUES (?, ?, ?, ?, 'processed', datetime('now'))
+    `).bind(
+      event.id,
+      event.type,
+      event.data?.id || event.data?.user_id || null,
+      JSON.stringify(event)
+    ).run();
+  } catch (error) {
+    console.error('Failed to log webhook event:', error);
+  }
+}
