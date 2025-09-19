@@ -19,7 +19,14 @@ export const AuthLayout = () => {
     <div className="min-h-screen flex">
       {/* Left Side - Hero */}
       <div className="hidden lg:flex lg:flex-1 lg:flex-col lg:justify-center lg:px-8 bg-gradient-to-br from-blue-600 to-blue-800">
-        <div className="mx-auto max-w-md text-white">
+        <div className="mx-auto max-w-md text-white text-center">
+          <div className="mb-8">
+            <img 
+              src="https://carrierllm.com/images/logomark_white_512.png" 
+              alt="CarrierLLM" 
+              className="h-24 w-24 mx-auto"
+            />
+          </div>
           <h1 className="text-4xl font-bold tracking-tight mb-6">
             Welcome to CarrierLLM
           </h1>
