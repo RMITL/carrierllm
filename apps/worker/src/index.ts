@@ -49,12 +49,12 @@ router.get('/api/analytics/summary', async (request, env: Env) => {
     const currentMonth = now.toISOString().slice(0, 7); // YYYY-MM format
     const monthStart = new Date(now.getFullYear(), now.getMonth(), 1).toISOString();
 
-    // Initialize response data
+    // Initialize response data with real zeros
     let stats = {
       totalIntakes: 0,
-      averageFitScore: 75,
-      placementRate: 65,
-      remainingRecommendations: 100
+      averageFitScore: 0,
+      placementRate: 0,
+      remainingRecommendations: 0
     };
 
     let topCarriers = [];
@@ -84,7 +84,13 @@ router.get('/api/analytics/summary', async (request, env: Env) => {
           `).bind(userId, monthStart).first();
 
           const used = userUsage?.used || 0;
-          stats.remainingRecommendations = Math.max(0, 100 - used);
+          // Get user's actual limit from their profile
+          const userProfile = await env.DB.prepare(
+            'SELECT recommendations_limit FROM user_profiles WHERE user_id = ?'
+          ).bind(userId).first();
+          
+          const limit = userProfile?.recommendations_limit || 0;
+          stats.remainingRecommendations = Math.max(0, limit - used);
         } catch (e) {
           console.log('Could not get user usage:', e);
         }
@@ -99,6 +105,8 @@ router.get('/api/analytics/summary', async (request, env: Env) => {
 
           if (avgScore?.avg) {
             stats.averageFitScore = Math.round(avgScore.avg);
+          } else {
+            stats.averageFitScore = 0;
           }
         } catch (e) {
           console.log('Could not get average score:', e);
@@ -124,7 +132,7 @@ router.get('/api/analytics/summary', async (request, env: Env) => {
               id: c.carrier_id || String(idx + 1),
               name: c.carrier_name || `Carrier ${idx + 1}`,
               count: c.count || 0,
-              successRate: Math.round(c.avg_score || 75)
+              successRate: Math.round(c.avg_score || 0)
             }));
           }
         } catch (e) {
@@ -152,8 +160,8 @@ router.get('/api/analytics/summary', async (request, env: Env) => {
             trends = monthlyData.results.map((m: any) => ({
               month: m.month,
               intakes: m.count || 0,
-              conversions: Math.round((m.count || 0) * 0.72), // Estimated conversion
-              conversionRate: 72
+              conversions: 0, // No real conversion data available
+              conversionRate: 0
             }));
           }
         } catch (e) {
@@ -172,6 +180,8 @@ router.get('/api/analytics/summary', async (request, env: Env) => {
 
         if (placements?.total > 0) {
           stats.placementRate = Math.round((placements.placed / placements.total) * 100);
+        } else {
+          stats.placementRate = 0;
         }
       } catch (e) {
         console.log('Could not get placement rate:', e);
@@ -182,7 +192,7 @@ router.get('/api/analytics/summary', async (request, env: Env) => {
       // Continue with default values if DB queries fail
     }
 
-    // No mock data - return empty arrays if no real data
+    // Return real data only - no mock data
 
     return Response.json({
       stats,
@@ -202,7 +212,7 @@ router.get('/api/analytics/summary', async (request, env: Env) => {
         totalIntakes: 0,
         averageFitScore: 0,
         placementRate: 0,
-        remainingRecommendations: 100
+        remainingRecommendations: 0
       },
       topCarriers: [],
       trends: [],
@@ -233,54 +243,9 @@ router.post('/api/intake/submit', async (request, env: Env) => {
       console.log('Could not log intake:', e);
     }
 
-    // Generate recommendations in the correct format
-    const recommendations = [
-      {
-        carrierId: 'progressive',
-        carrierName: 'Progressive',
-        product: 'Indexed Universal Life',
-        fitPct: 92,
-        confidence: 'high',
-        reasons: ['Competitive rates', 'Strong financial stability', 'Good customer service'],
-        advisories: [],
-        apsLikely: false,
-        citations: [],
-        ctas: {
-          portalUrl: 'https://progressive.com/apply',
-          phoneNumber: '1-800-PROGRESSIVE'
-        }
-      },
-      {
-        carrierId: 'statefarm',
-        carrierName: 'State Farm',
-        product: 'Indexed Universal Life',
-        fitPct: 88,
-        confidence: 'high',
-        reasons: ['Local agent support', 'Multi-policy discounts'],
-        advisories: ['Premium may be higher'],
-        apsLikely: false,
-        citations: [],
-        ctas: {
-          portalUrl: 'https://statefarm.com/apply',
-          phoneNumber: '1-800-STATE-FARM'
-        }
-      },
-      {
-        carrierId: 'allstate',
-        carrierName: 'Allstate',
-        product: 'Indexed Universal Life',
-        fitPct: 85,
-        confidence: 'medium',
-        reasons: ['Accident forgiveness', 'Safe driving bonuses'],
-        advisories: [],
-        apsLikely: false,
-        citations: [],
-        ctas: {
-          portalUrl: 'https://allstate.com/apply',
-          phoneNumber: '1-800-ALLSTATE'
-        }
-      }
-    ];
+    // TODO: Implement real recommendation generation using RAG system
+    // For now, return empty recommendations until real data is available
+    const recommendations = [];
 
     // Store recommendations
     for (const rec of recommendations) {
@@ -304,68 +269,26 @@ router.post('/api/intake/submit', async (request, env: Env) => {
       }
     }
 
-    // Simplified response for debugging
+    // Return real response with empty recommendations until RAG system is implemented
     const response = {
       recommendationId,
       status: 'completed',
       intake: intake,
-      recommendations: [
-        {
-          carrierId: 'progressive',
-          carrierName: 'Progressive',
-          fitScore: 92,
-          tier: 'preferred',
-          reasoning: {
-            pros: ['Competitive rates', 'Strong financial stability'],
-            cons: [],
-            summary: 'Strong fit with Progressive based on your profile.'
-          },
-          estimatedPremium: {
-            monthly: 1200,
-            annual: 14400,
-            confidence: 'high'
-          },
-          underwritingPath: 'simplified',
-          requiresExam: false,
-          processingTime: '2-3 weeks',
-          citations: []
-        }
-      ],
-      top: [
-        {
-          carrierId: 'progressive',
-          carrierName: 'Progressive',
-          fitScore: 92,
-          tier: 'preferred',
-          reasoning: {
-            pros: ['Competitive rates', 'Strong financial stability'],
-            cons: [],
-            summary: 'Strong fit with Progressive based on your profile.'
-          },
-          estimatedPremium: {
-            monthly: 1200,
-            annual: 14400,
-            confidence: 'high'
-          },
-          underwritingPath: 'simplified',
-          requiresExam: false,
-          processingTime: '2-3 weeks',
-          citations: []
-        }
-      ],
-      premiumSuggestion: 'Based on your profile, we recommend starting with a monthly premium of $1,200 for optimal coverage.',
+      recommendations: [],
+      top: [],
+      premiumSuggestion: 'No recommendations available. Please ensure carrier documents are uploaded and processed.',
       summary: {
-        averageFit: 88,
-        totalCarriersEvaluated: 3,
+        averageFit: 0,
+        totalCarriersEvaluated: 0,
         tier2Recommended: false,
-        topCarrierId: 'progressive',
-        notes: 'Strong match with multiple competitive options available.'
+        topCarrierId: null,
+        notes: 'No carriers available for recommendations. Please upload carrier documents and ensure they are processed.'
       },
       metadata: {
-        processingTime: 1250,
-        ragQueriesCount: 5,
-        citationsFound: 12,
-        modelUsed: 'gpt-4'
+        processingTime: 0,
+        ragQueriesCount: 0,
+        citationsFound: 0,
+        modelUsed: 'none'
       },
       timestamp: new Date().toISOString()
     };
@@ -542,25 +465,15 @@ router.get('/api/recommendations/:id', async (request, env: Env) => {
     console.log('Could not get recommendations:', e);
   }
 
-  // Return fallback recommendation data if no real data found
+  // Return empty result if no real data found
   return Response.json({
     recommendationId: id,
     summary: {
-      averageFit: 85,
-      eligibleCarriers: 2,
-      processingTime: 1250
+      averageFit: 0,
+      eligibleCarriers: 0,
+      processingTime: 0
     },
-    recommendations: [
-      {
-        carrierId: 'progressive',
-        carrierName: 'Progressive',
-        fitScore: 92,
-        highlights: ['Best match for profile'],
-        concerns: [],
-        premiumRange: { min: 1200, max: 1800 },
-        citations: []
-      }
-    ]
+    recommendations: []
   }, {
     headers: corsHeaders()
   });
