@@ -53,16 +53,23 @@ async function performRAGSearch(query: string, env: Env, topK = 15): Promise<any
   }
 }
 
-// Re-implementing the PCG-based recommendation logic
+// Enhanced PCG-based recommendation logic with AI analysis
 async function generateRealRecommendations(intakeData: any, env: Env): Promise<any[]> {
     try {
         console.log('Starting generateRealRecommendations with intake data:', intakeData);
         
+        // Create a more comprehensive client profile query
         const clientProfileQuery = `
+          Client Profile:
           - Age: ${intakeData.core?.age || intakeData.age || 35}
-          - Nicotine: ${intakeData.core?.nicotineUse || intakeData.nicotineUse || 'never'}
-          - Health conditions: ${intakeData.core?.majorConditions || intakeData.majorConditions || 'none'}
-          - Coverage: $${(intakeData.core?.coverageTarget || intakeData.coverageAmount || 500000).toLocaleString()}
+          - Gender: ${intakeData.core?.gender || intakeData.gender || 'Male'}
+          - Health Status: ${intakeData.core?.health || intakeData.health || 'Excellent'}
+          - Occupation: ${intakeData.core?.occupation || intakeData.occupation || 'Professional'}
+          - Nicotine Use: ${intakeData.core?.nicotineUse || intakeData.smoker ? 'current' : 'never'}
+          - Health Conditions: ${intakeData.core?.majorConditions || intakeData.family_history || 'none'}
+          - Coverage Amount: $${(intakeData.core?.coverageTarget || intakeData.coverage_amount || 500000).toLocaleString()}
+          - Term Length: ${intakeData.core?.termLength || intakeData.term_length || 20} years
+          - Income: $${(intakeData.core?.income || intakeData.income || 100000).toLocaleString()}
         `;
         
         console.log('Generated client profile query:', clientProfileQuery);
@@ -70,23 +77,159 @@ async function generateRealRecommendations(intakeData: any, env: Env): Promise<a
         const ragResults = await performRAGSearch(clientProfileQuery, env);
         console.log('RAG search completed, found', ragResults.length, 'results');
         
-        // For now, returning a simplified response based on RAG results:
-        const recommendations = ragResults.map((result: any) => ({
-            carrierId: result.carrierId,
-            carrierName: result.carrierId,
-            product: 'Inferred from Docs',
-            fitPct: Math.round(result.score * 100),
-            reasons: [result.text.substring(0, 150)],
-            citations: [{ source: result.source, text: result.text }],
-        }));
+        if (ragResults.length === 0) {
+            console.log('No RAG results found, returning empty recommendations');
+            return [];
+        }
+        
+        // Group results by carrier and analyze with AI
+        const carrierGroups = new Map();
+        ragResults.forEach((result: any) => {
+            const carrierId = result.carrierId || 'unknown';
+            if (!carrierGroups.has(carrierId)) {
+                carrierGroups.set(carrierId, []);
+            }
+            carrierGroups.get(carrierId).push(result);
+        });
+        
+        console.log('Grouped results by carrier:', carrierGroups.size, 'carriers');
+        
+        // Generate AI-powered recommendations for each carrier
+        const recommendations = [];
+        for (const [carrierId, results] of carrierGroups) {
+            try {
+                const recommendation = await generateCarrierRecommendation(carrierId, results, clientProfileQuery, env);
+                if (recommendation) {
+                    recommendations.push(recommendation);
+                }
+            } catch (error) {
+                console.error(`Error generating recommendation for ${carrierId}:`, error);
+            }
+        }
+        
+        // Sort by fit score (highest first)
+        recommendations.sort((a, b) => (b.fitPct || 0) - (a.fitPct || 0));
         
         console.log('Generated', recommendations.length, 'recommendations');
-        return recommendations;
+        return recommendations.slice(0, 10); // Return top 10
     } catch (error) {
         console.error('Error in generateRealRecommendations:', error);
         console.error('Error details:', error.message);
         return [];
     }
+}
+
+// Generate AI-powered recommendation for a specific carrier
+async function generateCarrierRecommendation(carrierId: string, results: any[], clientProfile: string, env: Env): Promise<any> {
+    try {
+        // Combine all text from this carrier's results
+        const combinedText = results.map(r => r.text).join('\n\n');
+        const topResult = results[0]; // Use the highest scoring result
+        
+        // Create AI prompt for PCG analysis
+        const aiPrompt = `
+        Analyze this carrier's underwriting guidelines for the given client profile and provide a PCG (Preferential Carrier Grade) assessment.
+
+        CLIENT PROFILE:
+        ${clientProfile}
+
+        CARRIER: ${carrierId}
+        UNDERWRITING GUIDELINES:
+        ${combinedText.substring(0, 2000)} // Limit to avoid token limits
+
+        Please provide a JSON response with:
+        {
+          "fitPct": <number 0-100>,
+          "reasons": ["reason1", "reason2", "reason3"],
+          "advisories": ["advisory1", "advisory2"],
+          "confidence": <number 0-100>,
+          "product": "<product type>",
+          "underwritingPath": "<simplified|standard|complex>",
+          "citations": [{"source": "<filename>", "text": "<relevant excerpt>"}]
+        }
+
+        Focus on:
+        - Age eligibility and preferred age ranges
+        - Health condition acceptance
+        - Coverage amount limits
+        - Occupation considerations
+        - Nicotine use policies
+        - Underwriting requirements
+        `;
+
+        console.log(`Generating AI analysis for ${carrierId}...`);
+        
+        const aiResponse = await env.AI.run('@cf/meta/llama-3.1-8b-instruct', {
+            messages: [
+                {
+                    role: 'user',
+                    content: aiPrompt
+                }
+            ],
+            max_tokens: 1000
+        });
+
+        let analysis;
+        try {
+            // Try to parse the AI response as JSON
+            const responseText = aiResponse.response || aiResponse.choices?.[0]?.message?.content || '';
+            console.log(`AI response for ${carrierId}:`, responseText.substring(0, 200));
+            
+            // Extract JSON from response (handle cases where AI adds extra text)
+            const jsonMatch = responseText.match(/\{[\s\S]*\}/);
+            if (jsonMatch) {
+                analysis = JSON.parse(jsonMatch[0]);
+            } else {
+                throw new Error('No JSON found in AI response');
+            }
+        } catch (parseError) {
+            console.error(`Failed to parse AI response for ${carrierId}:`, parseError);
+            // Fallback to basic analysis
+            analysis = {
+                fitPct: Math.round((topResult.score || 0.5) * 100),
+                reasons: [`${carrierId} underwriting guidelines match client profile`],
+                advisories: [],
+                confidence: 70,
+                product: 'Life Insurance',
+                underwritingPath: 'standard',
+                citations: [{ source: topResult.source, text: topResult.text.substring(0, 200) }]
+            };
+        }
+
+        return {
+            carrierId: carrierId,
+            carrierName: formatCarrierName(carrierId),
+            fitScore: Math.max(0, Math.min(100, analysis.fitPct || 0)),
+            reasoning: {
+                pros: analysis.reasons || [`${carrierId} guidelines applicable`],
+                cons: analysis.advisories || [],
+                summary: `Fit score of ${Math.max(0, Math.min(100, analysis.fitPct || 0))}% based on underwriting criteria.`
+            },
+            estimatedPremium: {
+                monthly: Math.round(1200 + (100 - (analysis.fitPct || 0)) * 10),
+                annual: Math.round((1200 + (100 - (analysis.fitPct || 0)) * 10) * 12)
+            },
+            confidence: analysis.confidence >= 80 ? 'high' : analysis.confidence >= 60 ? 'medium' : 'low',
+            citations: (analysis.citations || [{ source: topResult.source, text: topResult.text.substring(0, 200) }]).map((citation: any, index: number) => ({
+                chunkId: `${carrierId}-${index}`,
+                snippet: citation.text || citation.snippet || '',
+                documentTitle: citation.source || 'Carrier Underwriting Guide',
+                effectiveDate: new Date().toISOString(),
+                score: topResult.score || 0.8
+            }))
+        };
+    } catch (error) {
+        console.error(`Error in generateCarrierRecommendation for ${carrierId}:`, error);
+        return null;
+    }
+}
+
+// Format carrier names for display
+function formatCarrierName(carrierId: string): string {
+    return carrierId
+        .split('-')
+        .map(word => word.charAt(0).toUpperCase() + word.slice(1))
+        .join(' ');
 }
 
 export default {
@@ -771,7 +914,7 @@ export default {
 
         // Calculate summary statistics
         const averageFit = recommendations.length > 0 
-          ? Math.round(recommendations.reduce((sum, r) => sum + r.fitPct, 0) / recommendations.length)
+          ? Math.round(recommendations.reduce((sum, r) => sum + (r.fitScore || 0), 0) / recommendations.length)
           : 0;
 
         const topCarrierId = recommendations.length > 0 ? recommendations[0].carrierId : 'none';
@@ -781,46 +924,8 @@ export default {
           recommendationId,
           status: 'completed',
           intake: intake,
-          recommendations: recommendations.map(rec => ({
-            carrierId: rec.carrierId,
-            carrierName: rec.carrierName,
-            fitScore: rec.fitPct,
-            tier: rec.fitPct >= 85 ? 'preferred' : rec.fitPct >= 70 ? 'standard' : 'challenging',
-            reasoning: {
-              pros: rec.reasons,
-              cons: rec.advisories,
-              summary: `Fit score of ${rec.fitPct}% based on underwriting criteria.`
-            },
-            estimatedPremium: {
-              monthly: Math.round(1200 + (100 - rec.fitPct) * 10),
-              annual: Math.round((1200 + (100 - rec.fitPct) * 10) * 12),
-              confidence: rec.confidence
-            },
-            underwritingPath: rec.fitPct >= 80 ? 'simplified' : 'standard',
-            requiresExam: rec.apsLikely,
-            processingTime: rec.fitPct >= 80 ? '1-2 weeks' : '2-3 weeks',
-            citations: rec.citations
-          })),
-          top: recommendations.slice(0, 1).map(rec => ({
-            carrierId: rec.carrierId,
-            carrierName: rec.carrierName,
-            fitScore: rec.fitPct,
-            tier: rec.fitPct >= 85 ? 'preferred' : rec.fitPct >= 70 ? 'standard' : 'challenging',
-            reasoning: {
-              pros: rec.reasons,
-              cons: rec.advisories,
-              summary: `Best match with ${rec.fitPct}% fit score.`
-            },
-            estimatedPremium: {
-              monthly: Math.round(1200 + (100 - rec.fitPct) * 10),
-              annual: Math.round((1200 + (100 - rec.fitPct) * 10) * 12),
-              confidence: rec.confidence
-            },
-            underwritingPath: rec.fitPct >= 80 ? 'simplified' : 'standard',
-            requiresExam: rec.apsLikely,
-            processingTime: rec.fitPct >= 80 ? '1-2 weeks' : '2-3 weeks',
-            citations: rec.citations
-          })),
+          recommendations: recommendations,
+          top: recommendations.slice(0, 1),
           premiumSuggestion: `Based on your profile, we recommend starting with a monthly premium of $${Math.round(1200 + (100 - averageFit) * 10)} for optimal coverage.`,
           summary: {
             averageFit,
