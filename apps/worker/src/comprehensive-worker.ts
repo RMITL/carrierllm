@@ -790,10 +790,11 @@ export default {
           const intakeId = 'intake-' + Date.now();
 
           // Store intake data - match actual table structure
+          // Temporarily use NULL for user_id to bypass foreign key constraint
           await env.DB.prepare(
             `
             INSERT INTO intakes (id, tenant_id, payload_json, validated, tier2_triggered, created_at, user_id)
-            VALUES (?, ?, ?, ?, ?, datetime('now'), ?)
+            VALUES (?, ?, ?, ?, ?, datetime('now'), NULL)
           `,
           )
             .bind(
@@ -802,7 +803,6 @@ export default {
               JSON.stringify(intakeData),
               intakeData.validated || false,
               intakeData.tier2Triggered || false,
-              userId,
             )
             .run();
 
