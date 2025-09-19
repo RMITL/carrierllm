@@ -309,5 +309,108 @@ export const healthCheck = async (): Promise<boolean> => {
   }
 };
 
+/**
+ * Get carriers with user preferences
+ */
+export const getCarriersWithPreferences = async (): Promise<Array<{
+  id: string;
+  name: string;
+  amBest?: string;
+  portalUrl?: string;
+  agentPhone?: string;
+  preferredTierRank?: number;
+  availableStates?: string[];
+  userEnabled: boolean;
+  organizationEnabled: boolean;
+  isOrganizationControlled: boolean;
+}>> => {
+  return withRetry(async () => {
+    const response = await client.get('/carriers/with-preferences');
+    return response.data;
+  });
+};
+
+/**
+ * Update user carrier preference
+ */
+export const updateCarrierPreference = async (carrierId: string, enabled: boolean): Promise<void> => {
+  return withRetry(async () => {
+    await client.post('/carriers/preferences', { carrierId, enabled });
+  });
+};
+
+/**
+ * Get user documents
+ */
+export const getUserDocuments = async (): Promise<Array<{
+  id: string;
+  userId: string;
+  carrierId: string;
+  title: string;
+  filename: string;
+  r2Key: string;
+  fileSize?: number;
+  contentType?: string;
+  docType: string;
+  effectiveDate?: string;
+  version: string;
+  processed: boolean;
+  createdAt: string;
+}>> => {
+  return withRetry(async () => {
+    const response = await client.get('/documents/user');
+    return response.data;
+  });
+};
+
+/**
+ * Upload document
+ */
+export const uploadDocument = async (formData: FormData): Promise<{
+  success: boolean;
+  documentId?: string;
+  error?: string;
+  message?: string;
+}> => {
+  return withRetry(async () => {
+    const response = await client.post('/documents/upload', formData, {
+      headers: {
+        'Content-Type': 'multipart/form-data',
+      },
+      timeout: 60000, // 60 seconds for file uploads
+    });
+    return response.data;
+  });
+};
+
+/**
+ * Get organization carrier settings (admin only)
+ */
+export const getOrganizationCarrierSettings = async (): Promise<Array<{
+  id: string;
+  organizationId: string;
+  carrierId: string;
+  enabled: boolean;
+  createdAt: string;
+  updatedAt: string;
+}>> => {
+  return withRetry(async () => {
+    const response = await client.get('/carriers/organization-settings');
+    return response.data;
+  });
+};
+
+/**
+ * Update organization carrier setting (admin only)
+ */
+export const updateOrganizationCarrierSetting = async (
+  carrierId: string, 
+  enabled: boolean
+): Promise<void> => {
+  return withRetry(async () => {
+    await client.post('/carriers/organization-settings', { carrierId, enabled });
+  });
+};
+
 export const api = client;
 export default client;

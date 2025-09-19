@@ -174,6 +174,50 @@ CREATE TABLE IF NOT EXISTS usage_events (
   FOREIGN KEY(user_id) REFERENCES user_profiles(user_id)
 );
 
+-- User carrier preferences (individual user selections)
+CREATE TABLE IF NOT EXISTS user_carrier_preferences (
+  id TEXT PRIMARY KEY,
+  user_id TEXT NOT NULL,
+  carrier_id TEXT NOT NULL,
+  enabled BOOLEAN NOT NULL DEFAULT TRUE,
+  created_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP,
+  updated_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP,
+  FOREIGN KEY(user_id) REFERENCES user_profiles(user_id),
+  FOREIGN KEY(carrier_id) REFERENCES carriers(id),
+  UNIQUE(user_id, carrier_id)
+);
+
+-- Organization carrier settings (admin-controlled)
+CREATE TABLE IF NOT EXISTS organization_carrier_settings (
+  id TEXT PRIMARY KEY,
+  organization_id TEXT NOT NULL,
+  carrier_id TEXT NOT NULL,
+  enabled BOOLEAN NOT NULL DEFAULT TRUE,
+  created_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP,
+  updated_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP,
+  FOREIGN KEY(carrier_id) REFERENCES carriers(id),
+  UNIQUE(organization_id, carrier_id)
+);
+
+-- User document uploads (for underwriting documents)
+CREATE TABLE IF NOT EXISTS user_documents (
+  id TEXT PRIMARY KEY,
+  user_id TEXT NOT NULL,
+  carrier_id TEXT NOT NULL,
+  title TEXT NOT NULL,
+  filename TEXT NOT NULL,
+  r2_key TEXT NOT NULL,
+  file_size INTEGER,
+  content_type TEXT,
+  doc_type TEXT NOT NULL DEFAULT 'underwriting_guide',
+  effective_date TEXT,
+  version TEXT DEFAULT '1.0',
+  processed BOOLEAN DEFAULT FALSE,
+  created_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP,
+  FOREIGN KEY(user_id) REFERENCES user_profiles(user_id),
+  FOREIGN KEY(carrier_id) REFERENCES carriers(id)
+);
+
 -- Add missing columns to existing tables
 ALTER TABLE documents ADD COLUMN processed BOOLEAN DEFAULT FALSE;
 ALTER TABLE chunks ADD COLUMN chunk_index INTEGER DEFAULT 0;
@@ -190,3 +234,9 @@ CREATE INDEX IF NOT EXISTS idx_audit_logs_actor_id ON audit_logs(actor_id);
 CREATE INDEX IF NOT EXISTS idx_documents_carrier_id ON documents(carrier_id);
 CREATE INDEX IF NOT EXISTS idx_user_profiles_subscription_status ON user_profiles(subscription_status);
 CREATE INDEX IF NOT EXISTS idx_usage_events_user_id ON usage_events(user_id);
+CREATE INDEX IF NOT EXISTS idx_user_carrier_preferences_user_id ON user_carrier_preferences(user_id);
+CREATE INDEX IF NOT EXISTS idx_user_carrier_preferences_carrier_id ON user_carrier_preferences(carrier_id);
+CREATE INDEX IF NOT EXISTS idx_organization_carrier_settings_org_id ON organization_carrier_settings(organization_id);
+CREATE INDEX IF NOT EXISTS idx_organization_carrier_settings_carrier_id ON organization_carrier_settings(carrier_id);
+CREATE INDEX IF NOT EXISTS idx_user_documents_user_id ON user_documents(user_id);
+CREATE INDEX IF NOT EXISTS idx_user_documents_carrier_id ON user_documents(carrier_id);

@@ -578,6 +578,282 @@ router.get('/api/recommendations/:id', async (request, env: Env) => {
 // 3. Use <PricingTable /> component in your React app
 // 4. Check access with has({ plan: 'plan_name' }) or <Protect> component
 
+// Get carriers with user preferences
+router.get('/api/carriers/with-preferences', async (request, env: Env) => {
+  try {
+    const userId = request.headers.get('X-User-Id');
+    if (!userId) {
+      return Response.json({ error: 'User ID required' }, { status: 401, headers: corsHeaders() });
+    }
+
+    // Get all carriers
+    const carriers = await env.DB.prepare('SELECT * FROM carriers ORDER BY name').all();
+    
+    // Get user preferences
+    const userPreferences = await env.DB.prepare(
+      'SELECT carrier_id, enabled FROM user_carrier_preferences WHERE user_id = ?'
+    ).bind(userId).all();
+
+    // Get organization settings (if user is in an organization)
+    // For now, we'll assume all carriers are available at organization level
+    // In a real implementation, you'd check the user's organization membership
+    
+    const carriersWithPreferences = carriers.results.map((carrier: any) => {
+      const userPref = userPreferences.results.find((pref: any) => pref.carrier_id === carrier.id);
+      const userEnabled = userPref ? userPref.enabled : true; // Default to enabled
+      const organizationEnabled = true; // For now, all carriers are org-enabled
+      const isOrganizationControlled = false; // For now, no org control
+
+      return {
+        id: carrier.id,
+        name: carrier.name,
+        amBest: carrier.am_best,
+        portalUrl: carrier.portal_url,
+        agentPhone: carrier.agent_phone,
+        preferredTierRank: carrier.preferred_tier_rank,
+        availableStates: carrier.available_states ? JSON.parse(carrier.available_states) : [],
+        userEnabled,
+        organizationEnabled,
+        isOrganizationControlled
+      };
+    });
+
+    return Response.json(carriersWithPreferences, { headers: corsHeaders() });
+  } catch (error) {
+    console.error('Error fetching carriers with preferences:', error);
+    return Response.json({ error: 'Failed to fetch carriers' }, { status: 500, headers: corsHeaders() });
+  }
+});
+
+// Update user carrier preference
+router.post('/api/carriers/preferences', async (request, env: Env) => {
+  try {
+    const userId = request.headers.get('X-User-Id');
+    if (!userId) {
+      return Response.json({ error: 'User ID required' }, { status: 401, headers: corsHeaders() });
+    }
+
+    const { carrierId, enabled } = await request.json();
+    if (!carrierId || typeof enabled !== 'boolean') {
+      return Response.json({ error: 'carrierId and enabled are required' }, { status: 400, headers: corsHeaders() });
+    }
+
+    // Upsert user preference
+    await env.DB.prepare(`
+      INSERT INTO user_carrier_preferences (id, user_id, carrier_id, enabled, created_at, updated_at)
+      VALUES (?, ?, ?, ?, ?, ?)
+      ON CONFLICT(user_id, carrier_id) DO UPDATE SET
+      enabled = excluded.enabled,
+      updated_at = excluded.updated_at
+    `).bind(
+      crypto.randomUUID(),
+      userId,
+      carrierId,
+      enabled,
+      new Date().toISOString(),
+      new Date().toISOString()
+    ).run();
+
+    return Response.json({ success: true }, { headers: corsHeaders() });
+  } catch (error) {
+    console.error('Error updating carrier preference:', error);
+    return Response.json({ error: 'Failed to update preference' }, { status: 500, headers: corsHeaders() });
+  }
+});
+
+// Get user documents
+router.get('/api/documents/user', async (request, env: Env) => {
+  try {
+    const userId = request.headers.get('X-User-Id');
+    if (!userId) {
+      return Response.json({ error: 'User ID required' }, { status: 401, headers: corsHeaders() });
+    }
+
+    const documents = await env.DB.prepare(`
+      SELECT * FROM user_documents 
+      WHERE user_id = ? 
+      ORDER BY created_at DESC
+    `).bind(userId).all();
+
+    return Response.json(documents.results, { headers: corsHeaders() });
+  } catch (error) {
+    console.error('Error fetching user documents:', error);
+    return Response.json({ error: 'Failed to fetch documents' }, { status: 500, headers: corsHeaders() });
+  }
+});
+
+// Upload document
+router.post('/api/documents/upload', async (request, env: Env) => {
+  try {
+    const userId = request.headers.get('X-User-Id');
+    if (!userId) {
+      return Response.json({ error: 'User ID required' }, { status: 401, headers: corsHeaders() });
+    }
+
+    const formData = await request.formData();
+    const carrierId = formData.get('carrierId') as string;
+    const carrierName = formData.get('carrierName') as string;
+    const title = formData.get('title') as string;
+    const file = formData.get('file') as File;
+    const docType = formData.get('docType') as string || 'underwriting_guide';
+    const effectiveDate = formData.get('effectiveDate') as string;
+
+    if (!carrierId || !carrierName || !title || !file) {
+      return Response.json({ 
+        error: 'Missing required fields',
+        required: ['carrierId', 'carrierName', 'title', 'file']
+      }, { status: 400, headers: corsHeaders() });
+    }
+
+    // Validate file type
+    const allowedTypes = ['application/pdf', 'application/msword', 'application/vnd.openxmlformats-officedocument.wordprocessingml.document', 'text/plain'];
+    if (!allowedTypes.includes(file.type)) {
+      return Response.json({ error: 'Invalid file type. Only PDF, DOC, DOCX, and TXT files are allowed.' }, { status: 400, headers: corsHeaders() });
+    }
+
+    // Validate file size (10MB limit)
+    if (file.size > 10 * 1024 * 1024) {
+      return Response.json({ error: 'File size too large. Maximum size is 10MB.' }, { status: 400, headers: corsHeaders() });
+    }
+
+    const documentId = crypto.randomUUID();
+    const createdAt = new Date().toISOString();
+    const r2Key = `user-documents/${userId}/${carrierId}/${createdAt}/${file.name}`;
+
+    // Store file in R2
+    const fileBuffer = await file.arrayBuffer();
+    await env.DOCS_BUCKET.put(r2Key, fileBuffer, {
+      httpMetadata: {
+        contentType: file.type
+      }
+    });
+
+    // Store metadata in database
+    await env.DB.prepare(`
+      INSERT INTO user_documents (
+        id, user_id, carrier_id, title, filename, r2_key, file_size, 
+        content_type, doc_type, effective_date, version, processed, created_at
+      ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+    `).bind(
+      documentId,
+      userId,
+      carrierId,
+      title,
+      file.name,
+      r2Key,
+      file.size,
+      file.type,
+      docType,
+      effectiveDate || new Date().toISOString().split('T')[0],
+      '1.0',
+      false, // Will be processed later
+      createdAt
+    ).run();
+
+    return Response.json({
+      success: true,
+      documentId,
+      message: 'Document uploaded successfully'
+    }, { headers: corsHeaders() });
+
+  } catch (error) {
+    console.error('Error uploading document:', error);
+    return Response.json({ error: 'Failed to upload document' }, { status: 500, headers: corsHeaders() });
+  }
+});
+
+// Get organization carrier settings (admin only)
+router.get('/api/carriers/organization-settings', async (request, env: Env) => {
+  try {
+    const userId = request.headers.get('X-User-Id');
+    if (!userId) {
+      return Response.json({ error: 'User ID required' }, { status: 401, headers: corsHeaders() });
+    }
+
+    // TODO: Check if user is admin in organization
+    // For now, we'll allow all authenticated users to access this endpoint
+    // In production, you'd verify the user's role in their organization
+
+    // Get all carriers
+    const carriers = await env.DB.prepare('SELECT * FROM carriers ORDER BY name').all();
+    
+    // Get organization settings (for now, we'll use a default organization ID)
+    // In production, you'd get the user's organization ID from Clerk
+    const organizationId = 'default-org'; // This would come from user's organization membership
+    
+    const orgSettings = await env.DB.prepare(
+      'SELECT carrier_id, enabled FROM organization_carrier_settings WHERE organization_id = ?'
+    ).bind(organizationId).all();
+    
+    const carriersWithSettings = carriers.results.map((carrier: any) => {
+      const orgSetting = orgSettings.results.find((setting: any) => setting.carrier_id === carrier.id);
+      const organizationEnabled = orgSetting ? orgSetting.enabled : true; // Default to enabled
+
+      return {
+        id: carrier.id,
+        name: carrier.name,
+        amBest: carrier.am_best,
+        portalUrl: carrier.portal_url,
+        agentPhone: carrier.agent_phone,
+        preferredTierRank: carrier.preferred_tier_rank,
+        availableStates: carrier.available_states ? JSON.parse(carrier.available_states) : [],
+        userEnabled: true, // Not relevant for org admin view
+        organizationEnabled,
+        isOrganizationControlled: true // All carriers in org admin view are org-controlled
+      };
+    });
+
+    return Response.json(carriersWithSettings, { headers: corsHeaders() });
+  } catch (error) {
+    console.error('Error fetching organization carrier settings:', error);
+    return Response.json({ error: 'Failed to fetch organization settings' }, { status: 500, headers: corsHeaders() });
+  }
+});
+
+// Update organization carrier setting (admin only)
+router.post('/api/carriers/organization-settings', async (request, env: Env) => {
+  try {
+    const userId = request.headers.get('X-User-Id');
+    if (!userId) {
+      return Response.json({ error: 'User ID required' }, { status: 401, headers: corsHeaders() });
+    }
+
+    // TODO: Check if user is admin in organization
+    // For now, we'll allow all authenticated users to access this endpoint
+    // In production, you'd verify the user's role in their organization
+
+    const { carrierId, enabled } = await request.json();
+    if (!carrierId || typeof enabled !== 'boolean') {
+      return Response.json({ error: 'carrierId and enabled are required' }, { status: 400, headers: corsHeaders() });
+    }
+
+    // For now, we'll use a default organization ID
+    // In production, you'd get the user's organization ID from Clerk
+    const organizationId = 'default-org';
+
+    // Upsert organization setting
+    await env.DB.prepare(`
+      INSERT INTO organization_carrier_settings (id, organization_id, carrier_id, enabled, created_at, updated_at)
+      VALUES (?, ?, ?, ?, ?, ?)
+      ON CONFLICT(organization_id, carrier_id) DO UPDATE SET
+      enabled = excluded.enabled,
+      updated_at = excluded.updated_at
+    `).bind(
+      crypto.randomUUID(),
+      organizationId,
+      carrierId,
+      enabled,
+      new Date().toISOString(),
+      new Date().toISOString()
+    ).run();
+
+    return Response.json({ success: true }, { headers: corsHeaders() });
+  } catch (error) {
+    console.error('Error updating organization carrier setting:', error);
+    return Response.json({ error: 'Failed to update organization setting' }, { status: 500, headers: corsHeaders() });
+  }
+});
+
 // Clerk webhook endpoint
 router.post('/webhook', async (request, env: Env) => {
   // Simple webhook handler that just acknowledges receipt

@@ -253,3 +253,73 @@ export interface UserProfile {
   createdAt: string;
   lastActive: string;
 }
+
+// Carrier management types
+export interface Carrier {
+  id: string;
+  name: string;
+  amBest?: string;
+  portalUrl?: string;
+  agentPhone?: string;
+  preferredTierRank?: number;
+  availableStates?: string[];
+  createdAt: string;
+  updatedAt: string;
+}
+
+export interface UserCarrierPreference {
+  id: string;
+  userId: string;
+  carrierId: string;
+  enabled: boolean;
+  createdAt: string;
+  updatedAt: string;
+}
+
+export interface OrganizationCarrierSetting {
+  id: string;
+  organizationId: string;
+  carrierId: string;
+  enabled: boolean;
+  createdAt: string;
+  updatedAt: string;
+}
+
+export interface CarrierWithPreferences extends Carrier {
+  userEnabled: boolean;
+  organizationEnabled: boolean;
+  isOrganizationControlled: boolean;
+}
+
+// Document upload types
+export interface UserDocument {
+  id: string;
+  userId: string;
+  carrierId: string;
+  title: string;
+  filename: string;
+  r2Key: string;
+  fileSize?: number;
+  contentType?: string;
+  docType: 'underwriting_guide' | 'build_chart' | 'program_flyer' | 'other';
+  effectiveDate?: string;
+  version: string;
+  processed: boolean;
+  createdAt: string;
+}
+
+export interface DocumentUploadRequest {
+  carrierId: string;
+  carrierName: string;
+  title: string;
+  file: File;
+  docType: 'underwriting_guide' | 'build_chart' | 'program_flyer' | 'other';
+  effectiveDate?: string;
+}
+
+export interface DocumentUploadResponse {
+  success: boolean;
+  documentId?: string;
+  error?: string;
+  message?: string;
+}
