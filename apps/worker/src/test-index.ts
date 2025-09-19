@@ -319,12 +319,67 @@ export default {
               userId: userId,
               testId: testId
             }, { headers: corsHeaders });
-          } catch (e) {
+          } catch (e: any) {
             console.log('Test insert failed:', e);
             return Response.json({ 
               success: false, 
               error: e.message,
               userId: request.headers.get('X-User-Id') || 'test-user'
+            }, { headers: corsHeaders });
+          }
+        }
+
+        // Debug endpoint to test RAG and recommendations
+        if (path === '/api/debug-recommendations' && request.method === 'POST') {
+          try {
+            const testIntake = {
+              core: {
+                age: 35,
+                state: 'CA',
+                height: 70,
+                weight: 170,
+                nicotineUse: 'never',
+                majorConditions: 'none',
+                coverageTarget: 500000
+              }
+            };
+
+            console.log('Testing RAG search with test intake:', testIntake);
+            
+            // Test RAG search
+            const searchQuery = `
+              Underwriting guidelines age 35 never tobacco none health conditions
+              standard face amount coverage CA state build chart BMI 24.4 height 70 weight 170
+              accelerated underwriting exam-free instant approval criteria
+              preferred plus super preferred underwriting class requirements
+            `;
+            
+            const ragResults = await performRAGSearch(searchQuery, env, 10);
+            console.log('RAG search results:', ragResults.length, 'matches found');
+            console.log('RAG results:', ragResults);
+
+            // Test recommendation generation
+            const recommendations = await generateRealRecommendations(testIntake, ragResults, env);
+            console.log('Generated recommendations:', recommendations.length);
+            console.log('Recommendations:', recommendations);
+
+            // Check carriers in database
+            const carriers = await env.DB.prepare('SELECT * FROM carriers LIMIT 5').all();
+            console.log('Carriers in database:', carriers.results?.length || 0);
+
+            return Response.json({
+              success: true,
+              ragResults: ragResults,
+              recommendations: recommendations,
+              carriersInDb: carriers.results?.length || 0,
+              testIntake: testIntake
+            }, { headers: corsHeaders });
+          } catch (e: any) {
+            console.log('Debug test failed:', e);
+            return Response.json({
+              success: false,
+              error: e.message,
+              stack: e.stack
             }, { headers: corsHeaders });
           }
         }
