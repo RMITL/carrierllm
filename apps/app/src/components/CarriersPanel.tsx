@@ -27,11 +27,14 @@ export const CarriersPanel: React.FC<CarriersPanelProps> = ({ className = '' }) 
   const isAdmin = membership?.role === 'admin' || membership?.role === 'org:admin';
 
   // Fetch carriers with user preferences
-  const { data: carriers, isLoading: carriersLoading } = useQuery<CarrierWithPreferences[]>({
+  const { data: carriers, isLoading: carriersLoading, error: carriersError } = useQuery<CarrierWithPreferences[]>({
     queryKey: ['carriers-with-preferences', user?.id, organization?.id],
     queryFn: async () => {
       if (!user?.id) throw new Error('User not authenticated');
-      return getCarriersWithPreferences();
+      console.log('Fetching carriers for user:', user.id, 'org:', organization?.id);
+      const result = await getCarriersWithPreferences();
+      console.log('Carriers API response:', result);
+      return result;
     },
     enabled: userLoaded && !!user,
   });
@@ -75,9 +78,11 @@ export const CarriersPanel: React.FC<CarriersPanelProps> = ({ className = '' }) 
   // Initialize selected carriers when data loads
   useEffect(() => {
     if (carriers) {
+      console.log('Carriers loaded:', carriers.length, carriers);
       const enabledCarriers = carriers
         .filter(carrier => carrier.userEnabled && carrier.organizationEnabled)
         .map(carrier => carrier.id);
+      console.log('Enabled carriers:', enabledCarriers);
       setSelectedCarriers(new Set(enabledCarriers));
     }
   }, [carriers]);
@@ -169,6 +174,10 @@ export const CarriersPanel: React.FC<CarriersPanelProps> = ({ className = '' }) 
                 <div className="h-4 bg-gray-200 rounded flex-1"></div>
               </div>
             ))}
+          </div>
+        ) : carriersError ? (
+          <div className="text-red-600 text-sm">
+            Error loading carriers: {carriersError.message}
           </div>
         ) : (
           <div className="space-y-3">
