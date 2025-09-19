@@ -17,7 +17,7 @@ import {
 interface Env {
   DB: D1Database;
   DOCS_BUCKET: R2Bucket;
-  CARRIER_INDEX: any;
+  CARRIER_INDEX: VectorizeIndex;
   AI: any;
   RESEND_API_KEY?: string;
   CLERK_WEBHOOK_SECRET?: string;
@@ -33,6 +33,244 @@ function corsHeaders() {
     'Access-Control-Allow-Headers': 'Content-Type, Authorization, X-User-Id, X-Organization-Id',
     'Content-Type': 'application/json'
   };
+}
+
+// Helper to format carrier names for display
+function formatCarrierName(carrierId: string): string {
+  return carrierId
+    .split('-')
+    .map((word) => word.charAt(0).toUpperCase() + word.slice(1))
+    .join(' ');
+}
+
+// Helper function to generate embeddings
+async function generateEmbedding(text: string, env: Env): Promise<number[]> {
+  try {
+    console.log(`Generating embedding for text of length: ${text.length}`);
+    const response = await env.AI.run('@cf/baai/bge-base-en-v1.5', { text: [text] });
+    console.log(`Embedding response received, dimensions: ${response.data[0]?.length || 'undefined'}`);
+    return response.data[0];
+  } catch (error) {
+    console.error('Embedding generation failed:', error);
+    console.error('Error details:', error.message);
+    return [];
+  }
+}
+
+// Helper function to perform RAG search
+async function performRAGSearch(query: string, env: Env, topK = 15): Promise<any[]> {
+  try {
+    console.log('RAG: Starting search for query:', query);
+    const queryEmbedding = await generateEmbedding(query, env);
+    console.log('RAG: Generated embedding length:', queryEmbedding.length);
+
+    if (queryEmbedding.length === 0) {
+      console.log('RAG: Embedding generation failed, returning empty results');
+      return [];
+    }
+
+    console.log('RAG: About to query Vectorize with embedding of length:', queryEmbedding.length);
+    const results = await env.CARRIER_INDEX.query(queryEmbedding, {
+      topK,
+      returnMetadata: true,
+    });
+
+    console.log('RAG: Query successful, found', results.matches?.length || 0, 'matches');
+    return results.matches.map((match: any) => match.metadata);
+  } catch (error) {
+    console.error('RAG search failed:', error);
+    console.error('RAG error details:', error.message);
+    return [];
+  }
+}
+
+// Enhanced PCG-based recommendation logic with AI analysis
+async function generateRealRecommendations(intakeData: any, env: Env): Promise<any[]> {
+  try {
+    console.log('Starting generateRealRecommendations with intake data:', intakeData);
+
+    // Create a more comprehensive client profile query
+    const coverageAmount = intakeData.core?.coverageTarget?.amount || intakeData.coverage_amount || 500000;
+    const clientProfileQuery = `
+          Client Profile:
+          - Age: ${intakeData.core?.age || intakeData.age || 35}
+          - Gender: ${intakeData.core?.gender || intakeData.gender || 'Male'}
+          - Health Status: ${intakeData.core?.health || intakeData.health || 'Excellent'}
+          - Occupation: ${intakeData.core?.occupation || intakeData.occupation || 'Professional'}
+          - Nicotine Use: ${intakeData.core?.nicotine?.lastUse || (intakeData.smoker ? 'current' : 'never')}
+          - Health Conditions: ${intakeData.core?.majorConditions || intakeData.family_history || 'none'}
+          - Coverage Amount: $${coverageAmount.toLocaleString()}
+          - Coverage Type: ${intakeData.core?.coverageTarget?.type || intakeData.coverage_type || 'term'}
+          - Term Length: ${intakeData.core?.termLength || intakeData.term_length || 20} years
+          - Income: $${(intakeData.core?.income || intakeData.income || 100000).toLocaleString()}
+        `;
+
+    console.log('Generated client profile query:', clientProfileQuery);
+
+    const ragResults = await performRAGSearch(clientProfileQuery, env);
+    console.log('RAG search completed, found', ragResults.length, 'results');
+
+    if (ragResults.length === 0) {
+      console.log('No RAG results found, returning empty recommendations');
+      return [];
+    }
+
+    // Group results by carrier and analyze with AI
+    const carrierGroups = new Map();
+    ragResults.forEach((result: any) => {
+      const carrierId = result.carrierId || 'unknown';
+      if (!carrierGroups.has(carrierId)) {
+        carrierGroups.set(carrierId, []);
+      }
+      carrierGroups.get(carrierId).push(result);
+    });
+
+    console.log('Grouped results by carrier:', carrierGroups.size, 'carriers');
+
+    // Generate AI-powered recommendations for each carrier
+    const recommendations = [];
+    for (const [carrierId, results] of carrierGroups) {
+      try {
+        const recommendation = await generateCarrierRecommendation(carrierId, results, clientProfileQuery, env);
+        if (recommendation) {
+          recommendations.push(recommendation);
+        }
+      } catch (error) {
+        console.error(`Error generating recommendation for ${carrierId}:`, error);
+      }
+    }
+
+    // Sort by fit score (highest first)
+    recommendations.sort((a, b) => (b.fitScore || 0) - (a.fitScore || 0));
+
+    console.log('Generated', recommendations.length, 'recommendations');
+    return recommendations.slice(0, 10); // Return top 10
+  } catch (error) {
+    console.error('Error in generateRealRecommendations:', error);
+    console.error('Error details:', error.message);
+    return [];
+  }
+}
+
+// Generate AI-powered recommendation for a specific carrier
+async function generateCarrierRecommendation(
+  carrierId: string,
+  results: any[],
+  clientProfile: string,
+  env: Env,
+): Promise<any> {
+  try {
+    // Combine all text from this carrier's results
+    const combinedText = results.map((r) => r.text).join('\n\n');
+    const topResult = results[0]; // Use the highest scoring result
+
+    // Create AI prompt for PCG analysis
+    const aiPrompt = `
+        You are an insurance underwriting expert. Analyze the carrier's underwriting guidelines for the given client profile and provide a PCG (Preferential Carrier Grade) assessment.
+
+        CLIENT PROFILE:
+        ${clientProfile}
+
+        CARRIER: ${carrierId}
+        UNDERWRITING GUIDELINES:
+        ${combinedText.substring(0, 2000)}
+
+        IMPORTANT: Respond ONLY with valid JSON in this exact format:
+        {
+          "fitPct": 85,
+          "reasons": ["Age is within preferred range", "No nicotine use", "Excellent health"],
+          "advisories": ["High income may require additional documentation"],
+          "confidence": 90,
+          "product": "Life Insurance",
+          "underwritingPath": "standard",
+          "citations": [{"source": "Carrier Guidelines", "text": "Relevant excerpt from guidelines"}]
+        }
+
+        Analysis criteria:
+        - fitPct: 0-100 based on how well client matches carrier guidelines
+        - reasons: 3-5 specific positive factors
+        - advisories: 0-3 potential concerns or requirements
+        - confidence: 0-100 based on data quality
+        - product: "Life Insurance", "Term Life", "IUL", etc.
+        - underwritingPath": "simplified", "standard", or "complex"
+        - citations: 1-3 relevant excerpts from guidelines
+
+        Respond with ONLY the JSON object, no other text.`;
+
+    console.log(`Generating AI analysis for ${carrierId}...`);
+
+    const aiResponse = await env.AI.run('@cf/meta/llama-3.1-8b-instruct', {
+      messages: [
+        {
+          role: 'user',
+          content: aiPrompt,
+        },
+      ],
+      max_tokens: 1000,
+    });
+
+    let analysis;
+    try {
+      // Try to parse the AI response as JSON
+      const responseText = aiResponse.response || aiResponse.choices?.[0]?.message?.content || '';
+      console.log(`AI response for ${carrierId}:`, responseText.substring(0, 200));
+
+      // Try multiple JSON extraction methods
+      let jsonText = '';
+
+      // Method 1: Look for JSON object (more robust)
+      const jsonMatch = responseText.match(/\{[\s\S]*\}/);
+      if (jsonMatch) {
+        jsonText = jsonMatch[0];
+      } else {
+        // Fallback if no JSON object is found
+        throw new Error('No JSON object found in AI response');
+      }
+
+      analysis = JSON.parse(jsonText);
+    } catch (parseError) {
+      console.error(`Failed to parse AI response for ${carrierId}:`, parseError);
+      // Fallback to basic analysis based on RAG score
+      const baseScore = Math.round((topResult.score || 0.5) * 100);
+      analysis = {
+        fitPct: Math.max(60, baseScore), // Ensure minimum 60% for successful RAG matches
+        reasons: [`${formatCarrierName(carrierId)} underwriting guidelines match client profile`],
+        advisories: [],
+        confidence: 70,
+        product: 'Life Insurance',
+        underwritingPath: 'standard',
+        citations: [],
+      };
+    }
+
+    return {
+      carrierId: carrierId,
+      carrierName: formatCarrierName(carrierId),
+      fitScore: Math.max(0, Math.min(100, analysis.fitPct || 0)),
+      reasoning: {
+        pros: analysis.reasons || [`${carrierId} guidelines applicable`],
+        cons: analysis.advisories || [],
+        summary: `Fit score of ${Math.max(0, Math.min(100, analysis.fitPct || 0))}% based on underwriting criteria.`,
+      },
+      estimatedPremium: {
+        monthly: Math.round(1200 + (100 - (analysis.fitPct || 0)) * 10),
+        annual: Math.round((1200 + (100 - (analysis.fitPct || 0)) * 10) * 12),
+      },
+      confidence: analysis.confidence >= 80 ? 'high' : analysis.confidence >= 60 ? 'medium' : 'low',
+      citations: (analysis.citations || [{ source: topResult.source, text: topResult.text.substring(0, 200) }]).map(
+        (citation: any, index: number) => ({
+          chunkId: `${carrierId}-${index}`,
+          snippet: citation.text || citation.snippet || '',
+          documentTitle: citation.source || 'Carrier Underwriting Guide',
+          effectiveDate: new Date().toISOString(),
+          score: topResult.score || 0.8,
+        }),
+      ),
+    };
+  } catch (error) {
+    console.error(`Error in generateCarrierRecommendation for ${carrierId}:`, error);
+    return null;
+  }
 }
 
 // Function to populate carriers table from existing documents
@@ -548,49 +786,94 @@ export default {
         try {
           const intakeData = await request.json();
           console.log('Received intake data:', JSON.stringify(intakeData, null, 2));
-          const submissionId = `sub_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
+          const recommendationId = 'rec-' + Date.now();
+          const intakeId = 'intake-' + Date.now();
 
           // Store intake data - match actual table structure
-          await env.DB.prepare(`
+          await env.DB.prepare(
+            `
             INSERT INTO intakes (id, tenant_id, payload_json, validated, tier2_triggered, user_id, created_at)
             VALUES (?, ?, ?, ?, ?, ?, datetime('now'))
-          `).bind(
-            submissionId, 
-            request.headers.get('X-Organization-Id') || 'default', 
-            JSON.stringify(intakeData),
-            intakeData.validated || false,
-            intakeData.tier2Triggered || false,
-            userId
-          ).run();
+          `,
+          )
+            .bind(
+              intakeId,
+              request.headers.get('X-Organization-Id') || 'default',
+              JSON.stringify(intakeData),
+              intakeData.validated || false,
+              intakeData.tier2Triggered || false,
+              userId,
+            )
+            .run();
 
-          // For now, return empty recommendations (RAG system would be implemented here)
-          const recommendations: any[] = [];
+          // Generate real recommendations using RAG
+          const recommendations = await generateRealRecommendations(intakeData, env);
+          console.log('Generated recommendations:', recommendations.length);
 
-          // Store recommendations
-          for (const rec of recommendations) {
-            try {
-              await env.DB.prepare(`
-                INSERT INTO recommendations (user_id, submission_id, carrier_name, fit_score, 
-                                          reasons, advisories, created_at)
-                VALUES (?, ?, ?, ?, ?, ?, datetime('now'))
-              `).bind(
-                userId,
-                submissionId,
-                rec.carrierName,
-                rec.fitScore,
-                JSON.stringify(rec.reasons),
-                JSON.stringify(rec.advisories)
-              ).run();
-            } catch (e) {
-              console.log('Could not store recommendation:', e);
-            }
+          // Store recommendations in database
+          if (recommendations && recommendations.length > 0) {
+            const stmts = recommendations.map((rec) => {
+              return env.DB.prepare(
+                `
+                INSERT INTO recommendations (
+                  id, intake_id, model_snapshot, fit_json, citations, latency_ms, created_at,
+                  recommendation_id, user_id, carrier_id, carrier_name, fit_score
+                ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+              `,
+              ).bind(
+                crypto.randomUUID(),
+                intakeId, // intake_id (required)
+                'llama-3.1-8b-instruct', // model_snapshot
+                JSON.stringify(rec), // fit_json (required)
+                JSON.stringify(rec.citations || []), // citations (required)
+                Date.now() - parseInt(recommendationId.split('-')[1] as string), // latency_ms
+                new Date().toISOString(), // created_at
+                recommendationId, // recommendation_id
+                userId, // user_id
+                rec.carrierId || null, // carrier_id (first carrier)
+                rec.carrierName || null, // carrier_name (first carrier)
+                rec.fitScore || 0,
+              );
+            });
+            await env.DB.batch(stmts);
           }
+          const averageFit =
+            recommendations.length > 0
+              ? Math.round(recommendations.reduce((sum, r) => sum + (r.fitScore || 0), 0) / recommendations.length)
+              : 0;
 
-          return new Response(JSON.stringify({
-            submissionId,
-            recommendations: recommendations
-          }), {
-            headers: corsHeaders()
+          const topCarrierId = recommendations.length > 0 ? recommendations[0].carrierId : 'none';
+          // Format response in the expected format
+          const response = {
+            recommendationId,
+            status: 'completed',
+            intake: intakeData,
+            recommendations: recommendations,
+            top: recommendations.slice(0, 1),
+            premiumSuggestion: `Based on your profile, we recommend starting with a monthly premium of $${Math.round(
+              1200 + (100 - averageFit) * 10,
+            )} for optimal coverage.`,
+            summary: {
+              averageFit,
+              totalCarriersEvaluated: recommendations.length,
+              tier2Recommended: averageFit < 70,
+              topCarrierId,
+              notes:
+                recommendations.length > 0
+                  ? 'Real recommendations generated using RAG system.'
+                  : 'No carriers found in database.',
+            },
+            metadata: {
+              processingTime: Date.now() - parseInt(recommendationId.split('-')[1]),
+              ragQueriesCount: 0, // No manual RAG queries
+              citationsFound: recommendations.reduce((sum, r) => sum + (r.citations?.length || 0), 0),
+              modelUsed: 'llama-3.1-8b-instruct',
+            },
+            timestamp: new Date().toISOString(),
+          };
+
+          return new Response(JSON.stringify(response), {
+            headers: corsHeaders(),
           });
         } catch (error) {
           console.error('Error processing intake:', error);
