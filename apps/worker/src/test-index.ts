@@ -59,15 +59,17 @@ async function generateRealRecommendations(intakeData: any, env: Env): Promise<a
         console.log('Starting generateRealRecommendations with intake data:', intakeData);
         
         // Create a more comprehensive client profile query
+        const coverageAmount = intakeData.core?.coverageTarget?.amount || intakeData.coverage_amount || 500000;
         const clientProfileQuery = `
           Client Profile:
           - Age: ${intakeData.core?.age || intakeData.age || 35}
           - Gender: ${intakeData.core?.gender || intakeData.gender || 'Male'}
           - Health Status: ${intakeData.core?.health || intakeData.health || 'Excellent'}
           - Occupation: ${intakeData.core?.occupation || intakeData.occupation || 'Professional'}
-          - Nicotine Use: ${intakeData.core?.nicotineUse || intakeData.smoker ? 'current' : 'never'}
+          - Nicotine Use: ${intakeData.core?.nicotine?.lastUse || (intakeData.smoker ? 'current' : 'never')}
           - Health Conditions: ${intakeData.core?.majorConditions || intakeData.family_history || 'none'}
-          - Coverage Amount: $${(intakeData.core?.coverageTarget || intakeData.coverage_amount || 500000).toLocaleString()}
+          - Coverage Amount: $${coverageAmount.toLocaleString()}
+          - Coverage Type: ${intakeData.core?.coverageTarget?.type || intakeData.coverage_type || 'term'}
           - Term Length: ${intakeData.core?.termLength || intakeData.term_length || 20} years
           - Income: $${(intakeData.core?.income || intakeData.income || 100000).toLocaleString()}
         `;
@@ -128,34 +130,36 @@ async function generateCarrierRecommendation(carrierId: string, results: any[], 
         
         // Create AI prompt for PCG analysis
         const aiPrompt = `
-        Analyze this carrier's underwriting guidelines for the given client profile and provide a PCG (Preferential Carrier Grade) assessment.
+        You are an insurance underwriting expert. Analyze the carrier's underwriting guidelines for the given client profile and provide a PCG (Preferential Carrier Grade) assessment.
 
         CLIENT PROFILE:
         ${clientProfile}
 
         CARRIER: ${carrierId}
         UNDERWRITING GUIDELINES:
-        ${combinedText.substring(0, 2000)} // Limit to avoid token limits
+        ${combinedText.substring(0, 2000)}
 
-        Please provide a JSON response with:
+        IMPORTANT: Respond ONLY with valid JSON in this exact format:
         {
-          "fitPct": <number 0-100>,
-          "reasons": ["reason1", "reason2", "reason3"],
-          "advisories": ["advisory1", "advisory2"],
-          "confidence": <number 0-100>,
-          "product": "<product type>",
-          "underwritingPath": "<simplified|standard|complex>",
-          "citations": [{"source": "<filename>", "text": "<relevant excerpt>"}]
+          "fitPct": 85,
+          "reasons": ["Age is within preferred range", "No nicotine use", "Excellent health"],
+          "advisories": ["High income may require additional documentation"],
+          "confidence": 90,
+          "product": "Life Insurance",
+          "underwritingPath": "standard",
+          "citations": [{"source": "Carrier Guidelines", "text": "Relevant excerpt from guidelines"}]
         }
 
-        Focus on:
-        - Age eligibility and preferred age ranges
-        - Health condition acceptance
-        - Coverage amount limits
-        - Occupation considerations
-        - Nicotine use policies
-        - Underwriting requirements
-        `;
+        Analysis criteria:
+        - fitPct: 0-100 based on how well client matches carrier guidelines
+        - reasons: 3-5 specific positive factors
+        - advisories: 0-3 potential concerns or requirements
+        - confidence: 0-100 based on data quality
+        - product: "Life Insurance", "Term Life", "IUL", etc.
+        - underwritingPath: "simplified", "standard", or "complex"
+        - citations: 1-3 relevant excerpts from guidelines
+
+        Respond with ONLY the JSON object, no other text.`;
 
         console.log(`Generating AI analysis for ${carrierId}...`);
         
@@ -175,24 +179,58 @@ async function generateCarrierRecommendation(carrierId: string, results: any[], 
             const responseText = aiResponse.response || aiResponse.choices?.[0]?.message?.content || '';
             console.log(`AI response for ${carrierId}:`, responseText.substring(0, 200));
             
-            // Extract JSON from response (handle cases where AI adds extra text)
+            // Try multiple JSON extraction methods
+            let jsonText = '';
+            
+            // Method 1: Look for JSON object (more robust)
             const jsonMatch = responseText.match(/\{[\s\S]*\}/);
             if (jsonMatch) {
-                analysis = JSON.parse(jsonMatch[0]);
+                jsonText = jsonMatch[0];
+                // Try to clean up common JSON issues
+                jsonText = jsonText
+                    .replace(/,\s*}/g, '}')  // Remove trailing commas
+                    .replace(/,\s*]/g, ']')  // Remove trailing commas in arrays
+                    .replace(/(\w+):/g, '"$1":')  // Quote unquoted keys
+                    .replace(/:(\w+)/g, ':"$1"')  // Quote unquoted string values
+                    .replace(/:(\d+\.?\d*)/g, ':$1');  // Keep numbers unquoted
             } else {
-                throw new Error('No JSON found in AI response');
+                // Method 2: Look for fitPct in the text
+                const fitPctMatch = responseText.match(/fitPct["\s]*:[\s]*(\d+)/i);
+                const reasonsMatch = responseText.match(/reasons["\s]*:[\s]*\[(.*?)\]/i);
+                const advisoriesMatch = responseText.match(/advisories["\s]*:[\s]*\[(.*?)\]/i);
+                
+                if (fitPctMatch) {
+                    const fitPct = parseInt(fitPctMatch[1]);
+                    const reasons = reasonsMatch ? reasonsMatch[1].split(',').map(r => r.trim().replace(/['"]/g, '')) : [`${carrierId} underwriting guidelines applicable`];
+                    const advisories = advisoriesMatch ? advisoriesMatch[1].split(',').map(a => a.trim().replace(/['"]/g, '')) : [];
+                    
+                    analysis = {
+                        fitPct: fitPct,
+                        reasons: reasons,
+                        advisories: advisories,
+                        confidence: 80,
+                        product: 'Life Insurance',
+                        underwritingPath: 'standard'
+                    };
+                } else {
+                    throw new Error('No structured data found in AI response');
+                }
+            }
+            
+            if (jsonText && !analysis) {
+                analysis = JSON.parse(jsonText);
             }
         } catch (parseError) {
             console.error(`Failed to parse AI response for ${carrierId}:`, parseError);
-            // Fallback to basic analysis
+            // Fallback to basic analysis based on RAG score
+            const baseScore = Math.round((topResult.score || 0.5) * 100);
             analysis = {
-                fitPct: Math.round((topResult.score || 0.5) * 100),
-                reasons: [`${carrierId} underwriting guidelines match client profile`],
+                fitPct: Math.max(60, baseScore), // Ensure minimum 60% for successful RAG matches
+                reasons: [`${formatCarrierName(carrierId)} underwriting guidelines match client profile`],
                 advisories: [],
                 confidence: 70,
                 product: 'Life Insurance',
-                underwritingPath: 'standard',
-                citations: [{ source: topResult.source, text: topResult.text.substring(0, 200) }]
+                underwritingPath: 'standard'
             };
         }
 
@@ -742,8 +780,7 @@ export default {
             recommendation_id as id,
             created_at as timestamp,
             'recommendation' as type,
-            carrier_name as title,
-            fit_score as score,
+            fit_json,
             COUNT(*) as carrier_count,
             AVG(fit_score) as avg_fit
           FROM recommendations
@@ -792,14 +829,32 @@ export default {
             // Add recommendations
             if (recommendations.results) {
               for (const rec of recommendations.results) {
-                history.push({
-                  id: rec.id as string,
-                  timestamp: rec.timestamp as string,
-                  type: rec.type as string,
-                  title: `${rec.title as string} - ${Math.round(rec.avg_fit as number)}% fit (${rec.carrier_count as number} carriers)`,
-                  score: Math.round(rec.avg_fit as number),
-                  intakeData: null
-                });
+                try {
+                  // Parse the fit_json to get the actual recommendation data
+                  const fitJson = JSON.parse(rec.fit_json as string || '[]');
+                  const topCarrier = fitJson.length > 0 ? fitJson[0] : null;
+                  const carrierName = topCarrier?.carrierName || topCarrier?.carrierId || 'Unknown Carrier';
+                  const fitScore = topCarrier?.fitScore || Math.round(rec.avg_fit as number) || 0;
+                  
+                  history.push({
+                    id: rec.id as string,
+                    timestamp: rec.timestamp as string,
+                    type: rec.type as string,
+                    title: `${carrierName} - ${fitScore}% fit (${rec.carrier_count as number} carriers)`,
+                    score: fitScore,
+                    intakeData: null
+                  });
+                } catch (parseError) {
+                  // Fallback for old format
+                  history.push({
+                    id: rec.id as string,
+                    timestamp: rec.timestamp as string,
+                    type: rec.type as string,
+                    title: `Recommendation - ${Math.round(rec.avg_fit as number)}% fit (${rec.carrier_count as number} carriers)`,
+                    score: Math.round(rec.avg_fit as number),
+                    intakeData: null
+                  });
+                }
               }
             }
 
