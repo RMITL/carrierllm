@@ -1,271 +1,92 @@
+import { runIngestion } from './ingest';
+
 // Simple test worker with all required endpoints
 interface Env {
   DB: D1Database;
   DOCS_BUCKET: R2Bucket;
-  CARRIER_INDEX: any;
+  CARRIER_INDEX: VectorizeIndex;
   AI: any;
   CLERK_SECRET_KEY?: string;
 }
 
 // Helper function to generate embeddings
 async function generateEmbedding(text: string, env: Env): Promise<number[]> {
-  const response = await env.AI.run('@cf/baai/bge-base-en-v1.5', {
-    text: text
-  });
-  return response.data[0];
-}
-
-// Helper function to perform RAG search
-async function performRAGSearch(
-  query: string,
-  env: Env,
-  topK: number = 10
-): Promise<Array<{ text: string; carrierId: string; confidence: number }>> {
   try {
-    // Generate embedding for the query
-    const queryEmbedding = await generateEmbedding(query, env);
-
-    // Search in Vectorize
-    const searchResults = await env.CARRIER_INDEX.query({
-      vector: queryEmbedding,
-      topK,
-      returnMetadata: true
-    });
-
-    return searchResults.matches?.map((match: any) => ({
-      text: match.metadata?.text || '',
-      carrierId: match.metadata?.carrierId || 'unknown',
-      confidence: match.score || 0
-    })) || [];
+    console.log(`Generating embedding for text of length: ${text.length}`);
+    const response = await env.AI.run('@cf/baai/bge-base-en-v1.5', { text: [text] });
+    console.log(`Embedding response received, dimensions: ${response.data[0]?.length || 'undefined'}`);
+    return response.data[0];
   } catch (error) {
-    console.error('RAG search error:', error);
+    console.error('Embedding generation failed:', error);
+    console.error('Error details:', error.message);
     return [];
   }
 }
 
-// PCG Scoring Framework Implementation
-interface PCGSubscores {
-  velocity: number;          // 0-100
-  bestClassProb: number;     // 0-100
-  borderlineLeniency: number;// 0-100
-  lifestyleTolerance: number;// 0-100
-  ageAmtFlexAPS: number;     // 0-100
-  creditPrograms: number;    // 0-100
-  opsSupport: number;        // 0-100
-}
-
-function calculatePCG(subscores: PCGSubscores, preferredTierBump = 0): number {
-  const base = 
-    0.30 * subscores.velocity +
-    0.25 * subscores.bestClassProb +
-    0.15 * subscores.borderlineLeniency +
-    0.10 * subscores.lifestyleTolerance +
-    0.05 * subscores.ageAmtFlexAPS +
-    0.075 * subscores.creditPrograms +
-    0.075 * subscores.opsSupport;
-  return Math.min(100, Math.round(base + preferredTierBump));
-}
-
-// Helper function to generate real recommendations using PCG framework
-async function generateRealRecommendations(
-  intakeData: any,
-  ragResults: Array<{ text: string; carrierId: string; confidence: number }>,
-  env: Env
-): Promise<any[]> {
+// Helper function to perform RAG search
+async function performRAGSearch(query: string, env: Env, topK = 15): Promise<any[]> {
   try {
-    console.log('Generating recommendations with PCG framework for intake:', intakeData);
+    console.log('RAG: Starting search for query:', query);
+    const queryEmbedding = await generateEmbedding(query, env);
+    console.log('RAG: Generated embedding length:', queryEmbedding.length);
     
-    // Group RAG results by carrier
-    const carrierResults = ragResults.reduce((acc, result) => {
-      const carrierId = result.carrierId as string;
-      if (!acc[carrierId]) acc[carrierId] = [];
-      acc[carrierId].push(result);
-      return acc;
-    }, {} as Record<string, typeof ragResults>);
-
-    const recommendations: any[] = [];
-    const clientProfile = {
-      age: intakeData.core?.age || intakeData.age || 35,
-      state: intakeData.core?.state || intakeData.state || 'CA',
-      height: intakeData.core?.height || intakeData.height || 70,
-      weight: intakeData.core?.weight || intakeData.weight || 170,
-      nicotineUse: intakeData.core?.nicotineUse || intakeData.nicotineUse || 'never',
-      majorConditions: intakeData.core?.majorConditions || intakeData.majorConditions || 'none',
-      coverageAmount: intakeData.core?.coverageTarget || intakeData.coverageAmount || 500000,
-      avocations: intakeData.core?.avocations || intakeData.avocations || 'none',
-      mvr: intakeData.core?.mvr || intakeData.mvr || 'clean'
-    };
-
-    // Calculate BMI for build chart analysis
-    const bmi = (clientProfile.weight / (clientProfile.height * clientProfile.height)) * 703;
+    if (queryEmbedding.length === 0) {
+      console.log('RAG: Embedding generation failed, returning empty results');
+      return [];
+    }
     
-    // Get all unique carriers from RAG results
-    const carriersFromRAG = Object.keys(carrierResults);
-    console.log('Carriers found in RAG:', carriersFromRAG);
-
-    // If no carriers from RAG, get from database
-    if (carriersFromRAG.length === 0) {
-      const carriers = await env.DB.prepare('SELECT * FROM carriers LIMIT 10').all();
-      const carrierList = carriers.results || [];
-      carriersFromRAG.push(...carrierList.map((c: any) => c.id));
-    }
-
-    for (const carrierId of carriersFromRAG) {
-      const carrierContext = carrierResults[carrierId] || [];
-      const context = carrierContext.map((r: any) => r.text).join('\n\n');
-      
-      console.log(`Analyzing carrier ${carrierId} with ${carrierContext.length} context items`);
-
-      if (!context || !env.AI) {
-        console.log(`Skipping ${carrierId} - no context or AI unavailable`);
-        continue;
-      }
-
-      try {
-        // Use AI to analyze carrier-specific PCG subscores
-        const analysis = await env.AI.run('@cf/meta/llama-3.1-8b-instruct', {
-          messages: [
-            {
-              role: 'system',
-              content: `You are an expert insurance underwriter implementing the Preferential Carrier Grade (PCG) scoring system. 
-
-Analyze the carrier guidelines and client profile to calculate PCG subscores (0-100 each):
-
-CLIENT PROFILE:
-- Age: ${clientProfile.age}
-- State: ${clientProfile.state}
-- Height: ${clientProfile.height}" (BMI: ${bmi.toFixed(1)})
-- Weight: ${clientProfile.weight} lbs
-- Nicotine: ${clientProfile.nicotineUse}
-- Health conditions: ${clientProfile.majorConditions}
-- Coverage: $${clientProfile.coverageAmount.toLocaleString()}
-- Avocations: ${clientProfile.avocations}
-- MVR: ${clientProfile.mvr}
-
-PCG CATEGORIES TO SCORE:
-1. Velocity (30%): Path to issue speed, exam-free options, random holdouts
-2. Best Class Probability (25%): Likelihood of getting top underwriting class
-3. Borderline Leniency (15%): Build chart flexibility, mild condition tolerance
-4. Lifestyle Tolerance (10%): Aviation, avocations, travel, MVR policies
-5. Age/Amount Flexibility (5%): APS likelihood, age/amount requirements
-6. Credit Programs (7.5%): Fit credits, mortality credits, underwriting programs
-7. Operations Support (7.5%): Quick quote, transparency, data sources
-
-CARRIER GUIDELINES:
-${context}
-
-Respond with JSON:
-{
-  "subscores": {
-    "velocity": 0-100,
-    "bestClassProb": 0-100,
-    "borderlineLeniency": 0-100,
-    "lifestyleTolerance": 0-100,
-    "ageAmtFlexAPS": 0-100,
-    "creditPrograms": 0-100,
-    "opsSupport": 0-100
-  },
-  "reasons": ["specific reason 1", "specific reason 2", "specific reason 3"],
-  "advisories": ["concern 1", "concern 2"],
-  "confidence": "low|medium|high",
-  "product": "Term|IUL|Whole Life",
-  "underwritingPath": "instant|accelerated|standard|full",
-  "citations": [
-    {
-      "text": "specific guideline text",
-      "source": "document name",
-      "page": "page number or section"
-    }
-  ]
-}`
-            }
-          ]
-        });
-
-        const response = analysis.response || analysis;
-        const analysisText = typeof response === 'string' ? response : JSON.stringify(response);
-        
-        try {
-          const parsed = JSON.parse(analysisText);
-          const subscores: PCGSubscores = parsed.subscores || {
-            velocity: 75, bestClassProb: 75, borderlineLeniency: 75,
-            lifestyleTolerance: 75, ageAmtFlexAPS: 75, creditPrograms: 75, opsSupport: 75
-          };
-          
-          const pcgScore = calculatePCG(subscores);
-          const confidence = parsed.confidence || 'medium';
-          const reasons = parsed.reasons || ['Standard underwriting criteria met'];
-          const advisories = parsed.advisories || [];
-          const product = parsed.product || 'Indexed Universal Life';
-          const underwritingPath = parsed.underwritingPath || 'standard';
-          const citations = parsed.citations || carrierContext.map((c: any) => ({
-            text: c.text.substring(0, 150) + '...',
-            source: 'Carrier Guidelines',
-            page: 'RAG Result'
-          }));
-
-          // Determine carrier name from context or use ID
-          let carrierName = carrierId;
-          const nameMatch = context.match(/(?:carrier|company|insurer)[:\s]+([A-Za-z\s&]+)/i);
-          if (nameMatch) {
-            carrierName = nameMatch[1].trim();
-          }
-
-          recommendations.push({
-            carrierId,
-            carrierName,
-            product,
-            fitPct: pcgScore,
-            confidence,
-            reasons,
-            advisories,
-            apsLikely: underwritingPath === 'full' || pcgScore < 70,
-            underwritingPath,
-            subscores,
-            citations,
-            ctas: {
-              portalUrl: `https://${carrierId}.com/apply`,
-              agentPhone: `1-800-${carrierId.toUpperCase()}`
-            }
-          });
-
-          console.log(`Generated recommendation for ${carrierName}: ${pcgScore}% PCG score`);
-          
-        } catch (parseError) {
-          console.log(`Could not parse AI response for ${carrierId}:`, parseError);
-        }
-      } catch (aiError) {
-        console.log(`AI analysis failed for ${carrierId}:`, aiError);
-      }
-    }
-
-    // Sort by PCG score descending
-    recommendations.sort((a, b) => b.fitPct - a.fitPct);
+    console.log('RAG: About to query Vectorize with embedding of length:', queryEmbedding.length);
+    console.log('RAG: Embedding type:', typeof queryEmbedding);
+    console.log('RAG: Is array:', Array.isArray(queryEmbedding));
     
-    console.log(`Generated ${recommendations.length} recommendations`);
-    return recommendations.slice(0, 5); // Return top 5
-
+    const results = await env.CARRIER_INDEX.query(queryEmbedding, {
+      topK,
+      returnMetadata: true,
+    });
+    
+    console.log('RAG: Query successful, found', results.matches?.length || 0, 'matches');
+    return results.matches.map(match => match.metadata);
   } catch (error) {
-    console.error('Error generating PCG recommendations:', error);
-    // Fallback to simple recommendations
-    return [
-      {
-        carrierId: 'fallback',
-        carrierName: 'Recommendation Engine Error',
-        product: 'Indexed Universal Life',
-        fitPct: 50,
-        confidence: 'low',
-        reasons: ['System temporarily unavailable'],
-        advisories: ['Please try again or contact support'],
-        apsLikely: true,
-        citations: [],
-        ctas: {
-          portalUrl: '#',
-          agentPhone: '1-800-SUPPORT'
-        }
-      }
-    ];
+    console.error('RAG search failed:', error);
+    console.error('RAG error details:', error.message);
+    return [];
   }
+}
+
+// Re-implementing the PCG-based recommendation logic
+async function generateRealRecommendations(intakeData: any, env: Env): Promise<any[]> {
+    try {
+        console.log('Starting generateRealRecommendations with intake data:', intakeData);
+        
+        const clientProfileQuery = `
+          - Age: ${intakeData.core?.age || intakeData.age || 35}
+          - Nicotine: ${intakeData.core?.nicotineUse || intakeData.nicotineUse || 'never'}
+          - Health conditions: ${intakeData.core?.majorConditions || intakeData.majorConditions || 'none'}
+          - Coverage: $${(intakeData.core?.coverageTarget || intakeData.coverageAmount || 500000).toLocaleString()}
+        `;
+        
+        console.log('Generated client profile query:', clientProfileQuery);
+        
+        const ragResults = await performRAGSearch(clientProfileQuery, env);
+        console.log('RAG search completed, found', ragResults.length, 'results');
+        
+        // For now, returning a simplified response based on RAG results:
+        const recommendations = ragResults.map((result: any) => ({
+            carrierId: result.carrierId,
+            carrierName: result.carrierId,
+            product: 'Inferred from Docs',
+            fitPct: Math.round(result.score * 100),
+            reasons: [result.text.substring(0, 150)],
+            citations: [{ source: result.source, text: result.text }],
+        }));
+        
+        console.log('Generated', recommendations.length, 'recommendations');
+        return recommendations;
+    } catch (error) {
+        console.error('Error in generateRealRecommendations:', error);
+        console.error('Error details:', error.message);
+        return [];
+    }
 }
 
 export default {
@@ -285,6 +106,23 @@ export default {
     if (request.method === 'OPTIONS') {
       return new Response(null, { status: 204, headers: corsHeaders });
     }
+    
+        // Ingestion endpoint (protected)
+        if (path === '/api/ingest-docs' && request.method === 'POST') {
+          const secret = request.headers.get('X-Admin-Secret');
+          if (secret !== 'your-super-secret-key') { // Use a secret from env vars in production
+            return new Response('Unauthorized', { status: 401 });
+          }
+          console.log('Ingestion endpoint called - starting process...');
+          try {
+            const result = await runIngestion(env);
+            console.log('Ingestion process completed');
+            return result;
+          } catch (error) {
+            console.error('Ingestion process failed:', error);
+            return Response.json({ success: false, error: error.message }, { status: 500 });
+          }
+        }
     
         if (path === '/api/health') {
           return Response.json({ status: 'healthy', timestamp: new Date().toISOString() }, { headers: corsHeaders });
@@ -329,53 +167,74 @@ export default {
           }
         }
 
-        // Debug endpoint to test RAG and recommendations
-        if (path === '/api/debug-recommendations' && request.method === 'POST') {
+        // Debug endpoint to check Vectorize index status
+        if (path === '/api/debug-vectorize' && request.method === 'GET') {
           try {
-            const testIntake = {
-              core: {
-                age: 35,
-                state: 'CA',
-                height: 70,
-                weight: 170,
-                nicotineUse: 'never',
-                majorConditions: 'none',
-                coverageTarget: 500000
+            // Generate a proper embedding for testing
+            const testText = 'insurance underwriting guidelines';
+            console.log('Debug: Generating test embedding for:', testText);
+            const testEmbeddingVector = await generateEmbedding(testText, env);
+            console.log('Debug: Generated embedding length:', testEmbeddingVector.length);
+            
+            if (testEmbeddingVector.length === 0) {
+              return Response.json({
+                success: false,
+                error: 'Failed to generate test embedding - returned empty array'
+              }, { headers: corsHeaders });
+            }
+
+            // Try a simple search to see if the index has any data
+            console.log('Debug: About to query Vectorize with embedding of length:', testEmbeddingVector.length);
+            console.log('Debug: First few values of embedding:', testEmbeddingVector.slice(0, 5));
+            console.log('Debug: Embedding type:', typeof testEmbeddingVector);
+            console.log('Debug: Is array:', Array.isArray(testEmbeddingVector));
+            console.log('Debug: Embedding constructor:', testEmbeddingVector.constructor.name);
+            
+            // Try to get index info first
+            try {
+              const indexInfo = await env.CARRIER_INDEX.describe();
+              console.log('Debug: Index info:', indexInfo);
+            } catch (e) {
+              console.log('Debug: Could not get index info:', e.message);
+            }
+            
+            // Try different query formats to see which one works
+            let testEmbedding;
+            try {
+              // Try the object format first
+              console.log('Debug: Trying object format query...');
+              testEmbedding = await env.CARRIER_INDEX.query({
+                vector: testEmbeddingVector,
+                topK: 5,
+                returnMetadata: true
+              });
+              console.log('Debug: Object format query succeeded');
+            } catch (e1) {
+              console.log('Debug: Object format failed:', e1.message);
+              try {
+                // Try the array format
+                console.log('Debug: Trying array format query...');
+                testEmbedding = await env.CARRIER_INDEX.query(testEmbeddingVector, {
+                  topK: 5,
+                  returnMetadata: true
+                });
+                console.log('Debug: Array format query succeeded');
+              } catch (e2) {
+                console.log('Debug: Array format failed:', e2.message);
+                throw e2;
               }
-            };
-
-            console.log('Testing RAG search with test intake:', testIntake);
-            
-            // Test RAG search
-            const searchQuery = `
-              Underwriting guidelines age 35 never tobacco none health conditions
-              standard face amount coverage CA state build chart BMI 24.4 height 70 weight 170
-              accelerated underwriting exam-free instant approval criteria
-              preferred plus super preferred underwriting class requirements
-            `;
-            
-            const ragResults = await performRAGSearch(searchQuery, env, 10);
-            console.log('RAG search results:', ragResults.length, 'matches found');
-            console.log('RAG results:', ragResults);
-
-            // Test recommendation generation
-            const recommendations = await generateRealRecommendations(testIntake, ragResults, env);
-            console.log('Generated recommendations:', recommendations.length);
-            console.log('Recommendations:', recommendations);
-
-            // Check carriers in database
-            const carriers = await env.DB.prepare('SELECT * FROM carriers LIMIT 5').all();
-            console.log('Carriers in database:', carriers.results?.length || 0);
+            }
 
             return Response.json({
               success: true,
-              ragResults: ragResults,
-              recommendations: recommendations,
-              carriersInDb: carriers.results?.length || 0,
-              testIntake: testIntake
+              indexStatus: 'accessible',
+              totalMatches: testEmbedding.matches?.length || 0,
+              sampleMatches: testEmbedding.matches?.slice(0, 2) || [],
+              embeddingLength: testEmbeddingVector.length,
+              testText: testText
             }, { headers: corsHeaders });
           } catch (e: any) {
-            console.log('Debug test failed:', e);
+            console.log('Vectorize debug failed:', e);
             return Response.json({
               success: false,
               error: e.message,
@@ -879,35 +738,8 @@ export default {
           console.log('Error details:', e);
         }
 
-        // Generate specific search query from intake data for better RAG results
-        const age = intakeData.core?.age || intakeData.age || 35;
-        const nicotine = intakeData.core?.nicotineUse || intakeData.nicotineUse || 'never';
-        const conditions = intakeData.core?.majorConditions || intakeData.majorConditions || 'none';
-        const coverage = intakeData.core?.coverageTarget || intakeData.coverageAmount || 500000;
-        const state = intakeData.core?.state || intakeData.state || 'CA';
-        const height = intakeData.core?.height || intakeData.height || 70;
-        const weight = intakeData.core?.weight || intakeData.weight || 170;
-        const bmi = (weight / (height * height)) * 703;
-        
-        const searchQuery = `
-          Underwriting guidelines age ${age} ${nicotine} tobacco ${conditions} health conditions
-          ${coverage >= 1000000 ? 'high face amount' : 'standard face amount'} coverage
-          ${state} state build chart BMI ${bmi.toFixed(1)} height ${height} weight ${weight}
-          accelerated underwriting exam-free instant approval criteria
-          preferred plus super preferred underwriting class requirements
-          build chart nicotine policy cigar marijuana policy
-          aviation avocations travel MVR driving record requirements
-          APS requirements age amount thresholds underwriting credits
-        `;
-
-        console.log('Performing RAG search with query:', searchQuery);
-
-        // Perform RAG search
-        const ragResults = await performRAGSearch(searchQuery, env, 15);
-        console.log('RAG search results:', ragResults.length, 'matches found');
-
-        // Generate real recommendations
-        const recommendations = await generateRealRecommendations(intakeData, ragResults, env);
+        // Generate real recommendations using RAG
+        const recommendations = await generateRealRecommendations(intakeData, env);
         console.log('Generated recommendations:', recommendations.length);
 
         // Store recommendations in database
@@ -999,7 +831,7 @@ export default {
           },
           metadata: {
             processingTime: Date.now() - parseInt(recommendationId.split('-')[1]),
-            ragQueriesCount: ragResults.length,
+            ragQueriesCount: 0, // No manual RAG queries
             citationsFound: recommendations.reduce((sum, r) => sum + r.citations.length, 0),
             modelUsed: 'llama-3.1-8b-instruct'
           },

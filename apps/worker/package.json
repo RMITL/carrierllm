@@ -4,10 +4,10 @@
   "private": true,
   "type": "module",
   "scripts": {
-    "dev": "wrangler dev",
+    "dev": "npx wrangler@latest dev",
     "build": "tsc --noEmit",
     "lint": "eslint src",
-    "deploy": "wrangler deploy"
+    "deploy": "npx wrangler@latest deploy"
   },
   "dependencies": {
     "@clerk/backend": "^2.14.0",
