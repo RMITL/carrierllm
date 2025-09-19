@@ -2,7 +2,6 @@ import { useState } from 'react';
 import { NavLink, useLocation } from 'react-router-dom';
 import { UserButton, useUser } from '@clerk/clerk-react';
 import { Button } from '@carrierllm/ui';
-import logomarkImage from '/images/logomark_primary_512.png';
 
 interface DashboardLayoutProps {
   children: React.ReactNode;
@@ -164,7 +163,7 @@ export const DashboardLayout = ({ children }: DashboardLayoutProps) => {
     return (
       <div className="flex flex-col flex-grow pt-5 bg-white overflow-y-auto border-r border-gray-200">
         <div className="flex items-center flex-shrink-0 px-4 gap-3">
-          <img src={logomarkImage} alt="CarrierLLM" className="h-8 w-8" />
+          <img src="https://carrierllm.com/images/logomark_primary_512.png" alt="CarrierLLM" className="h-8 w-8" />
           <h1 className="text-xl font-bold text-[color:var(--color-primary)]">
             CarrierLLM
           </h1>

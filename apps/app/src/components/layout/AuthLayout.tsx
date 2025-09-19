@@ -1,7 +1,6 @@
 import { SignIn, SignUp } from '@clerk/clerk-react';
 import { useState, useEffect } from 'react';
 import { Button } from '@carrierllm/ui';
-import logomarkImage from '/images/logomark_primary_512.png';
 
 export const AuthLayout = () => {
   const [mode, setMode] = useState<'sign-in' | 'sign-up'>('sign-in');
@@ -57,7 +56,7 @@ export const AuthLayout = () => {
           {/* Logo */}
           <div className="text-center mb-8">
             <div className="flex items-center justify-center gap-3 mb-2">
-              <img src={logomarkImage} alt="CarrierLLM" className="h-10 w-10" />
+              <img src="https://carrierllm.com/images/logomark_primary_512.png" alt="CarrierLLM" className="h-10 w-10" />
               <h2 className="text-2xl font-bold text-[color:var(--color-primary)]">
                 CarrierLLM
               </h2>
