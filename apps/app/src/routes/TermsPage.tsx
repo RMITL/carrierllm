@@ -71,7 +71,7 @@ export const TermsPage = () => {
 
             <h3 className="text-xl font-semibold text-gray-800 mb-2">5.2 Payment Terms</h3>
             <ul className="list-disc pl-6 mb-4 text-gray-700">
-              <li>All paid plans include a 14-day free trial</li>
+              <li>All paid plans include a 3-day free trial</li>
               <li>Billing is processed through Stripe via Clerk</li>
               <li>Subscriptions automatically renew monthly unless canceled</li>
               <li>Upgrades take effect immediately; downgrades at the next billing cycle</li>

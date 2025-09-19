@@ -190,7 +190,7 @@ export const PricingPage = () => {
                   Do you offer a free trial?
                 </summary>
                 <p className="mt-3 text-gray-600">
-                  Yes, all paid plans include a 14-day free trial. No credit card required to start.
+                  Yes, all paid plans include a 3-day free trial. No credit card required to start.
                   You can also use our free tier indefinitely with 5 recommendations per month.
                 </p>
               </details>
@@ -201,7 +201,7 @@ export const PricingPage = () => {
         <div className="mt-12 text-center text-sm text-gray-600">
           <p>
             Need a custom plan or have questions?{' '}
-            <a href="mailto:sales@carrierllm.com" className="text-blue-600 hover:underline">
+            <a href="mailto:info@carrierllm.com" className="text-blue-600 hover:underline">
               Contact our sales team
             </a>
           </p>

@@ -100,14 +100,14 @@ const OrganizationPricingPage: React.FC = () => {
                 View Organization Plans
               </a>
               <a 
-                href="mailto:sales@carrierllm.com" 
+                href="mailto:info@carrierllm.com" 
                 className="inline-flex items-center px-6 py-3 border border-white text-base font-medium rounded-md text-white hover:bg-white/20 transition-colors"
               >
                 Contact Sales
               </a>
             </div>
             <p className="mt-6 text-sm text-blue-200">
-              No credit card required • 14-day free trial • Cancel anytime
+              No credit card required • 3-day free trial • Cancel anytime
             </p>
           </div>
         </section>
@@ -158,7 +158,7 @@ const OrganizationPricingPage: React.FC = () => {
             <div className="flex gap-6 mt-4 md:mt-0 text-sm text-gray-600">
               <a href="/privacy" className="hover:text-gray-900">Privacy</a>
               <a href="/terms" className="hover:text-gray-900">Terms</a>
-              <a href="mailto:support@carrierllm.com" className="hover:text-gray-900">Support</a>
+              <a href="mailto:info@carrierllm.com" className="hover:text-gray-900">Support</a>
             </div>
           </div>
         </div>

@@ -178,7 +178,7 @@ export const EnhancedMarketingPricingTable: React.FC<EnhancedMarketingPricingTab
         <div className="text-center">
           <p className="text-sm text-gray-500 mb-2">Need help?</p>
           <a
-            href="mailto:support@carrierllm.com?subject=Billing Issue"
+            href="mailto:info@carrierllm.com?subject=Billing Issue"
             className="text-blue-600 hover:text-blue-700 text-sm underline"
           >
             Contact Support

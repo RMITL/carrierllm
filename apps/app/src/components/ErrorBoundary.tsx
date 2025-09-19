@@ -154,7 +154,7 @@ export const BillingErrorBoundary: React.FC<{ children: ReactNode }> = ({ childr
                 Refresh Page
               </button>
               <a
-                href="mailto:support@carrierllm.com?subject=Billing Issue"
+                href="mailto:info@carrierllm.com?subject=Billing Issue"
                 className="ml-2 px-4 py-2 bg-gray-600 text-white rounded hover:bg-gray-700 transition-colors inline-block"
               >
                 Contact Support

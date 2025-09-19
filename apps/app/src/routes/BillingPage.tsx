@@ -85,7 +85,7 @@ export const BillingPage = () => {
     
     // Check if user manually started a trial (stored in localStorage)
     const manualTrialStart = localStorage.getItem('carrierllm_trial_started');
-    const isManualTrial = manualTrialStart && (Date.now() - parseInt(manualTrialStart)) < 14 * 24 * 60 * 60 * 1000; // 14 days
+    const isManualTrial = manualTrialStart && (Date.now() - parseInt(manualTrialStart)) < 3 * 24 * 60 * 60 * 1000; // 3 days
     
     if (isRecentUser || isManualTrial) {
       logger.billingInfo('Detected trial user', {

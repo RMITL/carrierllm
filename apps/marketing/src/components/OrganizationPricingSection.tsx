@@ -41,6 +41,23 @@ export const OrganizationPricingSection = () => {
               <PricingTable forOrganizations={true} />
             </div>
             
+            {/* Additional seat information for signed-out users */}
+            <div className="mt-12 max-w-3xl mx-auto mb-8">
+              <div className="bg-white rounded-lg shadow-sm border p-6">
+                <div className="text-center">
+                  <h3 className="text-lg font-semibold text-gray-900 mb-2">
+                    Need More Team Seats?
+                  </h3>
+                  <p className="text-gray-600 mb-4">
+                    Additional team members can be added at any time for $30/month per seat.
+                  </p>
+                  <p className="text-sm text-gray-500">
+                    Manage your team seats and billing from the billing page in your dashboard.
+                  </p>
+                </div>
+              </div>
+            </div>
+            
             <div className="text-center">
               <p className="text-gray-600 mb-4">Ready to set up your organization?</p>
               <div className="flex flex-col sm:flex-row gap-4 justify-center">
@@ -77,6 +94,27 @@ export const OrganizationPricingSection = () => {
 
           {/* Always show organization pricing on this dedicated page */}
           <PricingTable forOrganizations={true} />
+          
+          {/* Additional seat information */}
+          <div className="mt-12 max-w-3xl mx-auto">
+            <div className="bg-white rounded-lg shadow-sm border p-6">
+              <div className="text-center">
+                <h3 className="text-lg font-semibold text-gray-900 mb-2">
+                  Need More Team Seats?
+                </h3>
+                <p className="text-gray-600 mb-4">
+                  Additional team members can be added at any time for $30/month per seat.
+                </p>
+                <p className="text-sm text-gray-500">
+                  Manage your team seats and billing from the{' '}
+                  <a href={`${appUrl}/billing`} className="text-blue-600 hover:underline">
+                    billing page in your dashboard
+                  </a>
+                  .
+                </p>
+              </div>
+            </div>
+          </div>
         </SignedIn>
       </div>
     </section>
