@@ -278,7 +278,7 @@ export const getUserHistory = async (): Promise<Array<{
     }
 
     console.log('Fetching history for user:', userId);
-    const response = await client.get(`/user/${userId}/history`);
+    const response = await client.get('/user/history');
     console.log('History API response:', response.data);
     return response.data;
   });
