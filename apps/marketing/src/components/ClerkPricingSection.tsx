@@ -13,6 +13,7 @@ export const ClerkPricingSection = () => {
   const appUrl = import.meta.env.VITE_APP_URL || 'https://app.carrierllm.com';
 
   // Determine if we should show organization pricing or individual pricing for signed-in users
+  // Show organization pricing if user is currently in an organization context
   const isOrganizationContext = !!organization;
 
   // Log component mount and user context

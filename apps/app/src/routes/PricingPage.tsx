@@ -10,6 +10,9 @@ export const PricingPage = () => {
 
   // Check if user is on an organization plan
   const hasOrgPlan = has?.({ plan: 'free_org' }) || has?.({ plan: 'enterprise' });
+  
+  // For pricing page: show organization plans if user is currently in an organization context
+  // This means they're managing billing for their organization, not for themselves individually
   const isOrganizationContext = !!organization;
 
   const handleAddTeamSeat = () => {

@@ -1,5 +1,5 @@
 import React, { useEffect, useState, useRef } from 'react';
-import { PricingTable } from '@clerk/clerk-react';
+import { PricingTable, useOrganization } from '@clerk/clerk-react';
 import { logger } from '../lib/logger';
 
 interface EnhancedPricingTableProps {
@@ -11,13 +11,18 @@ export const EnhancedPricingTable: React.FC<EnhancedPricingTableProps> = ({
   onError,
   onLoading,
 }) => {
+  const { organization } = useOrganization();
   const [isClerkReady, setIsClerkReady] = useState(false);
   const [fallbackMode, setFallbackMode] = useState(false);
   const [timeoutId, setTimeoutId] = useState<NodeJS.Timeout | null>(null);
   const pricingTableRef = useRef<HTMLDivElement>(null);
 
+  // Determine if we should show organization pricing or individual pricing
+  // Show organization pricing if user is currently in an organization context
+  const isOrganizationContext = !!organization;
+
   useEffect(() => {
-    logger.billingInfo('EnhancedPricingTable mounted');
+    logger.billingInfo('EnhancedPricingTable mounted', { isOrganizationContext });
     
     // Set up timeout to detect if Clerk billing is not responding
     const timeout = setTimeout(() => {
@@ -92,7 +97,7 @@ export const EnhancedPricingTable: React.FC<EnhancedPricingTableProps> = ({
 
   // Fallback billing implementation
   const handleFallbackBilling = async (plan: string) => {
-    logger.billingInfo('Using fallback billing flow', { plan });
+    logger.billingInfo('Using fallback billing flow', { plan, isOrganizationContext });
     onLoading?.(true);
 
     try {
@@ -125,27 +130,55 @@ export const EnhancedPricingTable: React.FC<EnhancedPricingTableProps> = ({
         </div>
         
         <div className="grid gap-4 md:grid-cols-2">
-          <div className="p-4 border border-gray-200 rounded-lg">
-            <h3 className="font-semibold text-gray-900 mb-2">Individual Plan</h3>
-            <p className="text-gray-600 text-sm mb-3">$50/month - 100 recommendations</p>
-            <button
-              onClick={() => handleFallbackBilling('individual')}
-              className="w-full px-4 py-2 bg-blue-600 text-white rounded hover:bg-blue-700 transition-colors"
-            >
-              Start Individual Plan
-            </button>
-          </div>
-          
-          <div className="p-4 border border-gray-200 rounded-lg">
-            <h3 className="font-semibold text-gray-900 mb-2">Enterprise Plan</h3>
-            <p className="text-gray-600 text-sm mb-3">$150/month - 500 recommendations</p>
-            <button
-              onClick={() => handleFallbackBilling('enterprise')}
-              className="w-full px-4 py-2 bg-blue-600 text-white rounded hover:bg-blue-700 transition-colors"
-            >
-              Start Enterprise Plan
-            </button>
-          </div>
+          {isOrganizationContext ? (
+            <>
+              <div className="p-4 border border-gray-200 rounded-lg">
+                <h3 className="font-semibold text-gray-900 mb-2">Organization Plan</h3>
+                <p className="text-gray-600 text-sm mb-3">$150/month - 5 team seats, unlimited recommendations</p>
+                <button
+                  onClick={() => handleFallbackBilling('organization')}
+                  className="w-full px-4 py-2 bg-blue-600 text-white rounded hover:bg-blue-700 transition-colors"
+                >
+                  Start Organization Plan
+                </button>
+              </div>
+              
+              <div className="p-4 border border-gray-200 rounded-lg">
+                <h3 className="font-semibold text-gray-900 mb-2">Enterprise Plan</h3>
+                <p className="text-gray-600 text-sm mb-3">Custom pricing - Unlimited seats & features</p>
+                <button
+                  onClick={() => handleFallbackBilling('enterprise')}
+                  className="w-full px-4 py-2 bg-blue-600 text-white rounded hover:bg-blue-700 transition-colors"
+                >
+                  Contact Sales
+                </button>
+              </div>
+            </>
+          ) : (
+            <>
+              <div className="p-4 border border-gray-200 rounded-lg">
+                <h3 className="font-semibold text-gray-900 mb-2">Individual Plan</h3>
+                <p className="text-gray-600 text-sm mb-3">$50/month - 100 recommendations</p>
+                <button
+                  onClick={() => handleFallbackBilling('individual')}
+                  className="w-full px-4 py-2 bg-blue-600 text-white rounded hover:bg-blue-700 transition-colors"
+                >
+                  Start Individual Plan
+                </button>
+              </div>
+              
+              <div className="p-4 border border-gray-200 rounded-lg">
+                <h3 className="font-semibold text-gray-900 mb-2">Enterprise Plan</h3>
+                <p className="text-gray-600 text-sm mb-3">$150/month - 500 recommendations</p>
+                <button
+                  onClick={() => handleFallbackBilling('enterprise')}
+                  className="w-full px-4 py-2 bg-blue-600 text-white rounded hover:bg-blue-700 transition-colors"
+                >
+                  Start Enterprise Plan
+                </button>
+              </div>
+            </>
+          )}
         </div>
         
         <div className="text-center">
@@ -173,14 +206,20 @@ export const EnhancedPricingTable: React.FC<EnhancedPricingTableProps> = ({
       )}
       
       <div style={{ display: isClerkReady ? 'block' : 'none' }}>
-        <ErrorBoundaryPricingTable onError={handlePricingTableError} />
+        <ErrorBoundaryPricingTable 
+          onError={handlePricingTableError} 
+          forOrganizations={isOrganizationContext}
+        />
       </div>
     </div>
   );
 };
 
 // Wrapper component with error boundary for PricingTable
-const ErrorBoundaryPricingTable: React.FC<{ onError: (error: Error) => void }> = ({ onError }) => {
+const ErrorBoundaryPricingTable: React.FC<{ 
+  onError: (error: Error) => void;
+  forOrganizations?: boolean;
+}> = ({ onError, forOrganizations = false }) => {
   useEffect(() => {
     // Set up error monitoring for the PricingTable
     const handleError = (event: ErrorEvent) => {
@@ -194,7 +233,7 @@ const ErrorBoundaryPricingTable: React.FC<{ onError: (error: Error) => void }> =
   }, [onError]);
 
   try {
-    return <PricingTable />;
+    return <PricingTable forOrganizations={forOrganizations} />;
   } catch (error) {
     onError(error as Error);
     return null;

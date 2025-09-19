@@ -124,27 +124,55 @@ export const EnhancedMarketingPricingTable: React.FC<EnhancedMarketingPricingTab
         </div>
         
         <div className="grid gap-4 md:grid-cols-2">
-          <div className="p-4 border border-gray-200 rounded-lg">
-            <h3 className="font-semibold text-gray-900 mb-2">Individual Plan</h3>
-            <p className="text-gray-600 text-sm mb-3">$50/month - 100 recommendations</p>
-            <button
-              onClick={() => handleFallbackBilling('individual')}
-              className="w-full px-4 py-2 bg-blue-600 text-white rounded hover:bg-blue-700 transition-colors"
-            >
-              Start Individual Plan
-            </button>
-          </div>
-          
-          <div className="p-4 border border-gray-200 rounded-lg">
-            <h3 className="font-semibold text-gray-900 mb-2">Enterprise Plan</h3>
-            <p className="text-gray-600 text-sm mb-3">$150/month - 500 recommendations</p>
-            <button
-              onClick={() => handleFallbackBilling('enterprise')}
-              className="w-full px-4 py-2 bg-blue-600 text-white rounded hover:bg-blue-700 transition-colors"
-            >
-              Start Enterprise Plan
-            </button>
-          </div>
+          {forOrganizations ? (
+            <>
+              <div className="p-4 border border-gray-200 rounded-lg">
+                <h3 className="font-semibold text-gray-900 mb-2">Organization Plan</h3>
+                <p className="text-gray-600 text-sm mb-3">$150/month - 5 team seats, unlimited recommendations</p>
+                <button
+                  onClick={() => handleFallbackBilling('organization')}
+                  className="w-full px-4 py-2 bg-blue-600 text-white rounded hover:bg-blue-700 transition-colors"
+                >
+                  Start Organization Plan
+                </button>
+              </div>
+              
+              <div className="p-4 border border-gray-200 rounded-lg">
+                <h3 className="font-semibold text-gray-900 mb-2">Enterprise Plan</h3>
+                <p className="text-gray-600 text-sm mb-3">Custom pricing - Unlimited seats & features</p>
+                <button
+                  onClick={() => handleFallbackBilling('enterprise')}
+                  className="w-full px-4 py-2 bg-blue-600 text-white rounded hover:bg-blue-700 transition-colors"
+                >
+                  Contact Sales
+                </button>
+              </div>
+            </>
+          ) : (
+            <>
+              <div className="p-4 border border-gray-200 rounded-lg">
+                <h3 className="font-semibold text-gray-900 mb-2">Individual Plan</h3>
+                <p className="text-gray-600 text-sm mb-3">$50/month - 100 recommendations</p>
+                <button
+                  onClick={() => handleFallbackBilling('individual')}
+                  className="w-full px-4 py-2 bg-blue-600 text-white rounded hover:bg-blue-700 transition-colors"
+                >
+                  Start Individual Plan
+                </button>
+              </div>
+              
+              <div className="p-4 border border-gray-200 rounded-lg">
+                <h3 className="font-semibold text-gray-900 mb-2">Enterprise Plan</h3>
+                <p className="text-gray-600 text-sm mb-3">$150/month - 500 recommendations</p>
+                <button
+                  onClick={() => handleFallbackBilling('enterprise')}
+                  className="w-full px-4 py-2 bg-blue-600 text-white rounded hover:bg-blue-700 transition-colors"
+                >
+                  Start Enterprise Plan
+                </button>
+              </div>
+            </>
+          )}
         </div>
         
         <div className="text-center">
