@@ -534,6 +534,37 @@ var comprehensive_worker_default = {
           });
         }
       }
+      if (path.startsWith("/api/subscriptions/") && method === "GET") {
+        const userId = request.headers.get("X-User-Id");
+        if (!userId) {
+          return new Response(JSON.stringify({ error: "User ID required" }), {
+            status: 401,
+            headers: corsHeaders()
+          });
+        }
+        try {
+          const subscriptionData = {
+            plan: { name: "Free" },
+            subscription: { status: "active" },
+            usage: {
+              current: 0,
+              limit: 5
+            }
+          };
+          return new Response(JSON.stringify(subscriptionData), {
+            headers: corsHeaders()
+          });
+        } catch (error) {
+          console.error("Error fetching subscription data:", error);
+          return new Response(JSON.stringify({
+            error: "Failed to fetch subscription data",
+            details: error instanceof Error ? error.message : String(error)
+          }), {
+            status: 500,
+            headers: corsHeaders()
+          });
+        }
+      }
       return new Response(JSON.stringify({
         message: "Not found",
         path
