@@ -7,7 +7,8 @@ const OrganizationPricingPage: React.FC = () => {
       {/* Header */}
       <header className="border-b border-[color:var(--color-gray-100)] sticky top-0 bg-white/95 backdrop-blur z-40">
         <div className="mx-auto flex max-w-7xl items-center justify-between px-6 py-4">
-          <div className="flex items-center gap-2">
+          <div className="flex items-center gap-3">
+            <img src="/images/logomark_primary_512.png" alt="CarrierLLM" className="h-8 w-8" />
             <span className="text-xl font-bold text-[color:var(--color-primary)]">CarrierLLM</span>
             <span className="hidden sm:inline-block px-2 py-0.5 text-xs bg-blue-100 text-blue-700 rounded-full">Beta</span>
           </div>
@@ -118,7 +119,10 @@ const OrganizationPricingPage: React.FC = () => {
         <div className="mx-auto max-w-7xl px-6 py-12">
           <div className="grid gap-8 md:grid-cols-4">
             <div>
-              <div className="text-lg font-bold text-blue-600 mb-4">CarrierLLM</div>
+              <div className="flex items-center gap-2 mb-4">
+                <img src="/images/logomark_primary_512.png" alt="CarrierLLM" className="h-6 w-6" />
+                <span className="text-lg font-bold text-blue-600">CarrierLLM</span>
+              </div>
               <p className="text-sm text-gray-600">
                 AI-powered carrier placement for modern insurance agencies.
               </p>

@@ -55,9 +55,12 @@ export const AuthLayout = () => {
         <div className="mx-auto w-full max-w-md">
           {/* Logo */}
           <div className="text-center mb-8">
-            <h2 className="text-2xl font-bold text-[color:var(--color-primary)]">
-              CarrierLLM
-            </h2>
+            <div className="flex items-center justify-center gap-3 mb-2">
+              <img src="/images/logomark_primary_512.png" alt="CarrierLLM" className="h-10 w-10" />
+              <h2 className="text-2xl font-bold text-[color:var(--color-primary)]">
+                CarrierLLM
+              </h2>
+            </div>
             <p className="mt-2 text-sm text-gray-600">
               {mode === 'sign-in'
                 ? 'Sign in to your account'

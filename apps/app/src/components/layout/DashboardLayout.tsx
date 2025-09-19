@@ -162,7 +162,8 @@ export const DashboardLayout = ({ children }: DashboardLayoutProps) => {
   function SidebarContent() {
     return (
       <div className="flex flex-col flex-grow pt-5 bg-white overflow-y-auto border-r border-gray-200">
-        <div className="flex items-center flex-shrink-0 px-4">
+        <div className="flex items-center flex-shrink-0 px-4 gap-3">
+          <img src="/images/logomark_primary_512.png" alt="CarrierLLM" className="h-8 w-8" />
           <h1 className="text-xl font-bold text-[color:var(--color-primary)]">
             CarrierLLM
           </h1>
