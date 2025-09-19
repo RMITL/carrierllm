@@ -89,9 +89,6 @@ const HomePage: React.FC<HomePageProps> = ({ scrollTo }) => {
             <a href="/organization-pricing" className="text-[color:var(--color-gray-600)] hover:text-[color:var(--color-gray-900)] transition">
               Organization Pricing
             </a>
-            <a href="#compliance" className="text-[color:var(--color-gray-600)] hover:text-[color:var(--color-gray-900)] transition">
-              Compliance
-            </a>
           </nav>
           <div className="flex items-center gap-3">
             <Button variant="secondary" onClick={handleSignIn}>
@@ -426,9 +423,7 @@ const HomePage: React.FC<HomePageProps> = ({ scrollTo }) => {
               <h3 className="font-semibold mb-4">Company</h3>
               <ul className="space-y-2 text-sm text-gray-600">
                 <li><a href="/about" className="hover:text-gray-900">About</a></li>
-                <li><a href="/blog" className="hover:text-gray-900">Blog</a></li>
-                <li><a href="/careers" className="hover:text-gray-900">Careers</a></li>
-                <li><a href="/contact" className="hover:text-gray-900">Contact</a></li>
+                <li><button onClick={() => setShowContactModal(true)} className="hover:text-gray-900 text-left">Contact</button></li>
               </ul>
             </div>
             <div>
@@ -436,8 +431,6 @@ const HomePage: React.FC<HomePageProps> = ({ scrollTo }) => {
               <ul className="space-y-2 text-sm text-gray-600">
                 <li><a href="/privacy" className="hover:text-gray-900">Privacy Policy</a></li>
                 <li><a href="/terms" className="hover:text-gray-900">Terms of Service</a></li>
-                <li><a href="/security" className="hover:text-gray-900">Security</a></li>
-                <li><a href="/compliance" className="hover:text-gray-900">Compliance</a></li>
               </ul>
             </div>
           </div>

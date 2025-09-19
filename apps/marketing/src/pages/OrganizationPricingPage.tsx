@@ -136,9 +136,7 @@ const OrganizationPricingPage: React.FC = () => {
               <h3 className="font-semibold mb-4">Company</h3>
               <ul className="space-y-2 text-sm text-gray-600">
                 <li><a href="/about" className="hover:text-gray-900">About</a></li>
-                <li><a href="/blog" className="hover:text-gray-900">Blog</a></li>
-                <li><a href="/careers" className="hover:text-gray-900">Careers</a></li>
-                <li><a href="/contact" className="hover:text-gray-900">Contact</a></li>
+                <li><a href="mailto:info@carrierllm.com" className="hover:text-gray-900">Contact</a></li>
               </ul>
             </div>
             <div>
@@ -146,8 +144,6 @@ const OrganizationPricingPage: React.FC = () => {
               <ul className="space-y-2 text-sm text-gray-600">
                 <li><a href="/privacy" className="hover:text-gray-900">Privacy Policy</a></li>
                 <li><a href="/terms" className="hover:text-gray-900">Terms of Service</a></li>
-                <li><a href="/security" className="hover:text-gray-900">Security</a></li>
-                <li><a href="/compliance" className="hover:text-gray-900">Compliance</a></li>
               </ul>
             </div>
           </div>
