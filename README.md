@@ -93,6 +93,8 @@ cd apps/worker
 pnpm deploy
 ```
 
+**Note**: After making changes to the worker (`apps/worker/src/`), you must redeploy for changes to take effect. This includes new API endpoints, database changes, or any backend modifications.
+
 ## 📁 Project Structure
 
 ```

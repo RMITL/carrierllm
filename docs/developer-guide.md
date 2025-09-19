@@ -38,6 +38,26 @@ Every recommendation has >=1 citation
 
 Stripe provisioning within 30s
 
+## Worker Development & Deployment
+
+**Important**: After making changes to the Cloudflare Worker (`apps/worker/src/`), you must redeploy for changes to take effect:
+
+```bash
+# Deploy worker changes
+cd apps/worker
+pnpm deploy
+# or from project root
+pnpm run deploy
+```
+
+This is required for:
+- New API endpoints
+- Database schema changes
+- Environment variable updates
+- Any modifications to the worker logic
+
+The worker handles all backend API functionality including intake processing, recommendations, analytics, and data management.
+
 ## Data Policy
 
 **NO MOCK DATA**: The application must never use mock, demo, or fake data for display purposes. All data should start with real zeros and populate through actual API usage.

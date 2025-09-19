@@ -63,6 +63,8 @@ cd apps/worker
 pnpm deploy     # Deploy to Cloudflare Workers
 ```
 
+**Important**: After making changes to the worker (`apps/worker/src/`), you must redeploy for changes to take effect. This includes new API endpoints, database changes, or any backend modifications.
+
 ## Architecture
 
 ### Workspace Structure
