@@ -43,13 +43,38 @@ async function performRAGSearch(
   }
 }
 
-// Helper function to generate real recommendations
+// PCG Scoring Framework Implementation
+interface PCGSubscores {
+  velocity: number;          // 0-100
+  bestClassProb: number;     // 0-100
+  borderlineLeniency: number;// 0-100
+  lifestyleTolerance: number;// 0-100
+  ageAmtFlexAPS: number;     // 0-100
+  creditPrograms: number;    // 0-100
+  opsSupport: number;        // 0-100
+}
+
+function calculatePCG(subscores: PCGSubscores, preferredTierBump = 0): number {
+  const base = 
+    0.30 * subscores.velocity +
+    0.25 * subscores.bestClassProb +
+    0.15 * subscores.borderlineLeniency +
+    0.10 * subscores.lifestyleTolerance +
+    0.05 * subscores.ageAmtFlexAPS +
+    0.075 * subscores.creditPrograms +
+    0.075 * subscores.opsSupport;
+  return Math.min(100, Math.round(base + preferredTierBump));
+}
+
+// Helper function to generate real recommendations using PCG framework
 async function generateRealRecommendations(
   intakeData: any,
   ragResults: Array<{ text: string; carrierId: string; confidence: number }>,
   env: Env
 ): Promise<any[]> {
   try {
+    console.log('Generating recommendations with PCG framework for intake:', intakeData);
+    
     // Group RAG results by carrier
     const carrierResults = ragResults.reduce((acc, result) => {
       const carrierId = result.carrierId as string;
@@ -59,131 +84,184 @@ async function generateRealRecommendations(
     }, {} as Record<string, typeof ragResults>);
 
     const recommendations: any[] = [];
+    const clientProfile = {
+      age: intakeData.core?.age || intakeData.age || 35,
+      state: intakeData.core?.state || intakeData.state || 'CA',
+      height: intakeData.core?.height || intakeData.height || 70,
+      weight: intakeData.core?.weight || intakeData.weight || 170,
+      nicotineUse: intakeData.core?.nicotineUse || intakeData.nicotineUse || 'never',
+      majorConditions: intakeData.core?.majorConditions || intakeData.majorConditions || 'none',
+      coverageAmount: intakeData.core?.coverageTarget || intakeData.coverageAmount || 500000,
+      avocations: intakeData.core?.avocations || intakeData.avocations || 'none',
+      mvr: intakeData.core?.mvr || intakeData.mvr || 'clean'
+    };
 
-    // Get carriers from database
-    const carriers = await env.DB.prepare('SELECT * FROM carriers LIMIT 5').all();
-    const carrierList = carriers.results || [];
+    // Calculate BMI for build chart analysis
+    const bmi = (clientProfile.weight / (clientProfile.height * clientProfile.height)) * 703;
+    
+    // Get all unique carriers from RAG results
+    const carriersFromRAG = Object.keys(carrierResults);
+    console.log('Carriers found in RAG:', carriersFromRAG);
 
-    // If no carriers in DB, use fallback carriers
-    const fallbackCarriers = [
-      { id: 'progressive', name: 'Progressive', preferred_tier_rank: 1 },
-      { id: 'statefarm', name: 'State Farm', preferred_tier_rank: 2 },
-      { id: 'allstate', name: 'Allstate', preferred_tier_rank: 3 }
-    ];
-
-    const carriersToUse = carrierList.length > 0 ? carrierList : fallbackCarriers;
-
-    for (const carrier of carriersToUse) {
-      const carrierId = carrier.id;
-      const carrierName = carrier.name || carrierId;
-      
-      // Get relevant context for this carrier
-      const carrierContext = carrierResults[carrierId as string] || [];
-      const context = carrierContext.map((r: any) => r.text).join('\n\n');
-
-      // Use AI to analyze fit if we have context, otherwise use simple scoring
-      let fitScore = 75; // Default score
-      let reasons = ['Standard underwriting criteria met'];
-      let advisories: string[] = [];
-      let confidence = 'medium';
-
-      if (context && env.AI) {
-        try {
-          const analysis = await env.AI.run('@cf/meta/llama-3.1-8b-instruct', {
-            messages: [
-              {
-                role: 'system',
-                content: `You are an insurance underwriting expert. Analyze the client's information and provide a fit score (0-100), reasons for recommendation, and any concerns.
-
-Client Information:
-- Age: ${intakeData.core?.age || intakeData.age || 'Not provided'}
-- State: ${intakeData.core?.state || intakeData.state || 'Not provided'}
-- Height: ${intakeData.core?.height || intakeData.height || 'Not provided'} inches
-- Weight: ${intakeData.core?.weight || intakeData.weight || 'Not provided'} lbs
-- Nicotine use: ${intakeData.core?.nicotineUse || intakeData.nicotineUse || 'Not provided'}
-- Health conditions: ${intakeData.core?.majorConditions || intakeData.majorConditions || 'None specified'}
-- Coverage amount: $${intakeData.core?.coverageTarget || intakeData.coverageAmount || 'Not specified'}
-
-Carrier Guidelines:
-${context}
-
-Respond in JSON format with: fitScore (0-100), reasons (array), concerns (array), confidence (low/medium/high).`
-              }
-            ]
-          });
-
-          const response = analysis.response || analysis;
-          const analysisText = typeof response === 'string' ? response : JSON.stringify(response);
-          
-          // Try to parse AI response
-          try {
-            const parsed = JSON.parse(analysisText);
-            fitScore = Math.min(100, Math.max(0, parsed.fitScore || fitScore));
-            reasons = parsed.reasons || reasons;
-            advisories = parsed.concerns || advisories;
-            confidence = parsed.confidence || confidence;
-          } catch (parseError) {
-            console.log('Could not parse AI response, using defaults');
-          }
-        } catch (aiError) {
-          console.log('AI analysis failed, using simple scoring:', aiError);
-        }
-      }
-
-      // Add some variation based on carrier
-      if (carrierId === 'progressive') {
-        fitScore = Math.min(100, fitScore + 10);
-        reasons = ['Competitive rates', 'Strong financial stability', 'Good customer service'];
-      } else if (carrierId === 'statefarm') {
-        fitScore = Math.min(100, fitScore + 5);
-        reasons = ['Local agent support', 'Multi-policy discounts'];
-      } else if (carrierId === 'allstate') {
-        fitScore = Math.min(100, fitScore + 2);
-        reasons = ['Accident forgiveness', 'Safe driving bonuses'];
-      }
-
-      recommendations.push({
-        carrierId,
-        carrierName,
-        product: 'Indexed Universal Life',
-        fitPct: fitScore,
-        confidence,
-        reasons,
-        advisories,
-        apsLikely: fitScore < 70,
-        citations: carrierContext.map((c: any) => ({
-          text: c.text.substring(0, 100) + '...',
-          source: 'Carrier Guidelines',
-          score: c.confidence
-        })),
-        ctas: {
-          portalUrl: `https://${carrierId as string}.com/apply`,
-          phoneNumber: `1-800-${(carrierId as string).toUpperCase()}`
-        }
-      });
+    // If no carriers from RAG, get from database
+    if (carriersFromRAG.length === 0) {
+      const carriers = await env.DB.prepare('SELECT * FROM carriers LIMIT 10').all();
+      const carrierList = carriers.results || [];
+      carriersFromRAG.push(...carrierList.map((c: any) => c.id));
     }
 
-    // Sort by fit score descending
-    recommendations.sort((a, b) => b.fitPct - a.fitPct);
+    for (const carrierId of carriersFromRAG) {
+      const carrierContext = carrierResults[carrierId] || [];
+      const context = carrierContext.map((r: any) => r.text).join('\n\n');
+      
+      console.log(`Analyzing carrier ${carrierId} with ${carrierContext.length} context items`);
 
-    return recommendations.slice(0, 3); // Return top 3
+      if (!context || !env.AI) {
+        console.log(`Skipping ${carrierId} - no context or AI unavailable`);
+        continue;
+      }
+
+      try {
+        // Use AI to analyze carrier-specific PCG subscores
+        const analysis = await env.AI.run('@cf/meta/llama-3.1-8b-instruct', {
+          messages: [
+            {
+              role: 'system',
+              content: `You are an expert insurance underwriter implementing the Preferential Carrier Grade (PCG) scoring system. 
+
+Analyze the carrier guidelines and client profile to calculate PCG subscores (0-100 each):
+
+CLIENT PROFILE:
+- Age: ${clientProfile.age}
+- State: ${clientProfile.state}
+- Height: ${clientProfile.height}" (BMI: ${bmi.toFixed(1)})
+- Weight: ${clientProfile.weight} lbs
+- Nicotine: ${clientProfile.nicotineUse}
+- Health conditions: ${clientProfile.majorConditions}
+- Coverage: $${clientProfile.coverageAmount.toLocaleString()}
+- Avocations: ${clientProfile.avocations}
+- MVR: ${clientProfile.mvr}
+
+PCG CATEGORIES TO SCORE:
+1. Velocity (30%): Path to issue speed, exam-free options, random holdouts
+2. Best Class Probability (25%): Likelihood of getting top underwriting class
+3. Borderline Leniency (15%): Build chart flexibility, mild condition tolerance
+4. Lifestyle Tolerance (10%): Aviation, avocations, travel, MVR policies
+5. Age/Amount Flexibility (5%): APS likelihood, age/amount requirements
+6. Credit Programs (7.5%): Fit credits, mortality credits, underwriting programs
+7. Operations Support (7.5%): Quick quote, transparency, data sources
+
+CARRIER GUIDELINES:
+${context}
+
+Respond with JSON:
+{
+  "subscores": {
+    "velocity": 0-100,
+    "bestClassProb": 0-100,
+    "borderlineLeniency": 0-100,
+    "lifestyleTolerance": 0-100,
+    "ageAmtFlexAPS": 0-100,
+    "creditPrograms": 0-100,
+    "opsSupport": 0-100
+  },
+  "reasons": ["specific reason 1", "specific reason 2", "specific reason 3"],
+  "advisories": ["concern 1", "concern 2"],
+  "confidence": "low|medium|high",
+  "product": "Term|IUL|Whole Life",
+  "underwritingPath": "instant|accelerated|standard|full",
+  "citations": [
+    {
+      "text": "specific guideline text",
+      "source": "document name",
+      "page": "page number or section"
+    }
+  ]
+}`
+            }
+          ]
+        });
+
+        const response = analysis.response || analysis;
+        const analysisText = typeof response === 'string' ? response : JSON.stringify(response);
+        
+        try {
+          const parsed = JSON.parse(analysisText);
+          const subscores: PCGSubscores = parsed.subscores || {
+            velocity: 75, bestClassProb: 75, borderlineLeniency: 75,
+            lifestyleTolerance: 75, ageAmtFlexAPS: 75, creditPrograms: 75, opsSupport: 75
+          };
+          
+          const pcgScore = calculatePCG(subscores);
+          const confidence = parsed.confidence || 'medium';
+          const reasons = parsed.reasons || ['Standard underwriting criteria met'];
+          const advisories = parsed.advisories || [];
+          const product = parsed.product || 'Indexed Universal Life';
+          const underwritingPath = parsed.underwritingPath || 'standard';
+          const citations = parsed.citations || carrierContext.map((c: any) => ({
+            text: c.text.substring(0, 150) + '...',
+            source: 'Carrier Guidelines',
+            page: 'RAG Result'
+          }));
+
+          // Determine carrier name from context or use ID
+          let carrierName = carrierId;
+          const nameMatch = context.match(/(?:carrier|company|insurer)[:\s]+([A-Za-z\s&]+)/i);
+          if (nameMatch) {
+            carrierName = nameMatch[1].trim();
+          }
+
+          recommendations.push({
+            carrierId,
+            carrierName,
+            product,
+            fitPct: pcgScore,
+            confidence,
+            reasons,
+            advisories,
+            apsLikely: underwritingPath === 'full' || pcgScore < 70,
+            underwritingPath,
+            subscores,
+            citations,
+            ctas: {
+              portalUrl: `https://${carrierId}.com/apply`,
+              agentPhone: `1-800-${carrierId.toUpperCase()}`
+            }
+          });
+
+          console.log(`Generated recommendation for ${carrierName}: ${pcgScore}% PCG score`);
+          
+        } catch (parseError) {
+          console.log(`Could not parse AI response for ${carrierId}:`, parseError);
+        }
+      } catch (aiError) {
+        console.log(`AI analysis failed for ${carrierId}:`, aiError);
+      }
+    }
+
+    // Sort by PCG score descending
+    recommendations.sort((a, b) => b.fitPct - a.fitPct);
+    
+    console.log(`Generated ${recommendations.length} recommendations`);
+    return recommendations.slice(0, 5); // Return top 5
+
   } catch (error) {
-    console.error('Error generating recommendations:', error);
+    console.error('Error generating PCG recommendations:', error);
     // Fallback to simple recommendations
     return [
       {
-        carrierId: 'progressive',
-        carrierName: 'Progressive',
+        carrierId: 'fallback',
+        carrierName: 'Recommendation Engine Error',
         product: 'Indexed Universal Life',
-        fitPct: 85,
-        confidence: 'high',
-        reasons: ['Competitive rates', 'Strong financial stability'],
-        advisories: [],
-        apsLikely: false,
+        fitPct: 50,
+        confidence: 'low',
+        reasons: ['System temporarily unavailable'],
+        advisories: ['Please try again or contact support'],
+        apsLikely: true,
         citations: [],
         ctas: {
-          portalUrl: 'https://progressive.com/apply',
-          phoneNumber: '1-800-PROGRESSIVE'
+          portalUrl: '#',
+          agentPhone: '1-800-SUPPORT'
         }
       }
     ];
@@ -746,13 +824,25 @@ export default {
           console.log('Error details:', e);
         }
 
-        // Generate search query from intake data
+        // Generate specific search query from intake data for better RAG results
+        const age = intakeData.core?.age || intakeData.age || 35;
+        const nicotine = intakeData.core?.nicotineUse || intakeData.nicotineUse || 'never';
+        const conditions = intakeData.core?.majorConditions || intakeData.majorConditions || 'none';
+        const coverage = intakeData.core?.coverageTarget || intakeData.coverageAmount || 500000;
+        const state = intakeData.core?.state || intakeData.state || 'CA';
+        const height = intakeData.core?.height || intakeData.height || 70;
+        const weight = intakeData.core?.weight || intakeData.weight || 170;
+        const bmi = (weight / (height * height)) * 703;
+        
         const searchQuery = `
-          Age ${intakeData.core?.age || intakeData.age || 35} in ${intakeData.core?.state || intakeData.state || 'CA'},
-          ${intakeData.core?.height || intakeData.height || 70} inches ${intakeData.core?.weight || intakeData.weight || 170} lbs,
-          nicotine use: ${intakeData.core?.nicotineUse || intakeData.nicotineUse || 'never'},
-          health conditions: ${intakeData.core?.majorConditions || intakeData.majorConditions || 'none'},
-          coverage amount: $${intakeData.core?.coverageTarget || intakeData.coverageAmount || 500000}
+          Underwriting guidelines age ${age} ${nicotine} tobacco ${conditions} health conditions
+          ${coverage >= 1000000 ? 'high face amount' : 'standard face amount'} coverage
+          ${state} state build chart BMI ${bmi.toFixed(1)} height ${height} weight ${weight}
+          accelerated underwriting exam-free instant approval criteria
+          preferred plus super preferred underwriting class requirements
+          build chart nicotine policy cigar marijuana policy
+          aviation avocations travel MVR driving record requirements
+          APS requirements age amount thresholds underwriting credits
         `;
 
         console.log('Performing RAG search with query:', searchQuery);
