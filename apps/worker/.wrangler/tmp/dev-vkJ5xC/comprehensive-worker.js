@@ -1,7 +1,7 @@
 var __defProp = Object.defineProperty;
 var __name = (target, value) => __defProp(target, "name", { value, configurable: true });
 
-// src/working-carriers.ts
+// src/comprehensive-worker.ts
 function corsHeaders() {
   return {
     "Access-Control-Allow-Origin": "*",
@@ -73,7 +73,7 @@ function extractCarrierInfo(filename) {
   };
 }
 __name(extractCarrierInfo, "extractCarrierInfo");
-var working_carriers_default = {
+var comprehensive_worker_default = {
   async fetch(request, env, ctx) {
     const url = new URL(request.url);
     const path = url.pathname;
@@ -94,10 +94,111 @@ var working_carriers_default = {
           headers: corsHeaders()
         });
       }
-      if (path === "/api/carriers/test") {
+      if (path === "/api/analytics/summary" && method === "GET") {
+        const userId = request.headers.get("X-User-Id");
+        const now = /* @__PURE__ */ new Date();
+        const currentMonth = now.toISOString().slice(0, 7);
+        const monthStart = new Date(now.getFullYear(), now.getMonth(), 1).toISOString();
+        let stats = {
+          totalIntakes: 0,
+          averageFitScore: 0,
+          placementRate: 0,
+          remainingRecommendations: 0
+        };
+        let topCarriers = [];
+        let trends = [];
+        try {
+          const intakesResult = await env.DB.prepare(`
+            SELECT COUNT(*) as count FROM (
+              SELECT id FROM intakes
+              UNION ALL
+              SELECT id FROM intake_submissions
+            )
+          `).first();
+          stats.totalIntakes = intakesResult?.count || 0;
+          if (userId) {
+            try {
+              const userUsage = await env.DB.prepare(`
+                SELECT COUNT(*) as used
+                FROM recommendations
+                WHERE user_id = ?
+                  AND created_at >= ?
+              `).bind(userId, monthStart).first();
+              const used = userUsage?.used || 0;
+              const userProfile = await env.DB.prepare(
+                "SELECT recommendations_limit FROM user_profiles WHERE user_id = ?"
+              ).bind(userId).first();
+              const limit = userProfile?.recommendations_limit || 0;
+              stats.remainingRecommendations = Math.max(0, limit - used);
+            } catch (e) {
+              console.log("Could not get user usage:", e);
+            }
+            try {
+              const avgScore = await env.DB.prepare(`
+                SELECT AVG(fit_score) as avg
+                FROM recommendations
+                WHERE user_id = ?
+              `).bind(userId).first();
+              if (avgScore?.avg) {
+                stats.averageFitScore = Math.round(avgScore.avg);
+              } else {
+                stats.averageFitScore = 0;
+              }
+            } catch (e) {
+              console.log("Could not get average score:", e);
+            }
+            try {
+              const topCarriersResult = await env.DB.prepare(`
+                SELECT carrier_name, COUNT(*) as count
+                FROM recommendations
+                WHERE user_id = ?
+                GROUP BY carrier_name
+                ORDER BY count DESC
+                LIMIT 5
+              `).bind(userId).all();
+              topCarriers = topCarriersResult.results || [];
+            } catch (e) {
+              console.log("Could not get top carriers:", e);
+            }
+            try {
+              const trendsResult = await env.DB.prepare(`
+                SELECT 
+                  strftime('%Y-%m', created_at) as month,
+                  COUNT(*) as count
+                FROM recommendations
+                WHERE user_id = ?
+                  AND created_at >= date('now', '-6 months')
+                GROUP BY strftime('%Y-%m', created_at)
+                ORDER BY month
+              `).bind(userId).all();
+              trends = trendsResult.results || [];
+            } catch (e) {
+              console.log("Could not get trends:", e);
+            }
+          }
+          try {
+            const placements = await env.DB.prepare(`
+              SELECT 
+                COUNT(CASE WHEN status = 'approved' OR status = 'placed' THEN 1 END) as placed,
+                COUNT(*) as total
+              FROM outcomes
+            `).first();
+            if (placements?.total > 0) {
+              const placementData = placements;
+              stats.placementRate = Math.round(placementData.placed / placementData.total * 100);
+            } else {
+              stats.placementRate = 0;
+            }
+          } catch (e) {
+            console.log("Could not get placement rate:", e);
+          }
+        } catch (dbError) {
+          console.error("Database error in analytics:", dbError);
+        }
         return new Response(JSON.stringify({
-          message: "Carriers test endpoint working",
-          carriers: []
+          stats,
+          topCarriers,
+          trends
         }), {
           headers: corsHeaders()
         });
@@ -254,6 +355,175 @@ var working_carriers_default = {
           headers: corsHeaders()
         });
       }
+      if (path === "/api/user/history" && method === "GET") {
+        const userId = request.headers.get("X-User-Id");
+        if (!userId) {
+          return new Response(JSON.stringify({ error: "User ID required" }), {
+            status: 401,
+            headers: corsHeaders()
+          });
+        }
+        try {
+          let history;
+          try {
+            history = await env.DB.prepare(`
+              SELECT 
+                r.id,
+                r.submission_id,
+                r.carrier_name,
+                r.fit_score,
+                r.created_at,
+                i.data as intake_data
+              FROM recommendations r
+              LEFT JOIN intakes i ON r.submission_id = i.id
+              WHERE r.user_id = ?
+              ORDER BY r.created_at DESC
+              LIMIT 50
+            `).bind(userId).all();
+          } catch (tableError) {
+            console.log("Recommendations table not found, trying intakes table:", tableError);
+            history = await env.DB.prepare(`
+              SELECT 
+                id,
+                id as submission_id,
+                'Unknown Carrier' as carrier_name,
+                0 as fit_score,
+                created_at,
+                data as intake_data
+              FROM intakes
+              WHERE user_id = ?
+              ORDER BY created_at DESC
+              LIMIT 50
+            `).bind(userId).all();
+          }
+          const formattedHistory = history.results.map((item) => ({
+            id: item.id,
+            submissionId: item.submission_id,
+            carrierName: item.carrier_name,
+            fitScore: item.fit_score,
+            createdAt: item.created_at,
+            intakeData: item.intake_data ? JSON.parse(item.intake_data) : null
+          }));
+          return new Response(JSON.stringify(formattedHistory), {
+            headers: corsHeaders()
+          });
+        } catch (error) {
+          console.error("Error fetching user history:", error);
+          return new Response(JSON.stringify([]), {
+            headers: corsHeaders()
+          });
+        }
+      }
+      if (path === "/api/intake/submit" && method === "POST") {
+        const userId = request.headers.get("X-User-Id");
+        if (!userId) {
+          return new Response(JSON.stringify({ error: "User ID required" }), {
+            status: 401,
+            headers: corsHeaders()
+          });
+        }
+        try {
+          const intakeData = await request.json();
+          const submissionId = `sub_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
+          await env.DB.prepare(`
+            INSERT INTO intakes (id, user_id, data, created_at)
+            VALUES (?, ?, ?, datetime('now'))
+          `).bind(submissionId, userId, JSON.stringify(intakeData)).run();
+          const recommendations = [];
+          for (const rec of recommendations) {
+            try {
+              await env.DB.prepare(`
+                INSERT INTO recommendations (user_id, submission_id, carrier_name, fit_score, 
+                                          reasons, advisories, created_at)
+                VALUES (?, ?, ?, ?, ?, ?, datetime('now'))
+              `).bind(
+                userId,
+                submissionId,
+                rec.carrierName,
+                rec.fitScore,
+                JSON.stringify(rec.reasons),
+                JSON.stringify(rec.advisories)
+              ).run();
+            } catch (e) {
+              console.log("Could not store recommendation:", e);
+            }
+          }
+          return new Response(JSON.stringify({
+            submissionId,
+            recommendations
+          }), {
+            headers: corsHeaders()
+          });
+        } catch (error) {
+          console.error("Error processing intake:", error);
+          return new Response(JSON.stringify({ error: "Failed to process intake" }), {
+            status: 500,
+            headers: corsHeaders()
+          });
+        }
+      }
+      if (path.startsWith("/api/recommendations/") && method === "GET") {
+        const submissionId = path.split("/")[3];
+        const userId = request.headers.get("X-User-Id");
+        if (!userId) {
+          return new Response(JSON.stringify({ error: "User ID required" }), {
+            status: 401,
+            headers: corsHeaders()
+          });
+        }
+        try {
+          const recommendations = await env.DB.prepare(`
+            SELECT carrier_name, fit_score, reasons, advisories, created_at
+            FROM recommendations
+            WHERE submission_id = ? AND user_id = ?
+            ORDER BY fit_score DESC
+          `).bind(submissionId, userId).all();
+          const formattedRecommendations = recommendations.results.map((rec) => ({
+            carrierName: rec.carrier_name,
+            fitScore: rec.fit_score,
+            reasons: rec.reasons ? JSON.parse(rec.reasons) : [],
+            advisories: rec.advisories ? JSON.parse(rec.advisories) : [],
+            createdAt: rec.created_at
+          }));
+          return new Response(JSON.stringify({
+            submissionId,
+            recommendations: formattedRecommendations
+          }), {
+            headers: corsHeaders()
+          });
+        } catch (error) {
+          console.error("Error fetching recommendations:", error);
+          return new Response(JSON.stringify({ error: "Failed to fetch recommendations" }), {
+            status: 500,
+            headers: corsHeaders()
+          });
+        }
+      }
+      if (path === "/api/outcomes" && method === "POST") {
+        const userId = request.headers.get("X-User-Id");
+        if (!userId) {
+          return new Response(JSON.stringify({ error: "User ID required" }), {
+            status: 401,
+            headers: corsHeaders()
+          });
+        }
+        try {
+          const { submissionId, carrierName, status, notes } = await request.json();
+          await env.DB.prepare(`
+            INSERT INTO outcomes (user_id, submission_id, carrier_name, status, notes, created_at)
+            VALUES (?, ?, ?, ?, ?, datetime('now'))
+          `).bind(userId, submissionId, carrierName, status, notes || "").run();
+          return new Response(JSON.stringify({ success: true }), {
+            headers: corsHeaders()
+          });
+        } catch (error) {
+          console.error("Error logging outcome:", error);
+          return new Response(JSON.stringify({ error: "Failed to log outcome" }), {
+            status: 500,
+            headers: corsHeaders()
+          });
+        }
+      }
       return new Response(JSON.stringify({
         message: "Not found",
         path
@@ -315,12 +585,12 @@ var jsonError = /* @__PURE__ */ __name(async (request, env, _ctx, middlewareCtx)
 }, "jsonError");
 var middleware_miniflare3_json_error_default = jsonError;
 
-// .wrangler/tmp/bundle-J8xj9h/middleware-insertion-facade.js
+// .wrangler/tmp/bundle-EbSQiy/middleware-insertion-facade.js
 var __INTERNAL_WRANGLER_MIDDLEWARE__ = [
   middleware_ensure_req_body_drained_default,
   middleware_miniflare3_json_error_default
 ];
-var middleware_insertion_facade_default = working_carriers_default;
+var middleware_insertion_facade_default = comprehensive_worker_default;
 
 // ../../../../../Users/cinef/AppData/Local/npm-cache/_npx/d77349f55c2be1c0/node_modules/wrangler/templates/middleware/common.ts
 var __facade_middleware__ = [];
@@ -347,7 +617,7 @@ function __facade_invoke__(request, env, ctx, dispatch, finalMiddleware) {
 }
 __name(__facade_invoke__, "__facade_invoke__");
 
-// .wrangler/tmp/bundle-J8xj9h/middleware-loader.entry.ts
+// .wrangler/tmp/bundle-EbSQiy/middleware-loader.entry.ts
 var __Facade_ScheduledController__ = class ___Facade_ScheduledController__ {
   constructor(scheduledTime, cron, noRetry) {
     this.scheduledTime = scheduledTime;
@@ -447,4 +717,4 @@ export {
   __INTERNAL_WRANGLER_MIDDLEWARE__,
   middleware_loader_entry_default as default
 };
-//# sourceMappingURL=working-carriers.js.map
+//# sourceMappingURL=comprehensive-worker.js.map
