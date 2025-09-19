@@ -273,12 +273,19 @@ export default {
         let trends: any[] = [];
 
         try {
-          // Get total intakes - use the main intakes table only
-          const intakesResult = await env.DB.prepare(`
-            SELECT COUNT(*) as count FROM intakes
-          `).first();
-
-          stats.totalIntakes = (intakesResult?.count as number) || 0;
+          // Get user-specific intakes if userId provided, otherwise system-wide
+          if (userId) {
+            const userIntakesResult = await env.DB.prepare(`
+              SELECT COUNT(*) as count FROM intakes WHERE user_id = ?
+            `).bind(userId).first();
+            stats.totalIntakes = (userIntakesResult?.count as number) || 0;
+          } else {
+            // System-wide total for admin view
+            const intakesResult = await env.DB.prepare(`
+              SELECT COUNT(*) as count FROM intakes
+            `).first();
+            stats.totalIntakes = (intakesResult?.count as number) || 0;
+          }
 
           // If we have a user ID, get user-specific data
           if (userId) {
@@ -400,14 +407,27 @@ export default {
             }
           }
 
-          // Calculate placement rate - only if we have real outcomes data
+          // Calculate placement rate - user-specific if userId provided
           try {
-            const placements = await env.DB.prepare(`
-              SELECT
-                COUNT(CASE WHEN status = 'approved' OR status = 'placed' THEN 1 END) as placed,
-                COUNT(*) as total
-              FROM outcomes
-            `).first();
+            let placements;
+            if (userId) {
+              // User-specific placement rate
+              placements = await env.DB.prepare(`
+                SELECT
+                  COUNT(CASE WHEN status = 'approved' OR status = 'placed' THEN 1 END) as placed,
+                  COUNT(*) as total
+                FROM outcomes
+                WHERE user_id = ?
+              `).bind(userId).first();
+            } else {
+              // System-wide placement rate
+              placements = await env.DB.prepare(`
+                SELECT
+                  COUNT(CASE WHEN status = 'approved' OR status = 'placed' THEN 1 END) as placed,
+                  COUNT(*) as total
+                FROM outcomes
+              `).first();
+            }
 
             if (placements && (placements.total as number) > 0) {
               stats.placementRate = Math.round(((placements.placed as number) / (placements.total as number)) * 100);
@@ -428,7 +448,12 @@ export default {
           stats,
           topCarriers,
           trends,
-          lastUpdated: new Date().toISOString()
+          lastUpdated: new Date().toISOString(),
+          context: {
+            userId: userId || null,
+            scope: userId ? 'user-specific' : 'system-wide',
+            planInfo: userId ? 'User plan data from Clerk API' : 'System-wide analytics'
+          }
         }, { headers: corsHeaders });
 
       } catch (error) {
@@ -878,6 +903,86 @@ export default {
           } catch (error) {
             console.error('Outcomes endpoint error:', error);
             return Response.json({ error: 'Failed to log outcome' }, { status: 500, headers: corsHeaders });
+          }
+        }
+
+        // Recommendations endpoint for retrieving specific recommendations
+        if (path.startsWith('/api/recommendations/') && request.method === 'GET') {
+          try {
+            const recommendationId = path.split('/')[3];
+            const userId = request.headers.get('X-User-Id');
+            
+            console.log('Fetching recommendation:', recommendationId, 'for user:', userId);
+            
+            // Get recommendation data from database
+            const recs = await env.DB.prepare(`
+              SELECT * FROM recommendations
+              WHERE recommendation_id = ?
+                AND user_id = ?
+            `).bind(recommendationId, userId).all();
+
+            if (recs?.results && recs.results.length > 0) {
+              // Parse the stored recommendation data
+              const storedData = recs.results[0];
+              const fitJson = JSON.parse(storedData.fit_json || '[]');
+              
+              const recommendations = fitJson.map((rec: any) => ({
+                carrierId: rec.carrierId,
+                carrierName: rec.carrierName,
+                fitScore: rec.fitPct,
+                tier: rec.fitPct >= 85 ? 'preferred' : rec.fitPct >= 70 ? 'standard' : 'challenging',
+                reasoning: {
+                  pros: rec.reasons,
+                  cons: rec.advisories,
+                  summary: `Fit score of ${rec.fitPct}% based on underwriting criteria.`
+                },
+                estimatedPremium: {
+                  monthly: Math.round(1200 + (100 - rec.fitPct) * 10),
+                  annual: Math.round((1200 + (100 - rec.fitPct) * 10) * 12),
+                  confidence: rec.confidence
+                },
+                underwritingPath: rec.fitPct >= 80 ? 'simplified' : 'standard',
+                requiresExam: rec.apsLikely,
+                processingTime: rec.fitPct >= 80 ? '1-2 weeks' : '2-3 weeks',
+                citations: rec.citations
+              }));
+
+              const averageFit = recommendations.length > 0 
+                ? Math.round(recommendations.reduce((sum: number, r: any) => sum + r.fitScore, 0) / recommendations.length)
+                : 0;
+
+              return Response.json({
+                recommendationId,
+                status: 'completed',
+                recommendations,
+                top: recommendations.slice(0, 1),
+                premiumSuggestion: `Based on your profile, we recommend starting with a monthly premium of $${Math.round(1200 + (100 - averageFit) * 10)} for optimal coverage.`,
+                summary: {
+                  averageFit,
+                  totalCarriersEvaluated: recommendations.length,
+                  tier2Recommended: averageFit < 70,
+                  topCarrierId: recommendations[0]?.carrierId || 'none',
+                  notes: 'Recommendation retrieved from database.'
+                },
+                metadata: {
+                  processingTime: storedData.latency_ms || 0,
+                  citationsFound: recommendations.reduce((sum: number, r: any) => sum + r.citations.length, 0),
+                  modelUsed: storedData.model_snapshot || 'llama-3.1-8b-instruct'
+                },
+                timestamp: storedData.created_at
+              }, { headers: corsHeaders });
+            } else {
+              return Response.json({
+                error: 'Recommendation not found',
+                recommendationId
+              }, { status: 404, headers: corsHeaders });
+            }
+          } catch (error) {
+            console.error('Recommendation retrieval error:', error);
+            return Response.json({
+              error: 'Failed to retrieve recommendation',
+              message: (error as Error).message
+            }, { status: 500, headers: corsHeaders });
           }
         }
         

@@ -48,9 +48,20 @@ export const AnalyticsPage = () => {
         <p className="mt-1 text-sm text-gray-600">
           Track your placement performance and identify trends to optimize your success rate.
         </p>
-        <p className="text-xs text-gray-500 mt-1">
-          Last updated: {data.lastUpdated ? new Date(data.lastUpdated).toLocaleString() : 'Never'}
-        </p>
+        <div className="flex items-center gap-4 mt-2">
+          <p className="text-xs text-gray-500">
+            Last updated: {data.lastUpdated ? new Date(data.lastUpdated).toLocaleString() : 'Never'}
+          </p>
+          {data.context && (
+            <span className={`inline-flex items-center px-2 py-1 rounded-full text-xs font-medium ${
+              data.context.scope === 'user-specific' 
+                ? 'bg-blue-100 text-blue-800' 
+                : 'bg-gray-100 text-gray-800'
+            }`}>
+              {data.context.scope === 'user-specific' ? 'Your Data' : 'System Data'}
+            </span>
+          )}
+        </div>
       </div>
 
       {/* Key Metrics - Available to all */}
@@ -65,7 +76,9 @@ export const AnalyticsPage = () => {
               </div>
             </div>
             <div className="ml-3">
-              <p className="text-sm font-medium text-gray-500">Total Intakes</p>
+              <p className="text-sm font-medium text-gray-500">
+                {data.context?.scope === 'user-specific' ? 'Your Intakes' : 'Total Intakes'}
+              </p>
               <p className="text-lg font-bold text-gray-900">{data.stats.totalIntakes}</p>
             </div>
           </div>
@@ -81,7 +94,9 @@ export const AnalyticsPage = () => {
               </div>
             </div>
             <div className="ml-3">
-              <p className="text-sm font-medium text-gray-500">Avg Fit Score</p>
+              <p className="text-sm font-medium text-gray-500">
+                {data.context?.scope === 'user-specific' ? 'Your Avg Fit Score' : 'Avg Fit Score'}
+              </p>
               <p className="text-lg font-bold text-gray-900">{data.stats.averageFitScore}%</p>
             </div>
           </div>
@@ -97,7 +112,9 @@ export const AnalyticsPage = () => {
               </div>
             </div>
             <div className="ml-3">
-              <p className="text-sm font-medium text-gray-500">Placement Rate</p>
+              <p className="text-sm font-medium text-gray-500">
+                {data.context?.scope === 'user-specific' ? 'Your Placement Rate' : 'Placement Rate'}
+              </p>
               <p className="text-lg font-bold text-gray-900">{data.stats.placementRate}%</p>
             </div>
           </div>
