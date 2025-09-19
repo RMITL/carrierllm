@@ -83,7 +83,9 @@ CREATE TABLE IF NOT EXISTS intakes (
   validated BOOLEAN DEFAULT FALSE,
   tier2_triggered BOOLEAN DEFAULT FALSE,
   created_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP,
-  FOREIGN KEY (tenant_id) REFERENCES tenants(id)
+  user_id TEXT,
+  FOREIGN KEY (tenant_id) REFERENCES tenants(id),
+  FOREIGN KEY (user_id) REFERENCES user_profiles(user_id)
 );
 
 -- Recommendations with enhanced structure
@@ -95,6 +97,11 @@ CREATE TABLE IF NOT EXISTS recommendations (
   citations TEXT NOT NULL, -- JSON array of citations
   latency_ms INTEGER,
   created_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP,
+  recommendation_id TEXT,
+  user_id TEXT,
+  carrier_id TEXT,
+  carrier_name TEXT,
+  fit_score REAL,
   FOREIGN KEY (intake_id) REFERENCES intakes(id)
 );
 
@@ -137,7 +144,8 @@ CREATE TABLE IF NOT EXISTS audit_logs (
 CREATE TABLE IF NOT EXISTS submissions (
   id TEXT PRIMARY KEY,
   created_at TEXT NOT NULL,
-  payload TEXT NOT NULL
+  payload TEXT NOT NULL,
+  user_id TEXT
 );
 
 -- For current worker compatibility
@@ -145,7 +153,8 @@ CREATE TABLE IF NOT EXISTS intake_submissions (
   id TEXT PRIMARY KEY,
   type TEXT NOT NULL DEFAULT 'intake',
   data TEXT NOT NULL,
-  created_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP
+  created_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP,
+  user_id TEXT
 );
 
 -- User profiles and subscription management (modern SaaS structure)
