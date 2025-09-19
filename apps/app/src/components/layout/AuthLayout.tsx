@@ -119,7 +119,7 @@ export const AuthLayout = () => {
                   }
                 }}
                 routing="hash"
-                redirectUrl="/dashboard"
+                redirectUrl="/"
               />
             ) : (
               <SignUp
@@ -138,7 +138,7 @@ export const AuthLayout = () => {
                   }
                 }}
                 routing="hash"
-                redirectUrl="/dashboard"
+                redirectUrl="/"
                 unsafeMetadata={{
                   planKey: selectedPlan || 'free_user'
                 }}
