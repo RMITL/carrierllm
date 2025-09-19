@@ -17,6 +17,7 @@ import { HistoryPage } from './routes/HistoryPage';
 import { PricingPage } from './routes/PricingPage';
 import { TermsPage } from './routes/TermsPage';
 import { PrivacyPage } from './routes/PrivacyPage';
+import { CarriersPage } from './routes/CarriersPage';
 
 const App = () => {
   const { isLoaded } = useAuth();
@@ -53,6 +54,7 @@ const App = () => {
                 <Route path="/results/:id" element={<ResultsPage />} />
                 <Route path="/history" element={<HistoryPage />} />
                 <Route path="/profile" element={<ProfilePage />} />
+                <Route path="/carriers" element={<CarriersPage />} />
                 <Route path="/billing" element={<BillingPage />} />
                 <Route path="/analytics" element={<AnalyticsPage />} />
                 <Route path="/pricing" element={<PricingPage />} />

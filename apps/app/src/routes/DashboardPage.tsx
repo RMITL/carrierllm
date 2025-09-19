@@ -3,7 +3,6 @@ import { useUser } from '@clerk/clerk-react';
 import { Card, Button, Badge } from '@carrierllm/ui';
 import { useQuery } from '@tanstack/react-query';
 import { fetchAnalytics, getUserHistory, getUserUsage } from '../lib/api';
-import { CarriersPanel } from '../components/CarriersPanel';
 import type { AnalyticsSummary } from '../types';
 
 interface HistoryItem {
@@ -326,8 +325,6 @@ export const DashboardPage = () => {
         </div>
       </div>
 
-      {/* Carriers Panel */}
-      <CarriersPanel />
 
       {/* Recent Activity */}
       <div>

@@ -491,6 +491,109 @@ router.get('/api/recommendations/:id', async (request, env: Env) => {
 // 3. Use <PricingTable /> component in your React app
 // 4. Check access with has({ plan: 'plan_name' }) or <Protect> component
 
+// Utility function to extract carrier info from filename
+function extractCarrierInfo(filename: string) {
+  const name = filename.replace('.pdf', '').toLowerCase();
+  const carrierMappings: Record<string, string> = {
+    'agl': 'american-general-life',
+    'allianz': 'allianz',
+    'americo': 'americo',
+    'columbus': 'columbus-life',
+    'corbridge': 'corbridge',
+    'ethos': 'ethos',
+    'f&g': 'fidelity-guarantee',
+    'foresters': 'foresters',
+    'moo': 'mutual-of-omaha',
+    'plag': 'pacific-life',
+    'plc': 'pacific-life',
+    'prudential': 'prudential',
+    'securian': 'securian',
+    'symetra': 'symetra',
+    'transamerica': 'transamerica'
+  };
+
+  for (const [key, carrierId] of Object.entries(carrierMappings)) {
+    if (name.includes(key)) {
+      return {
+        carrierId,
+        carrierName: carrierId.split('-').map(word =>
+          word.charAt(0).toUpperCase() + word.slice(1)
+        ).join(' ')
+      };
+    }
+  }
+
+  const firstWord = name.split(/[\s_-]/)[0];
+  return {
+    carrierId: firstWord.toLowerCase(),
+    carrierName: firstWord.charAt(0).toUpperCase() + firstWord.slice(1)
+  };
+}
+
+// Function to populate carriers table from existing documents
+async function populateCarriersFromDocuments(env: Env) {
+  try {
+    // Check if carriers table is empty
+    const existingCarriers = await env.DB.prepare('SELECT COUNT(*) as count FROM carriers').first();
+    if (existingCarriers && existingCarriers.count > 0) {
+      return; // Carriers already populated
+    }
+
+    console.log('Populating carriers table from existing documents...');
+
+    // List all documents in R2
+    const list = await env.DOCS_BUCKET.list();
+    const pdfFiles = list.objects.filter(obj => obj.key.toLowerCase().endsWith('.pdf'));
+
+    const carriersMap = new Map<string, any>();
+
+    // Extract carrier info from each document
+    for (const pdfFile of pdfFiles) {
+      const carrierInfo = extractCarrierInfo(pdfFile.key);
+      
+      if (!carriersMap.has(carrierInfo.carrierId)) {
+        carriersMap.set(carrierInfo.carrierId, {
+          id: carrierInfo.carrierId,
+          name: carrierInfo.carrierName,
+          am_best: null, // Will be populated later if available
+          portal_url: null,
+          agent_phone: null,
+          preferred_tier_rank: null,
+          available_states: JSON.stringify([]),
+          created_at: new Date().toISOString(),
+          updated_at: new Date().toISOString()
+        });
+      }
+    }
+
+    // Insert carriers into database
+    for (const carrier of carriersMap.values()) {
+      try {
+        await env.DB.prepare(`
+          INSERT INTO carriers (id, name, am_best, portal_url, agent_phone, preferred_tier_rank, available_states, created_at, updated_at)
+          VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
+        `).bind(
+          carrier.id,
+          carrier.name,
+          carrier.am_best,
+          carrier.portal_url,
+          carrier.agent_phone,
+          carrier.preferred_tier_rank,
+          carrier.available_states,
+          carrier.created_at,
+          carrier.updated_at
+        ).run();
+      } catch (error) {
+        console.log(`Carrier ${carrier.id} might already exist, skipping...`);
+      }
+    }
+
+    console.log(`Populated ${carriersMap.size} carriers from existing documents`);
+  } catch (error) {
+    console.error('Error populating carriers from documents:', error);
+  }
+}
+
 // Get carriers with user preferences
 router.get('/api/carriers/with-preferences', async (request, env: Env) => {
   try {
@@ -498,6 +601,9 @@ router.get('/api/carriers/with-preferences', async (request, env: Env) => {
     if (!userId) {
       return Response.json({ error: 'User ID required' }, { status: 401, headers: corsHeaders() });
     }
+
+    // First, ensure carriers are populated from existing documents
+    await populateCarriersFromDocuments(env);
 
     // Get all carriers
     const carriers = await env.DB.prepare('SELECT * FROM carriers ORDER BY name').all();
@@ -702,6 +808,9 @@ router.get('/api/carriers/organization-settings', async (request, env: Env) => {
     // TODO: Verify user is admin in this organization using Clerk
     // For now, we'll allow all authenticated users to access this endpoint
     // In production, you'd verify the user's role in their organization
+
+    // First, ensure carriers are populated from existing documents
+    await populateCarriersFromDocuments(env);
 
     // Get all carriers
     const carriers = await env.DB.prepare('SELECT * FROM carriers ORDER BY name').all();
