@@ -292,9 +292,37 @@ export default {
               `).bind(userId, monthStart).first();
 
               const used = (userUsage?.used as number) || 0;
-              // Use actual plan limits instead of hardcoded 100
-              const planLimit = 5; // Default free tier - in production this would come from user's plan
-              stats.remainingRecommendations = Math.max(0, planLimit - used);
+              
+              // Get plan limits from Clerk API
+              let planLimit = 5; // Default free tier
+              try {
+                const clerkApiKey = env.CLERK_SECRET_KEY;
+                if (clerkApiKey) {
+                  const clerkResponse = await fetch(`https://api.clerk.com/v1/users/${userId}`, {
+                    headers: {
+                      'Authorization': `Bearer ${clerkApiKey}`,
+                      'Content-Type': 'application/json'
+                    }
+                  });
+                  
+                  if (clerkResponse.ok) {
+                    const userData = await clerkResponse.json();
+                    const publicMetadata = userData.public_metadata || {};
+                    
+                    if (publicMetadata.plan_slug) {
+                      if (publicMetadata.plan_slug === 'enterprise') {
+                        planLimit = -1; // Unlimited
+                      } else if (publicMetadata.plan_slug === 'individual') {
+                        planLimit = 100;
+                      }
+                    }
+                  }
+                }
+              } catch (e) {
+                console.log('Could not get plan limits from Clerk:', e);
+              }
+              
+              stats.remainingRecommendations = planLimit === -1 ? 999 : Math.max(0, planLimit - used);
         } catch (e: any) {
           console.log('Could not get user usage:', e);
         }
@@ -446,18 +474,51 @@ export default {
           console.log('Could not get user usage:', e);
         }
         
-        // Determine plan limits based on user metadata or default to free
+        // Get plan information from Clerk's API
         let planLimit = 5; // Default free tier
         let planName = 'Free';
+        let planSlug = 'free';
         
-        // In a real implementation, you'd check Clerk's subscription data
-        // For now, we'll use a simple logic based on usage patterns
-        if (currentUsage > 100) {
-          planLimit = -1; // Unlimited
-          planName = 'Enterprise';
-        } else if (currentUsage > 10) {
-          planLimit = 100;
-          planName = 'Individual';
+        try {
+          // Call Clerk's API to get user subscription data
+          const clerkApiKey = env.CLERK_SECRET_KEY;
+          if (clerkApiKey) {
+            const clerkResponse = await fetch(`https://api.clerk.com/v1/users/${userId}`, {
+              headers: {
+                'Authorization': `Bearer ${clerkApiKey}`,
+                'Content-Type': 'application/json'
+              }
+            });
+            
+            if (clerkResponse.ok) {
+              const userData = await clerkResponse.json();
+              const publicMetadata = userData.public_metadata || {};
+              
+              // Extract plan information from Clerk's publicMetadata
+              if (publicMetadata.plan_name || publicMetadata.plan_slug) {
+                planName = publicMetadata.plan_name || 'Individual';
+                planSlug = publicMetadata.plan_slug || 'individual';
+                
+                // Set limits based on plan
+                if (planSlug === 'enterprise') {
+                  planLimit = -1; // Unlimited
+                } else if (planSlug === 'individual') {
+                  planLimit = 100;
+                } else {
+                  planLimit = 5; // Free tier
+                }
+                
+                console.log('Found Clerk plan data:', { planName, planSlug, planLimit });
+              }
+            } else {
+              console.log('Could not fetch user data from Clerk:', clerkResponse.status);
+            }
+          } else {
+            console.log('No Clerk API key available');
+          }
+        } catch (e) {
+          console.log('Could not get plan from Clerk API:', e);
+          // Keep default free plan
         }
         
         return Response.json({
