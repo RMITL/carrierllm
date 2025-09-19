@@ -68,32 +68,36 @@ export const AuthLayout = () => {
 
           {/* Auth Toggle */}
           <div className="flex rounded-lg bg-gray-100 p-1 mb-6">
-            <Button
-              variant={mode === 'sign-in' ? 'primary' : 'secondary'}
-              size="sm"
+            <button
               onClick={() => setMode('sign-in')}
-              className="flex-1 bg-transparent border-0 shadow-none"
+              className={`flex-1 py-2 px-4 text-sm font-medium rounded-md transition-colors ${
+                mode === 'sign-in'
+                  ? 'bg-white text-gray-900 shadow-sm'
+                  : 'text-gray-600 hover:text-gray-900'
+              }`}
             >
               Sign In
-            </Button>
-            <Button
-              variant={mode === 'sign-up' ? 'primary' : 'secondary'}
-              size="sm"
+            </button>
+            <button
               onClick={() => setMode('sign-up')}
-              className="flex-1 bg-transparent border-0 shadow-none"
+              className={`flex-1 py-2 px-4 text-sm font-medium rounded-md transition-colors ${
+                mode === 'sign-up'
+                  ? 'bg-white text-gray-900 shadow-sm'
+                  : 'text-gray-600 hover:text-gray-900'
+              }`}
             >
               Sign Up
-            </Button>
+            </button>
           </div>
 
           {/* Clerk Authentication Components */}
-          <div className="auth-component">
+          <div className="auth-component p-4">
             {mode === 'sign-in' ? (
               <SignIn
                 appearance={{
                   elements: {
                     rootBox: 'w-full',
-                    card: 'shadow-none border-0 p-0',
+                    card: 'shadow-none border-0 p-4',
                     formButtonPrimary: 'bg-blue-600 hover:bg-blue-700',
                     formFieldInput: 'rounded-md border-gray-300',
                     headerTitle: 'hidden',
@@ -112,7 +116,7 @@ export const AuthLayout = () => {
                 appearance={{
                   elements: {
                     rootBox: 'w-full',
-                    card: 'shadow-none border-0 p-0',
+                    card: 'shadow-none border-0 p-4',
                     formButtonPrimary: 'bg-blue-600 hover:bg-blue-700',
                     formFieldInput: 'rounded-md border-gray-300',
                     headerTitle: 'hidden',
