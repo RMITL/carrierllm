@@ -426,9 +426,16 @@ var comprehensive_worker_default = {
           const intakeData = await request.json();
           const submissionId = `sub_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
           await env.DB.prepare(`
-            INSERT INTO intakes (id, user_id, data, created_at)
-            VALUES (?, ?, ?, datetime('now'))
-          `).bind(submissionId, userId, JSON.stringify(intakeData)).run();
+            INSERT INTO intakes (id, tenant_id, payload_json, validated, tier2_triggered, user_id, created_at)
+            VALUES (?, ?, ?, ?, ?, ?, datetime('now'))
+          `).bind(
+            submissionId,
+            request.headers.get("X-Organization-Id") || "default",
+            JSON.stringify(intakeData),
+            intakeData.validated || false,
+            intakeData.tier2Triggered || false,
+            userId
+          ).run();
           const recommendations = [];
           for (const rec of recommendations) {
             try {
@@ -456,7 +463,10 @@ var comprehensive_worker_default = {
           });
         } catch (error) {
           console.error("Error processing intake:", error);
-          return new Response(JSON.stringify({ error: "Failed to process intake" }), {
+          return new Response(JSON.stringify({
+            error: "Failed to process intake",
+            details: error instanceof Error ? error.message : String(error)
+          }), {
             status: 500,
             headers: corsHeaders()
           });
