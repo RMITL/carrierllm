@@ -1,9 +1,9 @@
 import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useUser } from '@clerk/clerk-react';
-import { useQuery } from '@tanstack/react-query';
+import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { Button, Card } from '@carrierllm/ui';
-import { getUserHistory } from '../lib/api';
+import { getUserHistory, clearUserHistory } from '../lib/api';
 
 interface HistoryItem {
   id: string;
@@ -17,15 +17,28 @@ interface HistoryItem {
 export const HistoryPage = () => {
   const navigate = useNavigate();
   const { user } = useUser();
+  const queryClient = useQueryClient();
   const [sortBy, setSortBy] = useState<'date' | 'type' | 'status'>('date');
   const [sortOrder, setSortOrder] = useState<'asc' | 'desc'>('desc');
   const [filterType, setFilterType] = useState<'all' | 'intake' | 'recommendation'>('all');
+  const [showClearConfirm, setShowClearConfirm] = useState(false);
 
   const { data: history = [], isLoading, error } = useQuery({
     queryKey: ['user-history', user?.id],
     queryFn: getUserHistory,
     enabled: !!user?.id,
     staleTime: 30000
+  });
+
+  const clearHistoryMutation = useMutation({
+    mutationFn: clearUserHistory,
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['user-history', user?.id] });
+      setShowClearConfirm(false);
+    },
+    onError: (error) => {
+      console.error('Failed to clear history:', error);
+    }
   });
 
   const sortedAndFilteredHistory = (history || [])
@@ -189,10 +202,46 @@ export const HistoryPage = () => {
   return (
     <div className="max-w-6xl mx-auto">
       <div className="mb-6">
-        <h1 className="text-2xl font-bold text-gray-900 mb-2">History</h1>
-        <p className="text-gray-600">
-          View and manage your previous intakes and recommendations
-        </p>
+        <div className="flex items-center justify-between">
+          <div>
+            <h1 className="text-2xl font-bold text-gray-900 mb-2">History</h1>
+            <p className="text-gray-600">
+              View and manage your previous intakes and recommendations
+            </p>
+          </div>
+          {history.length > 0 && (
+            <div className="flex items-center gap-2">
+              {!showClearConfirm ? (
+                <Button
+                  variant="secondary"
+                  size="sm"
+                  onClick={() => setShowClearConfirm(true)}
+                  className="text-red-600 hover:text-red-700 hover:bg-red-50"
+                >
+                  Clear History
+                </Button>
+              ) : (
+                <div className="flex items-center gap-2">
+                  <Button
+                    variant="secondary"
+                    size="sm"
+                    onClick={() => setShowClearConfirm(false)}
+                  >
+                    Cancel
+                  </Button>
+                  <Button
+                    variant="destructive"
+                    size="sm"
+                    onClick={() => clearHistoryMutation.mutate()}
+                    disabled={clearHistoryMutation.isPending}
+                  >
+                    {clearHistoryMutation.isPending ? 'Clearing...' : 'Confirm Clear'}
+                  </Button>
+                </div>
+              )}
+            </div>
+          )}
+        </div>
       </div>
 
       {/* Filters and Controls */}

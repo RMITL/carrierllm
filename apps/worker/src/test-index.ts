@@ -309,6 +309,33 @@ export default {
           return Response.json({ status: 'healthy', timestamp: new Date().toISOString() }, { headers: corsHeaders });
         }
 
+        // Clear history endpoint
+        if (path.startsWith('/api/user/') && path.endsWith('/history') && request.method === 'DELETE') {
+          try {
+            const userId = path.split('/')[3];
+            console.log('Clearing history for user:', userId);
+            
+            // Delete from all relevant tables
+            await env.DB.prepare(`
+              DELETE FROM recommendations WHERE user_id = ?
+            `).bind(userId).run();
+            
+            await env.DB.prepare(`
+              DELETE FROM intakes WHERE user_id = ?
+            `).bind(userId).run();
+            
+            await env.DB.prepare(`
+              DELETE FROM intake_submissions WHERE user_id = ?
+            `).bind(userId).run();
+            
+            console.log('History cleared successfully for user:', userId);
+            return Response.json({ success: true, message: 'History cleared successfully' }, { headers: corsHeaders });
+          } catch (error) {
+            console.error('Error clearing history:', error);
+            return Response.json({ error: 'Failed to clear history' }, { status: 500, headers: corsHeaders });
+          }
+        }
+
         // Test endpoint to check database insert
         if (path === '/api/test-db' && request.method === 'POST') {
           try {
@@ -1063,26 +1090,38 @@ export default {
               const storedData = recs.results[0];
               const fitJson = JSON.parse(storedData.fit_json || '[]');
               
-              const recommendations = fitJson.map((rec: any) => ({
-                carrierId: rec.carrierId,
-                carrierName: rec.carrierName,
-                fitScore: rec.fitPct,
-                tier: rec.fitPct >= 85 ? 'preferred' : rec.fitPct >= 70 ? 'standard' : 'challenging',
-                reasoning: {
-                  pros: rec.reasons,
-                  cons: rec.advisories,
-                  summary: `Fit score of ${rec.fitPct}% based on underwriting criteria.`
-                },
-                estimatedPremium: {
-                  monthly: Math.round(1200 + (100 - rec.fitPct) * 10),
-                  annual: Math.round((1200 + (100 - rec.fitPct) * 10) * 12),
-                  confidence: rec.confidence
-                },
-                underwritingPath: rec.fitPct >= 80 ? 'simplified' : 'standard',
-                requiresExam: rec.apsLikely,
-                processingTime: rec.fitPct >= 80 ? '1-2 weeks' : '2-3 weeks',
-                citations: rec.citations
-              }));
+              const recommendations = fitJson.map((rec: any) => {
+                // Handle both new and old data formats
+                const fitScore = rec.fitScore || rec.fitPct || rec.fitPercent || 0;
+                const carrierName = rec.carrierName || rec.carrierId || 'Unknown Carrier';
+                const product = rec.product || rec.program || 'Life Insurance';
+                const reasons = rec.reasoning?.pros || rec.reasons || [`${carrierName} underwriting guidelines applicable`];
+                const advisories = rec.reasoning?.cons || rec.advisories || [];
+                const citations = rec.citations || [];
+                
+                return {
+                  carrierId: rec.carrierId || 'unknown',
+                  carrierName: carrierName,
+                  program: product,
+                  fitScore: fitScore,
+                  fitPct: fitScore, // For backward compatibility
+                  tier: fitScore >= 85 ? 'preferred' : fitScore >= 70 ? 'standard' : 'challenging',
+                  reasoning: {
+                    pros: reasons,
+                    cons: advisories,
+                    summary: `Fit score of ${fitScore}% based on underwriting criteria.`
+                  },
+                  estimatedPremium: {
+                    monthly: Math.round(1200 + (100 - fitScore) * 10),
+                    annual: Math.round((1200 + (100 - fitScore) * 10) * 12),
+                    confidence: rec.confidence || 'medium'
+                  },
+                  underwritingPath: fitScore >= 80 ? 'simplified' : 'standard',
+                  requiresExam: rec.apsLikely || false,
+                  processingTime: fitScore >= 80 ? '1-2 weeks' : '2-3 weeks',
+                  citations: citations
+                };
+              });
 
               const averageFit = recommendations.length > 0 
                 ? Math.round(recommendations.reduce((sum: number, r: any) => sum + r.fitScore, 0) / recommendations.length)

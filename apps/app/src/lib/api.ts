@@ -279,6 +279,23 @@ export const getUserHistory = async (): Promise<Array<{
 };
 
 /**
+ * Clear user history
+ */
+export const clearUserHistory = async (): Promise<{ success: boolean; message: string }> => {
+  return withRetry(async () => {
+    const userId = (window as any).Clerk?.user?.id;
+    if (!userId) {
+      throw new Error('No user ID available for clear history request');
+    }
+
+    console.log('Clearing history for user:', userId);
+    const response = await client.delete(`/user/${userId}/history`);
+    console.log('Clear history API response:', response.data);
+    return response.data;
+  });
+};
+
+/**
  * Health check to test API connectivity
  */
 export const healthCheck = async (): Promise<boolean> => {
