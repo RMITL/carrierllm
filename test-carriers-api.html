@@ -1,0 +1,58 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Test Carriers API</title>
+</head>
+<body>
+    <h1>Test Carriers API</h1>
+    <button onclick="testHealth()">Test Health</button>
+    <button onclick="testCarriersTest()">Test Carriers Test</button>
+    <button onclick="testCarriersWithPreferences()">Test Carriers With Preferences</button>
+    <div id="results"></div>
+
+    <script>
+        const baseURL = 'https://app.carrierllm.com/api';
+        const resultsDiv = document.getElementById('results');
+
+        function logResult(endpoint, result) {
+            const div = document.createElement('div');
+            div.innerHTML = `<h3>${endpoint}</h3><pre>${JSON.stringify(result, null, 2)}</pre>`;
+            resultsDiv.appendChild(div);
+        }
+
+        async function testHealth() {
+            try {
+                const response = await fetch(`${baseURL}/health`);
+                const data = await response.json();
+                logResult('/health', { status: response.status, data });
+            } catch (error) {
+                logResult('/health', { error: error.message });
+            }
+        }
+
+        async function testCarriersTest() {
+            try {
+                const response = await fetch(`${baseURL}/carriers/test`);
+                const data = await response.json();
+                logResult('/carriers/test', { status: response.status, data });
+            } catch (error) {
+                logResult('/carriers/test', { error: error.message });
+            }
+        }
+
+        async function testCarriersWithPreferences() {
+            try {
+                const response = await fetch(`${baseURL}/carriers/with-preferences`, {
+                    headers: {
+                        'X-User-Id': 'test-user'
+                    }
+                });
+                const data = await response.json();
+                logResult('/carriers/with-preferences', { status: response.status, data });
+            } catch (error) {
+                logResult('/carriers/with-preferences', { error: error.message });
+            }
+        }
+    </script>
+</body>
+</html>

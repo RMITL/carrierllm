@@ -39,6 +39,14 @@ router.get('/api/health', () => {
   );
 });
 
+// Test carriers endpoint
+router.get('/api/carriers/test', () => {
+  return Response.json(
+    { message: 'Carriers test endpoint working' },
+    { headers: corsHeaders() }
+  );
+});
+
 // Analytics endpoint with live data
 router.get('/api/analytics/summary', async (request, env: Env) => {
   try {
