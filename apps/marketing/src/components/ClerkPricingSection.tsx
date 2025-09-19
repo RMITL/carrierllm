@@ -9,7 +9,6 @@ export const ClerkPricingSection = () => {
   const { organization } = useOrganization();
   const { has } = useAuth();
   const { openSignUp } = useClerk();
-  const [selectedPlanType, setSelectedPlanType] = useState<'individual' | 'organization'>('individual');
   const [billingError, setBillingError] = useState<string | null>(null);
   const appUrl = import.meta.env.VITE_APP_URL || 'https://app.carrierllm.com';
 
@@ -27,9 +26,8 @@ export const ClerkPricingSection = () => {
       organizationId: organization?.id,
       hasOrgPlan,
       shouldShowOrgPricing,
-      selectedPlanType,
     });
-  }, [user, organization, hasOrgPlan, shouldShowOrgPricing, selectedPlanType]);
+  }, [user, organization, hasOrgPlan, shouldShowOrgPricing]);
 
   // Monitor Clerk billing state
   useEffect(() => {
@@ -50,15 +48,12 @@ export const ClerkPricingSection = () => {
     return () => clearInterval(interval);
   }, []);
 
-  const handleSignUp = (planType: 'individual' | 'organization') => {
-    logger.billingInfo('User initiated sign up', { planType });
+  const handleSignUp = () => {
+    logger.billingInfo('User initiated individual plan sign up');
     
     try {
-      // Store the selected plan type for after sign-up
-      localStorage.setItem('selectedPlanType', planType);
-      
       openSignUp({
-        afterSignUpUrl: planType === 'organization' ? '/create-organization' : appUrl,
+        afterSignUpUrl: appUrl,
         appearance: {
           elements: {
             rootBox: 'mx-auto',
@@ -67,7 +62,7 @@ export const ClerkPricingSection = () => {
         }
       });
     } catch (error) {
-      logger.billingError('Error opening sign up modal', { error, planType });
+      logger.billingError('Error opening sign up modal', { error });
       setBillingError('Unable to open sign up form. Please try again or contact support.');
     }
   };
@@ -85,7 +80,7 @@ export const ClerkPricingSection = () => {
         </div>
 
         <SignedOut>
-          {/* Show both individual and organization pricing to unauthenticated users */}
+          {/* Show individual pricing and direct to organization page */}
           <div className="mb-8">
             {billingError && (
               <div className="mb-4 p-4 bg-red-50 border border-red-200 rounded-lg">
@@ -103,63 +98,29 @@ export const ClerkPricingSection = () => {
               </div>
             )}
 
-            <div className="flex justify-center mb-8">
-              <div className="bg-white rounded-lg p-1 shadow-sm border">
-                <button
-                  onClick={() => {
-                    setSelectedPlanType('individual');
-                    logger.billingInfo('User selected individual plans');
-                  }}
-                  className={`px-6 py-2 rounded-md text-sm font-medium transition-colors ${
-                    selectedPlanType === 'individual'
-                      ? 'bg-blue-600 text-white shadow-sm'
-                      : 'text-gray-600 hover:text-gray-900'
-                  }`}
-                >
-                  Individual Plans
-                </button>
-                <button
-                  onClick={() => {
-                    setSelectedPlanType('organization');
-                    logger.billingInfo('User selected organization plans');
-                  }}
-                  className={`px-6 py-2 rounded-md text-sm font-medium transition-colors ${
-                    selectedPlanType === 'organization'
-                      ? 'bg-blue-600 text-white shadow-sm'
-                      : 'text-gray-600 hover:text-gray-900'
-                  }`}
-                >
-                  Organization Plans
-                </button>
-              </div>
-            </div>
-
             <div className="mb-8">
               <EnhancedMarketingPricingTable 
-                forOrganizations={selectedPlanType === 'organization'}
+                forOrganizations={false}
                 onError={setBillingError}
               />
             </div>
 
             <div className="text-center">
               <p className="text-gray-600 mb-4">
-                {selectedPlanType === 'individual' 
-                  ? 'Ready to get started with an individual plan?'
-                  : 'Ready to set up your organization?'
-                }
+                Need team pricing for your organization?
               </p>
               <div className="flex flex-col sm:flex-row gap-4 justify-center">
                 <Button 
                   variant="primary" 
-                  onClick={() => handleSignUp(selectedPlanType)}
+                  onClick={handleSignUp}
                 >
-                  {selectedPlanType === 'individual' ? 'Start Individual Plan' : 'Start Organization Plan'}
+                  Start Individual Plan
                 </Button>
                 <Button 
                   variant="secondary" 
-                  onClick={() => setSelectedPlanType(selectedPlanType === 'individual' ? 'organization' : 'individual')}
+                  onClick={() => window.location.href = '/organization-pricing'}
                 >
-                  View {selectedPlanType === 'individual' ? 'Organization' : 'Individual'} Plans
+                  View Organization Plans →
                 </Button>
               </div>
             </div>
