@@ -2,6 +2,12 @@ import React, { useState, useEffect } from 'react';
 import { useUser, useOrganization } from '@clerk/clerk-react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { Card, Button, Badge } from '@carrierllm/ui';
+import { 
+  getCarriersWithPreferences,
+  updateCarrierPreference,
+  getUserDocuments,
+  uploadDocument
+} from '../lib/api';
 import type { 
   CarrierWithPreferences, 
   UserCarrierPreference, 
