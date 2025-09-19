@@ -1043,6 +1043,7 @@ var comprehensive_worker_default = {
         }
         try {
           const intakeData = await request.json();
+          console.log("Received intake data:", JSON.stringify(intakeData, null, 2));
           const submissionId = `sub_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
           await env.DB.prepare(`
             INSERT INTO intakes (id, tenant_id, payload_json, validated, tier2_triggered, user_id, created_at)
@@ -1082,9 +1083,11 @@ var comprehensive_worker_default = {
           });
         } catch (error) {
           console.error("Error processing intake:", error);
+          console.error("Error stack:", error instanceof Error ? error.stack : "No stack trace");
           return new Response(JSON.stringify({
             error: "Failed to process intake",
-            details: error instanceof Error ? error.message : String(error)
+            details: error instanceof Error ? error.message : String(error),
+            stack: error instanceof Error ? error.stack : void 0
           }), {
             status: 500,
             headers: corsHeaders()
