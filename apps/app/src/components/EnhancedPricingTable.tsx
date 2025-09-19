@@ -1,5 +1,5 @@
 import React, { useEffect, useState, useRef } from 'react';
-import { PricingTable, useOrganization } from '@clerk/clerk-react';
+import { PricingTable, useOrganization, useAuth } from '@clerk/clerk-react';
 import { logger } from '../lib/logger';
 
 interface EnhancedPricingTableProps {
@@ -12,17 +12,19 @@ export const EnhancedPricingTable: React.FC<EnhancedPricingTableProps> = ({
   onLoading,
 }) => {
   const { organization } = useOrganization();
+  const { has } = useAuth();
   const [isClerkReady, setIsClerkReady] = useState(false);
   const [fallbackMode, setFallbackMode] = useState(false);
   const [timeoutId, setTimeoutId] = useState<NodeJS.Timeout | null>(null);
   const pricingTableRef = useRef<HTMLDivElement>(null);
 
   // Determine if we should show organization pricing or individual pricing
-  // Show organization pricing if user is currently in an organization context
-  const isOrganizationContext = !!organization;
+  // Show organization pricing if user has organization-related plans or is in organization context
+  const hasOrgPlan = has?.({ plan: 'free_org' }) || has?.({ plan: 'enterprise' });
+  const shouldShowOrgPricing = hasOrgPlan || !!organization;
 
   useEffect(() => {
-    logger.billingInfo('EnhancedPricingTable mounted', { isOrganizationContext });
+    logger.billingInfo('EnhancedPricingTable mounted', { shouldShowOrgPricing });
     
     // Set up timeout to detect if Clerk billing is not responding
     const timeout = setTimeout(() => {
@@ -97,7 +99,7 @@ export const EnhancedPricingTable: React.FC<EnhancedPricingTableProps> = ({
 
   // Fallback billing implementation
   const handleFallbackBilling = async (plan: string) => {
-    logger.billingInfo('Using fallback billing flow', { plan, isOrganizationContext });
+    logger.billingInfo('Using fallback billing flow', { plan, shouldShowOrgPricing });
     onLoading?.(true);
 
     try {
@@ -130,7 +132,7 @@ export const EnhancedPricingTable: React.FC<EnhancedPricingTableProps> = ({
         </div>
         
         <div className="grid gap-4 md:grid-cols-2">
-          {isOrganizationContext ? (
+          {shouldShowOrgPricing ? (
             <>
               <div className="p-4 border border-gray-200 rounded-lg">
                 <h3 className="font-semibold text-gray-900 mb-2">Organization Plan</h3>
@@ -208,7 +210,7 @@ export const EnhancedPricingTable: React.FC<EnhancedPricingTableProps> = ({
       <div style={{ display: isClerkReady ? 'block' : 'none' }}>
         <ErrorBoundaryPricingTable 
           onError={handlePricingTableError} 
-          forOrganizations={isOrganizationContext}
+          forOrganizations={shouldShowOrgPricing}
         />
       </div>
     </div>

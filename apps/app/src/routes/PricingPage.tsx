@@ -11,9 +11,9 @@ export const PricingPage = () => {
   // Check if user is on an organization plan
   const hasOrgPlan = has?.({ plan: 'free_org' }) || has?.({ plan: 'enterprise' });
   
-  // For pricing page: show organization plans if user is currently in an organization context
-  // This means they're managing billing for their organization, not for themselves individually
-  const isOrganizationContext = !!organization;
+  // For pricing page: show organization plans if user has organization-related plans
+  // or if they're currently in an organization context
+  const shouldShowOrgPricing = hasOrgPlan || !!organization;
 
   const handleAddTeamSeat = () => {
     // This would trigger the extra_team_seat purchase through Clerk
@@ -28,12 +28,12 @@ export const PricingPage = () => {
             Simple, Transparent Pricing
           </h1>
           <p className="text-lg text-gray-600 max-w-2xl mx-auto">
-            {isOrganizationContext 
+            {shouldShowOrgPricing 
               ? 'Manage your organization\'s subscription and billing'
               : 'Start free and scale as you grow. No hidden fees, no surprises.'
             }
           </p>
-          {isOrganizationContext && organization && (
+          {shouldShowOrgPricing && organization && (
             <p className="text-sm text-gray-500 mt-2">
               Managing pricing for: <strong>{organization.name}</strong>
             </p>
@@ -42,7 +42,7 @@ export const PricingPage = () => {
 
         {/* Clerk's native PricingTable - shows organization or individual plans based on context */}
         <div className="max-w-5xl mx-auto">
-          <PricingTable forOrganizations={isOrganizationContext} />
+          <PricingTable forOrganizations={shouldShowOrgPricing} />
         </div>
 
         {/* Additional team seats for organizations */}

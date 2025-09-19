@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { PricingTable, useUser, useOrganization, SignedIn, SignedOut, SignInButton, useClerk } from '@clerk/clerk-react';
+import { PricingTable, useUser, useOrganization, SignedIn, SignedOut, SignInButton, useClerk, useAuth } from '@clerk/clerk-react';
 import { Button } from '@carrierllm/ui';
 import { logger } from '../lib/logger';
 import { EnhancedMarketingPricingTable } from './EnhancedMarketingPricingTable';
@@ -7,14 +7,17 @@ import { EnhancedMarketingPricingTable } from './EnhancedMarketingPricingTable';
 export const ClerkPricingSection = () => {
   const { user } = useUser();
   const { organization } = useOrganization();
+  const { has } = useAuth();
   const { openSignUp } = useClerk();
   const [selectedPlanType, setSelectedPlanType] = useState<'individual' | 'organization'>('individual');
   const [billingError, setBillingError] = useState<string | null>(null);
   const appUrl = import.meta.env.VITE_APP_URL || 'https://app.carrierllm.com';
 
   // Determine if we should show organization pricing or individual pricing for signed-in users
-  // Show organization pricing if user is currently in an organization context
-  const isOrganizationContext = !!organization;
+  // Show organization pricing if user has organization-related plans (free_org, enterprise)
+  // or if they're currently in an organization context
+  const hasOrgPlan = has?.({ plan: 'free_org' }) || has?.({ plan: 'enterprise' });
+  const shouldShowOrgPricing = hasOrgPlan || !!organization;
 
   // Log component mount and user context
   useEffect(() => {
@@ -22,10 +25,11 @@ export const ClerkPricingSection = () => {
       userId: user?.id,
       userEmail: user?.emailAddresses?.[0]?.emailAddress,
       organizationId: organization?.id,
-      isOrganizationContext,
+      hasOrgPlan,
+      shouldShowOrgPricing,
       selectedPlanType,
     });
-  }, [user, organization, isOrganizationContext, selectedPlanType]);
+  }, [user, organization, hasOrgPlan, shouldShowOrgPricing, selectedPlanType]);
 
   // Monitor Clerk billing state
   useEffect(() => {
@@ -167,7 +171,7 @@ export const ClerkPricingSection = () => {
             <div className="mb-8 text-center">
               <p className="text-gray-600">
                 Welcome back, {user.firstName || user.emailAddresses[0].emailAddress}!
-                {isOrganizationContext && organization && (
+                {shouldShowOrgPricing && organization && (
                   <span className="block text-sm text-gray-500 mt-1">
                     Managing pricing for: <strong>{organization.name}</strong>
                   </span>
@@ -179,9 +183,9 @@ export const ClerkPricingSection = () => {
             </div>
           )}
 
-          {/* Show organization pricing if user is in organization context, otherwise show individual pricing */}
+          {/* Show organization pricing if user has org plans or is in organization context, otherwise show individual pricing */}
           <EnhancedMarketingPricingTable 
-            forOrganizations={isOrganizationContext}
+            forOrganizations={shouldShowOrgPricing}
             onError={setBillingError}
           />
         </SignedIn>
