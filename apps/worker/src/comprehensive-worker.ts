@@ -792,8 +792,8 @@ export default {
           // Store intake data - match actual table structure
           await env.DB.prepare(
             `
-            INSERT INTO intakes (id, tenant_id, payload_json, validated, tier2_triggered, user_id, created_at)
-            VALUES (?, ?, ?, ?, ?, ?, datetime('now'))
+            INSERT INTO intakes (id, tenant_id, payload_json, validated, tier2_triggered, created_at, user_id)
+            VALUES (?, ?, ?, ?, ?, datetime('now'), ?)
           `,
           )
             .bind(
