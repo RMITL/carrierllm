@@ -58,7 +58,7 @@ export async function getUserHistory(
   try {
     console.log(`Fetching history for user: ${userId}`);
     
-    // Get intakes with their recommendations
+    // Get intakes with their recommendations - handle null user_ids
     const query = `
       SELECT 
         i.id as intake_id,
@@ -70,7 +70,7 @@ export async function getUserHistory(
         COUNT(r.id) as recommendation_count
       FROM intakes i
       LEFT JOIN recommendations r ON i.id = r.intake_id
-      WHERE i.user_id = ?
+      WHERE i.user_id = ? OR i.user_id IS NULL
       GROUP BY i.id
       ORDER BY i.created_at DESC
       LIMIT ?
@@ -148,18 +148,18 @@ export async function getAnalyticsSummary(
     const monthStart = new Date(now.getFullYear(), now.getMonth(), 1).toISOString();
     const lastMonth = new Date(now.getFullYear(), now.getMonth() - 1, 1).toISOString();
     
-    // Get basic stats
+    // Get basic stats - handle null user_ids gracefully
     const [intakesResult, recommendationsResult, userProfileResult] = await Promise.all([
       env.DB.prepare(`
         SELECT COUNT(*) as count 
         FROM intakes 
-        WHERE user_id = ? AND created_at >= ?
+        WHERE (user_id = ? OR user_id IS NULL) AND created_at >= ?
       `).bind(userId, monthStart).first(),
       
       env.DB.prepare(`
         SELECT COUNT(*) as count 
         FROM recommendations 
-        WHERE user_id = ? AND created_at >= ?
+        WHERE (user_id = ? OR user_id IS NULL) AND created_at >= ?
       `).bind(userId, monthStart).first(),
       
       env.DB.prepare(`
@@ -173,23 +173,23 @@ export async function getAnalyticsSummary(
     const totalRecommendations = (recommendationsResult as any)?.count || 0;
     const userProfile = userProfileResult as any;
     
-    // Get average fit score
+    // Get average fit score - handle empty fit_json arrays
     const avgFitResult = await env.DB.prepare(`
-      SELECT AVG(CAST(JSON_EXTRACT(fit_json, '$.fitScore') AS REAL)) as avg_fit
+      SELECT AVG(fit_score) as avg_fit
       FROM recommendations 
-      WHERE user_id = ? AND created_at >= ?
+      WHERE (user_id = ? OR user_id IS NULL) AND created_at >= ? AND fit_score IS NOT NULL
     `).bind(userId, monthStart).first();
     
     const averageFitScore = Math.round((avgFitResult as any)?.avg_fit || 75);
     
-    // Get placement rate (from outcomes)
+    // Get placement rate (from outcomes) - handle missing outcomes data
     const placementResult = await env.DB.prepare(`
       SELECT 
         COUNT(*) as total_outcomes,
-        SUM(CASE WHEN status = 'approved' THEN 1 ELSE 0 END) as approved_count
+        SUM(CASE WHEN status = 'approved' OR status = 'placed' THEN 1 ELSE 0 END) as approved_count
       FROM outcomes o
       JOIN recommendations r ON o.recommendation_id = r.id
-      WHERE r.user_id = ? AND o.created_at >= ?
+      WHERE (r.user_id = ? OR r.user_id IS NULL) AND o.created_at >= ?
     `).bind(userId, monthStart).first();
     
     const placementData = placementResult as any;
@@ -202,14 +202,14 @@ export async function getAnalyticsSummary(
       (userProfile?.recommendations_limit || 200) - (userProfile?.recommendations_used || 0)
     );
     
-    // Get top carriers
+    // Get top carriers - handle null carrier data
     const topCarriersResult = await env.DB.prepare(`
       SELECT 
         carrier_name,
         COUNT(*) as count,
-        AVG(CAST(JSON_EXTRACT(fit_json, '$.fitScore') AS REAL)) as avg_fit
+        AVG(fit_score) as avg_fit
       FROM recommendations 
-      WHERE user_id = ? AND created_at >= ?
+      WHERE (user_id = ? OR user_id IS NULL) AND created_at >= ? AND carrier_name IS NOT NULL
       GROUP BY carrier_name
       ORDER BY count DESC, avg_fit DESC
       LIMIT 5
@@ -228,7 +228,7 @@ export async function getAnalyticsSummary(
         strftime('%Y-%m', created_at) as month,
         COUNT(*) as count
       FROM intakes 
-      WHERE user_id = ? AND created_at >= date('now', '-6 months')
+      WHERE (user_id = ? OR user_id IS NULL) AND created_at >= date('now', '-6 months')
       GROUP BY strftime('%Y-%m', created_at)
       ORDER BY month DESC
     `).bind(userId).all();

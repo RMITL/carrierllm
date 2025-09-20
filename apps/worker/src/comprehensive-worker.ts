@@ -376,144 +376,43 @@ export default {
         });
       }
 
-      // Analytics endpoint with live data
+      // Analytics endpoint with comprehensive data
       if (path === '/api/analytics/summary' && method === 'GET') {
         const userId = request.headers.get('X-User-Id');
-
-        // Get current month for date filtering
-        const now = new Date();
-        const currentMonth = now.toISOString().slice(0, 7); // YYYY-MM format
-        const monthStart = new Date(now.getFullYear(), now.getMonth(), 1).toISOString();
-
-        // Initialize response data with real zeros
-        let stats = {
-          totalIntakes: 0,
-          averageFitScore: 0,
-          placementRate: 0,
-          remainingRecommendations: 0
-        };
-
-        let topCarriers: any[] = [];
-        let trends: any[] = [];
-
-        try {
-          // Get total intakes - check multiple tables for compatibility
-          const intakesResult = await env.DB.prepare(`
-            SELECT COUNT(*) as count FROM (
-              SELECT id FROM intakes
-              UNION ALL
-              SELECT id FROM intake_submissions
-            )
-          `).first();
-
-          stats.totalIntakes = (intakesResult as { count: number })?.count || 0;
-
-          // If we have a user ID, get user-specific data
-          if (userId) {
-            // Get user's monthly usage
-            try {
-              const userUsage = await env.DB.prepare(`
-                SELECT COUNT(*) as used
-                FROM recommendations
-                WHERE user_id = ?
-                  AND created_at >= ?
-              `).bind(userId, monthStart).first();
-
-              const used = userUsage?.used || 0;
-              // Get user's actual limit from their profile
-              const userProfile = await env.DB.prepare(
-                'SELECT recommendations_limit FROM user_profiles WHERE user_id = ?'
-              ).bind(userId).first();
-              
-              const limit = (userProfile as { recommendations_limit: number })?.recommendations_limit || 0;
-              stats.remainingRecommendations = Math.max(0, limit - (used as number));
-            } catch (e) {
-              console.log('Could not get user usage:', e);
-            }
-
-            // Get user's average fit score
-            try {
-              const avgScore = await env.DB.prepare(`
-                SELECT AVG(fit_score) as avg
-                FROM recommendations
-                WHERE user_id = ?
-              `).bind(userId).first();
-
-              if ((avgScore as { avg: number })?.avg) {
-                stats.averageFitScore = Math.round((avgScore as { avg: number }).avg);
-              } else {
-                stats.averageFitScore = 0;
-              }
-            } catch (e) {
-              console.log('Could not get average score:', e);
-            }
-
-            // Get top carriers for this user
-            try {
-              const topCarriersResult = await env.DB.prepare(`
-                SELECT carrier_name, COUNT(*) as count
-                FROM recommendations
-                WHERE user_id = ?
-                GROUP BY carrier_name
-                ORDER BY count DESC
-                LIMIT 5
-              `).bind(userId).all();
-
-              topCarriers = topCarriersResult.results || [];
-            } catch (e) {
-              console.log('Could not get top carriers:', e);
-            }
-
-            // Get trends (monthly data for the last 6 months)
-            try {
-              const trendsResult = await env.DB.prepare(`
-                SELECT 
-                  strftime('%Y-%m', created_at) as month,
-                  COUNT(*) as count
-                FROM recommendations
-                WHERE user_id = ?
-                  AND created_at >= date('now', '-6 months')
-                GROUP BY strftime('%Y-%m', created_at)
-                ORDER BY month
-              `).bind(userId).all();
-
-              trends = trendsResult.results || [];
-            } catch (e) {
-              console.log('Could not get trends:', e);
-            }
-          }
-
-          // Get placement rate (if outcomes table exists)
-          try {
-            const placements = await env.DB.prepare(`
-              SELECT 
-                COUNT(CASE WHEN status = 'approved' OR status = 'placed' THEN 1 END) as placed,
-                COUNT(*) as total
-              FROM outcomes
-            `).first();
-
-            if ((placements as { total: number; placed: number })?.total > 0) {
-              const placementData = placements as { total: number; placed: number };
-              stats.placementRate = Math.round((placementData.placed / placementData.total) * 100);
-            } else {
-              stats.placementRate = 0;
-            }
-          } catch (e) {
-            console.log('Could not get placement rate:', e);
-          }
-
-        } catch (dbError) {
-          console.error('Database error in analytics:', dbError);
+        
+        if (!userId) {
+          return new Response(JSON.stringify({ error: 'User ID required' }), { 
+            status: 401, 
+            headers: corsHeaders() 
+          });
         }
 
-        return new Response(JSON.stringify({
-          stats,
-          topCarriers,
-          trends,
-          lastUpdated: new Date().toISOString()
-        }), {
-          headers: corsHeaders()
-        });
+        try {
+          const { getAnalyticsSummary } = await import('./analytics-service');
+          const analytics = await getAnalyticsSummary(userId, env);
+          
+          return new Response(JSON.stringify(analytics), { 
+            headers: corsHeaders() 
+          });
+        } catch (error) {
+          console.error('Analytics endpoint error:', error);
+          return new Response(JSON.stringify({ 
+            error: 'Failed to fetch analytics',
+            stats: {
+              totalIntakes: 0,
+              totalRecommendations: 0,
+              averageFitScore: 0,
+              placementRate: 0,
+              remainingRecommendations: 200
+            },
+            topCarriers: [],
+            trends: [],
+            lastUpdated: new Date().toISOString()
+          }), { 
+            status: 500,
+            headers: corsHeaders() 
+          });
+        }
       }
 
       // Get carriers with user preferences
@@ -744,7 +643,8 @@ export default {
           if (authHeader?.startsWith('Bearer ')) {
             // For now, we'll use a fallback approach
             // In production, you should verify the Clerk token properly
-            userId = 'anonymous';
+            // Use a consistent test user ID for development
+            userId = 'dev-user';
           }
         }
         
