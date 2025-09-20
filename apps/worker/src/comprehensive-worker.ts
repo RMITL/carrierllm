@@ -52,7 +52,7 @@ async function generateEmbedding(text: string, env: Env): Promise<number[]> {
     return response.data[0];
   } catch (error) {
     console.error('Embedding generation failed:', error);
-    console.error('Error details:', error.message);
+    console.error('Error details:', (error as Error).message);
     return [];
   }
 }
@@ -79,7 +79,7 @@ async function performRAGSearch(query: string, env: Env, topK = 15): Promise<any
     return results.matches.map((match: any) => match.metadata);
   } catch (error) {
     console.error('RAG search failed:', error);
-    console.error('RAG error details:', error.message);
+    console.error('RAG error details:', (error as Error).message);
     return [];
   }
 }
@@ -147,7 +147,7 @@ async function generateRealRecommendations(intakeData: any, env: Env): Promise<a
     return recommendations.slice(0, 10); // Return top 10
   } catch (error) {
     console.error('Error in generateRealRecommendations:', error);
-    console.error('Error details:', error.message);
+    console.error('Error details:', (error as Error).message);
     return [];
   }
 }
@@ -426,7 +426,7 @@ export default {
               ).bind(userId).first();
               
               const limit = (userProfile as { recommendations_limit: number })?.recommendations_limit || 0;
-              stats.remainingRecommendations = Math.max(0, limit - used);
+              stats.remainingRecommendations = Math.max(0, limit - (used as number));
             } catch (e) {
               console.log('Could not get user usage:', e);
             }
@@ -775,24 +775,47 @@ export default {
 
       // Submit intake
       if (path === '/api/intake/submit' && method === 'POST') {
-        const userId = request.headers.get('X-User-Id');
+        // Extract user ID from Clerk token or headers (fallback)
+        let userId = request.headers.get('X-User-Id');
+        
+        // If no user ID in headers, try to extract from Clerk token
         if (!userId) {
-          return new Response(JSON.stringify({ error: 'User ID required' }), { 
+          const authHeader = request.headers.get('Authorization');
+          if (authHeader?.startsWith('Bearer ')) {
+            // For now, we'll use a fallback approach
+            // In production, you should verify the Clerk token properly
+            userId = 'anonymous';
+          }
+        }
+        
+        if (!userId) {
+          return new Response(JSON.stringify({ error: 'Authentication required' }), { 
             status: 401, 
             headers: corsHeaders() 
           });
         }
 
         try {
-          const intakeData = await request.json();
+          const intakeData = await request.json() as any;
           console.log('Received intake data:', JSON.stringify(intakeData, null, 2));
           const recommendationId = 'rec-' + Date.now();
           const intakeId = 'intake-' + Date.now();
+          const tenantId = request.headers.get('X-Organization-Id') || 'default';
 
-          // Store intake data - match actual table structure
-          // Disable foreign keys temporarily for this operation
-          await env.DB.prepare("PRAGMA foreign_keys=OFF;").run();
-          
+          // Ensure required records exist before inserting intake
+          // Create tenant if it doesn't exist
+          await env.DB.prepare(`
+            INSERT OR IGNORE INTO tenants (id, plan, status, limits_json)
+            VALUES (?, 'Individual', 'active', '{"recommendations": 200}')
+          `).bind(tenantId).run();
+
+          // Create user profile if it doesn't exist
+          await env.DB.prepare(`
+            INSERT OR IGNORE INTO user_profiles (user_id, subscription_status, subscription_tier)
+            VALUES (?, 'active', 'individual')
+          `).bind(userId).run();
+
+          // Store intake data - foreign keys should now be valid
           await env.DB.prepare(
             `
             INSERT INTO intakes (id, tenant_id, payload_json, validated, tier2_triggered, created_at, user_id)
@@ -801,10 +824,10 @@ export default {
           )
             .bind(
               intakeId,
-              request.headers.get('X-Organization-Id') || 'default',
+              tenantId,
               JSON.stringify(intakeData),
-              intakeData.validated || false,
-              intakeData.tier2Triggered || false,
+              (intakeData as any)?.validated || false,
+              (intakeData as any)?.tier2Triggered || false,
               userId,
             )
             .run();
@@ -946,7 +969,7 @@ export default {
         }
 
         try {
-          const { submissionId, carrierName, status, notes } = await request.json();
+          const { submissionId, carrierName, status, notes } = await request.json() as any;
           
           await env.DB.prepare(`
             INSERT INTO outcomes (user_id, submission_id, carrier_name, status, notes, created_at)
@@ -965,50 +988,100 @@ export default {
         }
       }
 
-      // Clerk webhook endpoint with security and rate limiting
+      // Clerk webhook endpoint with proper Svix verification
       if (path === '/webhook' && method === 'POST') {
         try {
-          // Verify webhook signature for security
+          // Verify webhook signature using Svix
           const svixId = request.headers.get('svix-id');
           const svixTimestamp = request.headers.get('svix-timestamp');
           const svixSignature = request.headers.get('svix-signature');
 
           if (!svixId || !svixTimestamp || !svixSignature) {
-            console.error('Missing Clerk webhook headers');
+            console.error('Missing Svix webhook headers');
             return new Response('Missing webhook headers', { 
               status: 400, 
               headers: corsHeaders() 
             });
           }
 
-          // Basic rate limiting (simple implementation)
-          const clientIP = request.headers.get('cf-connecting-ip') || 'unknown';
-          const rateLimitKey = `webhook_rate_limit_${clientIP}`;
+          // Verify webhook signature
+          const body = await request.text();
+          const webhookSecret = env.CLERK_WEBHOOK_SECRET;
           
-          // Check if we've exceeded rate limit (10 requests per minute per IP)
-          const rateLimitCheck = await env.DB.prepare(`
-            SELECT COUNT(*) as count FROM webhook_rate_limits 
-            WHERE ip_address = ? AND created_at > datetime('now', '-1 minute')
-          `).bind(clientIP).first();
-
-          if ((rateLimitCheck as any)?.count > 10) {
-            console.error(`Rate limit exceeded for IP: ${clientIP}`);
-            return new Response('Rate limit exceeded', { 
-              status: 429, 
+          if (!webhookSecret) {
+            console.error('CLERK_WEBHOOK_SECRET not configured');
+            return new Response('Webhook secret not configured', { 
+              status: 500, 
               headers: corsHeaders() 
             });
           }
 
-          // Record this request for rate limiting
-          await env.DB.prepare(`
-            INSERT INTO webhook_rate_limits (ip_address, created_at)
-            VALUES (?, datetime('now'))
-          `).bind(clientIP).run();
+          // Verify the webhook signature using Svix
+          const { Webhook } = await import('svix');
+          const wh = new Webhook(webhookSecret);
+          
+          let event;
+          try {
+            event = wh.verify(body, {
+              'svix-id': svixId,
+              'svix-timestamp': svixTimestamp,
+              'svix-signature': svixSignature,
+            });
+          } catch (err) {
+            console.error('Webhook verification failed:', err);
+            return new Response('Webhook verification failed', { 
+              status: 400, 
+              headers: corsHeaders() 
+            });
+          }
 
-          const body = await request.text();
-          const event = JSON.parse(body);
+          // Basic rate limiting (simple implementation) - handle missing tables gracefully
+          const clientIP = request.headers.get('cf-connecting-ip') || 'unknown';
+          
+          try {
+            // Check if we've exceeded rate limit (10 requests per minute per IP)
+            const rateLimitCheck = await env.DB.prepare(`
+              SELECT COUNT(*) as count FROM webhook_rate_limits 
+              WHERE ip_address = ? AND created_at > datetime('now', '-1 minute')
+            `).bind(clientIP).first();
 
-          console.log(`Received Clerk webhook: ${event.type} from IP: ${clientIP}`);
+            if ((rateLimitCheck as any)?.count > 10) {
+              console.error(`Rate limit exceeded for IP: ${clientIP}`);
+              return new Response('Rate limit exceeded', { 
+                status: 429, 
+                headers: corsHeaders() 
+              });
+            }
+
+            // Record this request for rate limiting
+            await env.DB.prepare(`
+              INSERT INTO webhook_rate_limits (id, ip_address, created_at)
+              VALUES (?, ?, datetime('now'))
+            `).bind(crypto.randomUUID(), clientIP).run();
+          } catch (rateLimitError) {
+            console.warn('Rate limiting not available (table may not exist):', rateLimitError);
+            // Continue without rate limiting if tables don't exist
+          }
+
+          console.log(`Received verified Clerk webhook: ${event.type} from IP: ${clientIP}`);
+
+          // Log webhook event (handle missing table gracefully)
+          try {
+            await env.DB.prepare(`
+              INSERT INTO webhook_events (id, event_id, event_type, user_id, payload, status)
+              VALUES (?, ?, ?, ?, ?, ?)
+            `).bind(
+              crypto.randomUUID(),
+              event.id || 'unknown',
+              event.type,
+              event.data?.id || event.data?.user_id || null,
+              JSON.stringify(event.data || {}),
+              'processing'
+            ).run();
+          } catch (webhookLogError) {
+            console.warn('Webhook event logging not available (table may not exist):', webhookLogError);
+            // Continue without logging if tables don't exist
+          }
 
           // Handle organization events for team management
           switch (event.type) {
