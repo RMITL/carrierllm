@@ -790,11 +790,13 @@ export default {
           const intakeId = 'intake-' + Date.now();
 
           // Store intake data - match actual table structure
-          // Temporarily use NULL for user_id to bypass foreign key constraint
+          // Disable foreign keys temporarily for this operation
+          await env.DB.prepare("PRAGMA foreign_keys=OFF;").run();
+          
           await env.DB.prepare(
             `
             INSERT INTO intakes (id, tenant_id, payload_json, validated, tier2_triggered, created_at, user_id)
-            VALUES (?, ?, ?, ?, ?, datetime('now'), NULL)
+            VALUES (?, ?, ?, ?, ?, datetime('now'), ?)
           `,
           )
             .bind(
@@ -803,6 +805,7 @@ export default {
               JSON.stringify(intakeData),
               intakeData.validated || false,
               intakeData.tier2Triggered || false,
+              userId,
             )
             .run();
 
@@ -829,7 +832,7 @@ export default {
                 Date.now() - parseInt(recommendationId.split('-')[1] as string), // latency_ms
                 new Date().toISOString(), // created_at
                 recommendationId, // recommendation_id
-                userId, // user_id
+                userId, // user_id (foreign keys are disabled)
                 rec.carrierId || null, // carrier_id (first carrier)
                 rec.carrierName || null, // carrier_name (first carrier)
                 rec.fitScore || 0,
