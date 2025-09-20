@@ -509,7 +509,8 @@ export default {
         return new Response(JSON.stringify({
           stats,
           topCarriers,
-          trends
+          trends,
+          lastUpdated: new Date().toISOString()
         }), {
           headers: corsHeaders()
         });
@@ -717,51 +718,10 @@ export default {
         }
 
         try {
-          // First try to get from recommendations table
-          let history;
-          try {
-            history = await env.DB.prepare(`
-              SELECT 
-                r.id,
-                r.submission_id,
-                r.carrier_name,
-                r.fit_score,
-                r.created_at,
-                i.data as intake_data
-              FROM recommendations r
-              LEFT JOIN intakes i ON r.submission_id = i.id
-              WHERE r.user_id = ?
-              ORDER BY r.created_at DESC
-              LIMIT 50
-            `).bind(userId).all();
-          } catch (tableError) {
-            console.log('Recommendations table not found, trying intakes table:', tableError);
-            // Fallback to intakes table if recommendations doesn't exist
-            history = await env.DB.prepare(`
-              SELECT 
-                id,
-                id as submission_id,
-                'Unknown Carrier' as carrier_name,
-                0 as fit_score,
-                created_at,
-                data as intake_data
-              FROM intakes
-              WHERE user_id = ?
-              ORDER BY created_at DESC
-              LIMIT 50
-            `).bind(userId).all();
-          }
-
-          const formattedHistory = history.results.map((item: any) => ({
-            id: item.id,
-            submissionId: item.submission_id,
-            carrierName: item.carrier_name,
-            fitScore: item.fit_score,
-            createdAt: item.created_at,
-            intakeData: item.intake_data ? JSON.parse(item.intake_data) : null
-          }));
-
-          return new Response(JSON.stringify(formattedHistory), { 
+          const { getUserHistory } = await import('./analytics-service');
+          const history = await getUserHistory(userId, env, 50);
+          
+          return new Response(JSON.stringify(history), { 
             headers: corsHeaders() 
           });
         } catch (error) {
@@ -897,6 +857,20 @@ export default {
             },
             timestamp: new Date().toISOString(),
           };
+
+          // Log activity for analytics
+          try {
+            const { logUserActivity } = await import('./analytics-service');
+            await logUserActivity(userId, 'intake_submitted', {
+              intakeId,
+              recommendationId,
+              carrierCount: recommendations.length,
+              averageFit: recommendations.reduce((sum, r) => sum + (r.fitScore || 0), 0) / recommendations.length
+            }, env);
+          } catch (logError) {
+            console.warn('Failed to log activity:', logError);
+            // Don't fail the request if logging fails
+          }
 
           return new Response(JSON.stringify(response), {
             headers: corsHeaders(),
@@ -1063,19 +1037,19 @@ export default {
             // Continue without rate limiting if tables don't exist
           }
 
-          console.log(`Received verified Clerk webhook: ${event.type} from IP: ${clientIP}`);
+          console.log(`Received verified Clerk webhook: ${(event as any).type} from IP: ${clientIP}`);
 
           // Log webhook event (handle missing table gracefully)
           try {
             await env.DB.prepare(`
               INSERT INTO webhook_events (id, event_id, event_type, user_id, payload, status)
               VALUES (?, ?, ?, ?, ?, ?)
-            `).bind(
+            `            ).bind(
               crypto.randomUUID(),
-              event.id || 'unknown',
-              event.type,
-              event.data?.id || event.data?.user_id || null,
-              JSON.stringify(event.data || {}),
+              (event as any).id || 'unknown',
+              (event as any).type,
+              (event as any).data?.id || (event as any).data?.user_id || null,
+              JSON.stringify((event as any).data || {}),
               'processing'
             ).run();
           } catch (webhookLogError) {
@@ -1084,10 +1058,10 @@ export default {
           }
 
           // Handle organization events for team management
-          switch (event.type) {
+          switch ((event as any).type) {
             // User Events
             case 'user.created': {
-              const user = event.data;
+              const user = (event as any).data;
               console.log(`New user created: ${user.email_addresses?.[0]?.email_address || 'unknown'} (${user.id})`);
               
               // Send welcome email to new user
@@ -1098,7 +1072,7 @@ export default {
             }
 
             case 'user.updated': {
-              const user = event.data;
+              const user = (event as any).data;
               console.log(`User updated: ${user.email_addresses?.[0]?.email_address || 'unknown'} (${user.id})`);
               
               // Log user changes for audit trail
@@ -1108,7 +1082,7 @@ export default {
 
             // Organization Events
             case 'organization.created': {
-              const org = event.data;
+              const org = (event as any).data;
               console.log(`New organization created: ${org.name} (${org.id})`);
               
               // Send welcome email to organization admin
@@ -1119,7 +1093,7 @@ export default {
             }
 
             case 'organizationMembership.created': {
-              const membership = event.data;
+              const membership = (event as any).data;
               console.log(`User ${membership.public_user_data?.identifier} joined organization ${membership.organization.name}`);
               
               // Send welcome email to new team member
@@ -1130,7 +1104,7 @@ export default {
             }
 
             case 'organizationMembership.updated': {
-              const membership = event.data;
+              const membership = (event as any).data;
               console.log(`Organization membership updated: ${membership.public_user_data?.identifier} role changed to ${membership.role_name}`);
               
               // Send role change notification
@@ -1141,7 +1115,7 @@ export default {
             }
 
             case 'organizationInvitation.created': {
-              const invitation = event.data;
+              const invitation = (event as any).data;
               console.log(`Invitation sent to ${invitation.email_address} for organization`);
               
               // Send invitation email
@@ -1153,7 +1127,7 @@ export default {
 
             // Session Events
             case 'session.created': {
-              const session = event.data;
+              const session = (event as any).data;
               console.log(`Session created for user ${session.user_id}`);
               
               // Track user activity for engagement analytics
@@ -1162,7 +1136,7 @@ export default {
             }
 
             case 'session.revoked': {
-              const session = event.data;
+              const session = (event as any).data;
               console.log(`Session revoked for user ${session.user_id}`);
               
               // Send security notification for revoked sessions
@@ -1174,7 +1148,7 @@ export default {
 
             // Subscription Events
             case 'subscriptionItem.freeTrialEnding': {
-              const item = event.data;
+              const item = (event as any).data;
               console.log(`Free trial ending for subscription ${item.subscription_id}`);
               
               // Send trial ending notification
@@ -1185,7 +1159,7 @@ export default {
             }
 
             case 'subscriptionItem.pastDue': {
-              const item = event.data;
+              const item = (event as any).data;
               console.log(`Subscription past due for ${item.subscription_id}`);
               
               // Send payment reminder
@@ -1196,7 +1170,7 @@ export default {
             }
 
             case 'subscriptionItem.canceled': {
-              const item = event.data;
+              const item = (event as any).data;
               console.log(`Subscription canceled for ${item.subscription_id}`);
               
               // Send cancellation confirmation
@@ -1208,7 +1182,7 @@ export default {
 
             // Payment Events
             case 'paymentAttempt.created': {
-              const payment = event.data;
+              const payment = (event as any).data;
               console.log(`Payment attempt created: ${payment.status}`);
               
               // Send payment confirmation
@@ -1219,7 +1193,7 @@ export default {
             }
 
             case 'paymentAttempt.updated': {
-              const payment = event.data;
+              const payment = (event as any).data;
               console.log(`Payment attempt updated: ${payment.status}`);
               
               // Handle failed payments
@@ -1346,7 +1320,7 @@ async function logWebhookEvent(event: any, env: Env): Promise<void> {
     `).bind(
       event.id,
       event.type,
-      event.data?.id || event.data?.user_id || null,
+      (event as any).data?.id || (event as any).data?.user_id || null,
       JSON.stringify(event)
     ).run();
   } catch (error) {
