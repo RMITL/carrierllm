@@ -199,6 +199,10 @@ export const getUserUsage = async (): Promise<{
   status: string;
   recommendationsUsed: number;
   recommendationsLimit: number;
+  organizationId?: string;
+  organizationName?: string;
+  role?: string;
+  billingType?: 'individual' | 'organization';
 }> => {
   return withRetry(async () => {
     const userId = (window as any).Clerk?.user?.id;
@@ -208,7 +212,8 @@ export const getUserUsage = async (): Promise<{
         plan: 'Free',
         status: 'active',
         recommendationsUsed: 0,
-        recommendationsLimit: 5
+        recommendationsLimit: 5,
+        billingType: 'individual'
       };
     }
 
@@ -217,11 +222,29 @@ export const getUserUsage = async (): Promise<{
 
     // Map subscription data to expected format
     return {
-      plan: subscription.plan?.name || 'Free',
-      status: subscription.subscription?.status || 'active',
-      recommendationsUsed: subscription.usage?.current || 0,
-      recommendationsLimit: subscription.usage?.limit || 5
+      plan: subscription.plan || 'Free',
+      status: subscription.status || 'active',
+      recommendationsUsed: subscription.recommendationsUsed || 0,
+      recommendationsLimit: subscription.recommendationsLimit || 5,
+      organizationId: subscription.organizationId,
+      organizationName: subscription.organizationName,
+      role: subscription.role,
+      billingType: subscription.billingType || 'individual'
     };
+  });
+};
+
+/**
+ * Check if user can submit intake
+ */
+export const canSubmitIntake = async (): Promise<{
+  canSubmit: boolean;
+  reason?: string;
+  usage?: { used: number; limit: number };
+}> => {
+  return withRetry(async () => {
+    const response = await client.get('/intake/can-submit');
+    return response.data;
   });
 };
 

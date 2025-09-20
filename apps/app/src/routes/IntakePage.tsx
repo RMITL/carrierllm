@@ -3,7 +3,7 @@ import { useNavigate } from 'react-router-dom';
 import { useAuth, useUser } from '@clerk/clerk-react';
 import { Banner, Card, Button } from '@carrierllm/ui';
 import { OrionIntakeForm } from '../features/intake/OrionIntakeForm';
-import { submitOrionIntake, getUserUsage } from '../lib/api';
+import { submitOrionIntake, getUserUsage, canSubmitIntake } from '../lib/api';
 import { useFeatureAccess } from '../components/auth/FeatureGates';
 import type { OrionIntake } from '../types';
 import { useEffect, useState, useMemo } from 'react';
@@ -18,6 +18,15 @@ export const IntakePage = () => {
   const { data: usageData, isLoading: usageLoading, refetch: refetchUsage } = useQuery({
     queryKey: ['user-usage', user?.id],
     queryFn: getUserUsage,
+    enabled: !!user?.id,
+    staleTime: 30000,
+    refetchOnWindowFocus: false
+  });
+
+  // Check if user can submit intake
+  const { data: canSubmitData, isLoading: canSubmitLoading, refetch: refetchCanSubmit } = useQuery({
+    queryKey: ['can-submit-intake', user?.id],
+    queryFn: canSubmitIntake,
     enabled: !!user?.id,
     staleTime: 30000,
     refetchOnWindowFocus: false
@@ -41,6 +50,10 @@ export const IntakePage = () => {
     };
   }, [usageData, user, limits.recommendations]);
 
+  // Determine if user can submit intake
+  const canSubmit = canSubmitData?.canSubmit ?? true;
+  const cannotSubmitReason = canSubmitData?.reason;
+
   const { mutateAsync, isPending, isError, error } = useMutation({
     mutationFn: submitOrionIntake,
     onSuccess: async (data) => {
@@ -49,6 +62,7 @@ export const IntakePage = () => {
       
       // Refetch usage data to get updated count from API
       await refetchUsage();
+      await refetchCanSubmit();
       
       if (data.recommendationId) {
         navigate(`/results/${data.recommendationId}`, { state: data });
@@ -176,6 +190,23 @@ export const IntakePage = () => {
         />
       )}
 
+      {!canSubmit && cannotSubmitReason ? (
+        <Banner
+          variant="warning"
+          title="Usage Limit Reached"
+          description={cannotSubmitReason}
+          action={
+            <Button
+              variant="secondary"
+              size="sm"
+              onClick={() => navigate('/pricing')}
+            >
+              Upgrade Plan
+            </Button>
+          }
+        />
+      ) : null}
+
       {isError ? (
         <Banner
           variant="error"
@@ -187,7 +218,7 @@ export const IntakePage = () => {
       <OrionIntakeForm
         onSubmit={handleSubmit}
         isSubmitting={isPending}
-        disabled={hasReachedLimit}
+        disabled={!canSubmit || hasReachedLimit}
       />
     </div>
   );

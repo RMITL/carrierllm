@@ -656,6 +656,21 @@ export default {
         }
 
         try {
+          // Check if user can submit intake (usage limits)
+          const { canSubmitIntake } = await import('./billing-service');
+          const permissionCheck = await canSubmitIntake(userId, env);
+          
+          if (!permissionCheck.allowed) {
+            return new Response(JSON.stringify({ 
+              error: 'Access denied',
+              reason: permissionCheck.reason,
+              usage: permissionCheck.usage
+            }), { 
+              status: 403, 
+              headers: corsHeaders() 
+            });
+          }
+          
           const intakeData = await request.json() as any;
           console.log('Received intake data:', JSON.stringify(intakeData, null, 2));
           const recommendationId = 'rec-' + Date.now();
@@ -770,6 +785,15 @@ export default {
           } catch (logError) {
             console.warn('Failed to log activity:', logError);
             // Don't fail the request if logging fails
+          }
+
+          // Increment usage after successful submission
+          try {
+            const { incrementUsage } = await import('./billing-service');
+            await incrementUsage(userId, env);
+          } catch (usageError) {
+            console.warn('Failed to increment usage:', usageError);
+            // Don't fail the request if usage tracking fails
           }
 
           return new Response(JSON.stringify(response), {
@@ -1125,6 +1149,42 @@ export default {
         }
       }
 
+      // Check if user can submit intake (for frontend button state)
+      if (path === '/api/intake/can-submit' && method === 'GET') {
+        const userId = request.headers.get('X-User-Id');
+        if (!userId) {
+          return new Response(JSON.stringify({ 
+            canSubmit: false, 
+            reason: 'User ID required' 
+          }), { 
+            status: 401, 
+            headers: corsHeaders() 
+          });
+        }
+
+        try {
+          const { canSubmitIntake } = await import('./billing-service');
+          const permissionCheck = await canSubmitIntake(userId, env);
+          
+          return new Response(JSON.stringify({
+            canSubmit: permissionCheck.allowed,
+            reason: permissionCheck.reason,
+            usage: permissionCheck.usage
+          }), { 
+            headers: corsHeaders() 
+          });
+        } catch (error) {
+          console.error('Error checking intake permission:', error);
+          return new Response(JSON.stringify({ 
+            canSubmit: false,
+            reason: 'Error checking permissions'
+          }), { 
+            status: 500,
+            headers: corsHeaders() 
+          });
+        }
+      }
+
       // Get user subscription/usage info
       if (path.startsWith('/api/subscriptions/') && method === 'GET') {
         const userId = request.headers.get('X-User-Id');
@@ -1136,15 +1196,25 @@ export default {
         }
 
         try {
-          // For now, return default free tier data
-          // In a real implementation, this would query Clerk's billing API or a subscriptions table
+          const { getUserSubscription } = await import('./billing-service');
+          const subscription = await getUserSubscription(userId, env);
+          
+          // Format response to match frontend expectations
           const subscriptionData = {
-            plan: { name: 'Free' },
-            subscription: { status: 'active' },
+            plan: subscription.plan,
+            planName: subscription.planName,
+            subscription: { status: subscription.status },
             usage: { 
-              current: 0, 
-              limit: 5 
-            }
+              current: subscription.recommendationsUsed, 
+              limit: subscription.recommendationsLimit 
+            },
+            status: subscription.status,
+            recommendationsUsed: subscription.recommendationsUsed,
+            recommendationsLimit: subscription.recommendationsLimit,
+            organizationId: subscription.organizationId,
+            organizationName: subscription.organizationName,
+            role: subscription.role,
+            billingType: subscription.billingType
           };
 
           return new Response(JSON.stringify(subscriptionData), { 
